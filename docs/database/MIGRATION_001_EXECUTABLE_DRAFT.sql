@@ -3,7 +3,8 @@
 -- Target project ref: oihawkpbtgqxxliaamxs
 -- PostgreSQL 17 / Supabase
 --
--- REVIEW STATUS: executable draft committed for review; NOT applied.
+-- STATUS: applied successfully to target Supabase project on 2026-11-14.
+-- Supabase migration version: 20261114093442.
 -- All writes to identity, role assignments, memberships and project master
 -- data are intentionally server-side (service role only) in this foundation.
 -- Never expose a service-role/secret key to a browser.
