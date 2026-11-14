@@ -237,3 +237,20 @@ The dedicated Supabase project now has migrations 001–023 applied. Configurati
 - Important historical limitation: current snapshots flag post-cutoff project updates but do not reconstruct historical source values. Until immutable operational source history is implemented, calculations must flag values that cannot be proven as-of-cutoff rather than represent current values as historical truth.
 - No KPI engine migration, evaluator function, Edge Function, or runtime calculation has been implemented in this design step. No schema changes were applied. No users, projects, configuration sets or cycles exist, so end-to-end tests remain unavailable.
 - Next implementation step: implement the allowlisted evaluator and integrate it transactionally with snapshot building; add synthetic test fixtures and calculation/security tests; then apply reviewed migration(s), verify outputs and advisors, and commit exact SQL/source plus tests. Follow with immutable source history and full JWT/RLS tests.
+
+### KPI evaluator primitive — migrations 024–026 (14 November 2026)
+- Migration 024 applied: `20261114150452_migration_024_allowlisted_kpi_evaluator`.
+- Migrations 025 and 026 applied as corrective migrations: `20261114150511_migration_025_kpi_threshold_boundary_fix` and `20261114150523_migration_026_kpi_missing_input_status_fix`.
+- Added private immutable PostgreSQL function `private.evaluate_kpi_template_v1(text,jsonb,jsonb)`. It supports the six registered template families: count, calendar-day date variance, manual input, ratio, threshold-to-status, and weighted sum.
+- The evaluator accepts pre-resolved values only; it does not access operational tables, construct dynamic SQL, or accept executable expressions/table/column names. The source resolver is not yet implemented.
+- Missing required input returns `not_reported`; zero ratio denominator returns `insufficient_data`. Thresholds must be strictly ordered with a final unbounded band. Weighted inputs must have numeric weights in [0,1] summing to 1.
+- EXECUTE granted only to service_role; privilege checks verified service_role=true, authenticated=false, anon=false.
+- Synthetic SQL assertions passed for all six templates, threshold band selection and overflow, weighted progress example (55), zero denominator and missing values.
+- Security Advisor: no findings. Health Advisor: no findings. Performance Advisor: 91 INFO-level unused-index notices because there is no representative workload; no indexes removed.
+- GitHub source and artifacts committed:
+  - `supabase/migrations/20261114150452_migration_024_allowlisted_kpi_evaluator.sql`
+  - `supabase/migrations/20261114150511_migration_025_kpi_threshold_boundary_fix.sql`
+  - `supabase/migrations/20261114150523_migration_026_kpi_missing_input_status_fix.sql`
+  - `supabase/tests/kpi_template_evaluator.sql`
+  - `docs/database/KPI_CALCULATION_ENGINE.md`
+- **Scope limitation:** this is an isolated calculation primitive, not a complete KPI engine. `build_weekly_portfolio_snapshot` remains `not_implemented` for KPI calculation and inserts no metric rows. Static source adapters, configuration-driven resolution, metric lineage, dimension/project/portfolio aggregation, health logic and transactional snapshot integration remain outstanding. Date variance supports calendar days only. True historical as-of calculations remain blocked by missing immutable operational source history. No real users/projects/configurations exist for end-to-end tests.
