@@ -228,3 +228,12 @@ The dedicated Supabase project now has migrations 001–023 applied. Configurati
 ### UI governance decision
 - The user explicitly wants to participate in UI/UX decisions. Before frontend implementation, present the proposed visual direction, navigation, dashboard composition, screens and workflows for user review and agreement. Do not select a frontend framework or finalize significant UI/UX decisions unilaterally.
 - No frontend implementation or production deployment is authorized by this checkpoint update.
+
+### KPI calculation engine — design contract recorded (14 November 2026)
+- Repository design contract committed at `docs/design/CONFIGURABLE_KPI_CALCULATION_ENGINE.md` (commit `a3ab94f51206af655051046319783dead69dc013`).
+- Verified current Supabase state before design: migrations 001–023 are present in database history; reporting configuration tables and snapshot tables exist; six active formula-template families are registered (`count_v1`, `date_variance_v1`, `manual_input_v1`, `ratio_v1`, `threshold_status_v1`, `weighted_sum_v1`).
+- Verified `build_weekly_portfolio_snapshot` still sets `kpi_calculation_status='not_implemented'` and inserts no KPI metric rows. This is the primary implementation gap.
+- Design contract requires a finite allowlist, static source/field registry, validated operands/thresholds/weights, deterministic calculations, source lineage, exact configuration-version links, missing-data states that never default to Green, and transactional snapshot build/finalization.
+- Important historical limitation: current snapshots flag post-cutoff project updates but do not reconstruct historical source values. Until immutable operational source history is implemented, calculations must flag values that cannot be proven as-of-cutoff rather than represent current values as historical truth.
+- No KPI engine migration, evaluator function, Edge Function, or runtime calculation has been implemented in this design step. No schema changes were applied. No users, projects, configuration sets or cycles exist, so end-to-end tests remain unavailable.
+- Next implementation step: implement the allowlisted evaluator and integrate it transactionally with snapshot building; add synthetic test fixtures and calculation/security tests; then apply reviewed migration(s), verify outputs and advisors, and commit exact SQL/source plus tests. Follow with immutable source history and full JWT/RLS tests.
