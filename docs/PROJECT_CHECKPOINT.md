@@ -180,21 +180,24 @@ Existing project charter, PRD, architecture, data model, database design, securi
 - No configuration set, version, dimension, KPI or rule parameter has been seeded.
 - The `reporting-config-governance` Edge Function is deployed at version 3 with JWT verification enabled. It delegates to the atomic service-role-only PostgreSQL RPC introduced in Migration 008 and hardened in Migration 009. Database validation and audit insertion are transactionally coupled; positive end-to-end tests still require real Auth users and role assignments.
 - Weekly snapshot generation, finalization, correction recording and pg_cron scheduling are implemented through Migrations 010–012. KPI calculation and historical source-version reconstruction remain outstanding. Positive end-to-end role tests remain blocked by the absence of Auth users and role assignments.
-- Supabase Storage buckets/policies are not implemented.
-- No application frontend/backend code exists.
+- Secure document metadata, private Storage bucket and access policies are implemented in Migrations 021–022. Frontend document library and real-user upload/download tests remain outstanding.
+- Timeline read-model views are implemented in Migration 023; timeline UI, custom event management, filters/zoom and exports remain outstanding.
+- No application frontend exists. Backend foundations and selected Edge Functions/RPCs exist; operational CRUD workflows are not yet implemented.
 
 ## Next sequence
-1. Reconcile exact SQL source files for migrations 001–007 in the version-controlled migration directory; exact source files for migrations 001–004 still need to be archived/committed if not already present.
-2. Provision controlled non-production test identities and execute positive/negative JWT tests for all configuration actions, including project membership boundaries and separation of duties.
-3. Implement and test the governed KPI calculation engine against approved formula templates; then run an end-to-end cycle → close → build → finalize → correction scenario with controlled test users/configuration/project data.
-4. Add historical source versioning if exact as-of-cutoff reconstruction is required, then validate the cron job's first scheduled execution and failure/retry behavior.
-5. Build project operational schema: contracts, activities, milestones, invoices/payments, risks, licenses, updates and document metadata.
-6. Implement actual Auth test users and cross-project positive/negative RLS tests.
-7. Select frontend framework only after user discussion; then implement UI, timelines, CEO dashboard and exports.
-8. Update this checkpoint after every verified milestone.
+1. Implement the governed KPI/risk/financial calculation engine using only allowlisted calculation templates; calculate missing values as Not Reported rather than Green.
+2. Add immutable operational source history so weekly snapshots can reconstruct true as-of-cutoff project values, not merely flag post-cutoff changes.
+3. Provision controlled non-production Auth identities, effective-dated global roles, test projects and memberships; run positive/negative JWT/RLS tests across project, finance, document and executive roles.
+4. Exercise a full test cycle: publish configuration → create/close reporting cycle → calculate metrics → build/finalize snapshot → record correction; verify scheduled processing and failure/retry.
+5. Complete operational CRUD APIs and document upload/download flows, including signed URL expiry and audit-event tests.
+6. Add timeline custom-event/category support, then validate event filtering, date-basis selection and drill-through against real test records.
+7. Present UI direction, navigation, screen inventory and workflows to the user for review. Do not implement frontend until the user agrees; frontend framework/Lovable choice remains open.
+8. Implement CEO dashboard, interactive timelines and exports only after UI approval; perform regression and security tests.
+9. Reconcile migration source archive for early migrations 001–005 and maintain exact migration-to-repository parity.
+10. Update this checkpoint after each verified milestone.
 
 ## Current verified state
-The dedicated Supabase project now has migrations 001–020 applied. Configuration governance is transactional and deployed in Edge Function version 3. Weekly reporting cycle/snapshot RPCs and correction recording are deployed; the weekly-reporting-snapshots Edge Function is ACTIVE at version 1; pg_cron is scheduled every 15 minutes to process due cycles. The operational data model for contracts, schedule, finance, risks, licenses, weekly updates and management decisions is now deployed, with RLS and private audit triggers. The scheduler processor's direct smoke test returned zero processed cycles because no cycles exist. There are still zero Auth users, active global role assignments, projects, reporting configuration sets or reporting cycles. KPI evaluation, change-request/schedule impact and re-baseline workflows, document storage, exact historical as-of reconstruction, positive end-to-end tests and frontend/UI remain incomplete. Existing Staff Time & Performance resources have not been intentionally modified.
+The dedicated Supabase project now has migrations 001–023 applied. Configuration governance is transactional and deployed in Edge Function version 3. Weekly reporting cycle/snapshot RPCs and correction recording are deployed; the weekly-reporting-snapshots Edge Function is ACTIVE at version 1; pg_cron is scheduled every 15 minutes to process due cycles. The operational data model for contracts, schedule, finance, risks, licenses, weekly updates and management decisions is now deployed, with RLS and private audit triggers. The scheduler processor's direct smoke test returned zero processed cycles because no cycles exist. There are still zero Auth users, active global role assignments, projects, reporting configuration sets or reporting cycles. KPI evaluation, exact historical as-of reconstruction, positive end-to-end tests, full operational CRUD workflows, document UI, timeline UI/custom events, CEO dashboard, exports and frontend remain incomplete. CR Management is explicitly deferred to a future release. Existing Staff Time & Performance resources have not been intentionally modified.
 
 
 ### Migrations 021–022 — secure project document management foundation
