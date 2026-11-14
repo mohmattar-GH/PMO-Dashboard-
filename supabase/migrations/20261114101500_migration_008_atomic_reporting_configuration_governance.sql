@@ -285,9 +285,8 @@ begin
   return jsonb_build_object('version',v_after);
 end;
 $function$
+;
 
-
-alter function public.manage_reporting_configuration(uuid,text,jsonb,text) security invoker;
 revoke all on function public.manage_reporting_configuration(uuid,text,jsonb,text) from public,anon,authenticated;
 grant execute on function public.manage_reporting_configuration(uuid,text,jsonb,text) to service_role;
 
