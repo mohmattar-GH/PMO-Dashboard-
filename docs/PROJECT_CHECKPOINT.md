@@ -45,6 +45,17 @@
 - Supabase RLS on all exposed tables; trusted role authorization; no service-role key in frontend.
 - No production publishing/deployment without explicit user approval.
 
+## Additional architecture/security documents committed on 14 November 2026
+
+5. `docs/architecture/SECURITY_MODEL.md` — security boundaries, role model, RLS principles, sensitive data, audit, and authorization tests.
+   - Commit: `f7f9862b5bf26c2d05bfcdc5cb8433f42370f477`
+6. `docs/architecture/DATABASE_SCHEMA_DESIGN.md` — detailed relational schema design for project, contract, schedule, finance, risk, configuration, snapshots and timelines.
+   - Commit: `d0f93a6287fa202a17eb1d176805ff439c7468b6`
+7. `docs/security/PERMISSION_MATRIX.md` — role/entity permission matrix, data classification, workflow permissions and RLS test cases.
+   - Commit: `f450b3b17b37d18594df355e695800d6a654c0d5`
+8. `docs/database/MIGRATION_001_DESIGN.md` — proposed first migration scope, table definitions, security approach and acceptance criteria.
+   - Commit: `d2b33c1386d2760df867a971a72549f07ceacd4b`
+
 ## Not implemented yet
 
 - Application code/UI and framework selection.
