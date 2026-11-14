@@ -23,3 +23,14 @@ Synthetic database assertions passed for all six templates, threshold selection 
 7. End-to-end tests with real Auth identities, projects, published configurations and weekly cycles.
 
 This is an isolated calculation primitive, not yet a production-ready KPI reporting pipeline.
+
+## Configuration parameter compatibility
+
+Migration 027 aligned evaluator inputs with the required parameter names in the existing formula-template registry:
+- `count_v1`: `source` is restricted to the static source allowlist; resolved count is supplied as `record_count`.
+- `date_variance_v1`: `baseline_date` and `comparison_date` parameters name pre-resolved input keys; `day_basis` currently supports `calendar_days`.
+- `manual_input_v1`: `input_field` names a pre-resolved numeric input key.
+- `ratio_v1`: `numerator` and `denominator` name pre-resolved numeric input keys.
+- `threshold_status_v1`: `value` names a numeric input key and `thresholds` contains ordered bands.
+- `weighted_sum_v1`: `values` contains pre-resolved input keys and `weights` contains matching numeric weights.
+Synthetic assertions were rerun against this configuration-compatible contract. This still does not implement source resolution from `source_mapping`.
