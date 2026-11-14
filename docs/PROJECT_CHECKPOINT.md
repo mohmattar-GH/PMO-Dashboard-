@@ -254,3 +254,11 @@ The dedicated Supabase project now has migrations 001–023 applied. Configurati
   - `supabase/tests/kpi_template_evaluator.sql`
   - `docs/database/KPI_CALCULATION_ENGINE.md`
 - **Scope limitation:** this is an isolated calculation primitive, not a complete KPI engine. `build_weekly_portfolio_snapshot` remains `not_implemented` for KPI calculation and inserts no metric rows. Static source adapters, configuration-driven resolution, metric lineage, dimension/project/portfolio aggregation, health logic and transactional snapshot integration remain outstanding. Date variance supports calendar days only. True historical as-of calculations remain blocked by missing immutable operational source history. No real users/projects/configurations exist for end-to-end tests.
+
+### Migration 027 — align evaluator contract with configuration templates
+- Applied migration `20261114150610_migration_027_align_evaluator_with_config_schema`.
+- Corrected the evaluator contract to use the same required parameter names already enforced by `private.reporting_formula_templates`: count source, date input keys/day basis, manual input key, ratio operand keys, threshold input key/bands, and weighted input keys/weights.
+- Count source values are checked against a fixed allowlist; no dynamic table/column execution is introduced. Other templates consume pre-resolved JSON input keys. Source mapping resolution remains a separate pending backend component.
+- Re-ran synthetic assertions against all six configuration-compatible parameter shapes, including weighted example 55, threshold selection, missing count and zero denominator; assertions passed.
+- GitHub migration source committed at `supabase/migrations/20261114150610_migration_027_align_evaluator_with_config_schema.sql`; test file and KPI engine documentation updated.
+- Evaluator remains a primitive only. Weekly snapshot generation still does not invoke it or populate `snapshot_metric_values`. Static source adapters, metric lineage, aggregation, health calculation and transactional snapshot integration remain pending.
