@@ -74,7 +74,7 @@ Existing project charter, PRD, architecture, data model, database design, securi
 - Snapshot lifecycle is append-only: portfolio snapshots can transition from building to finalized once; child project snapshots, metric values and configuration links can only be inserted while the parent is building and cannot be updated/deleted. Corrections are separate records with reason and approver.
 - Reporting-cycle rows linked to a snapshot cannot be changed or deleted. Configuration-version links retain the exact rule versions used by a snapshot.
 - Verification: migration history confirms version 006; catalog query confirms RLS enabled on all six tables and one scoped SELECT policy each; Supabase Security and Health advisors returned no findings.
-- Important limitation: this is the storage/governance foundation only. No cycle-generation service, data extraction, KPI calculation engine, automatic snapshot finalization, scheduler, correction workflow or user-level JWT test has been implemented. The snapshot tables currently have no data.
+- At initial application this was the storage/governance foundation only. Cycle lifecycle, snapshot generation/finalization, scheduled processing and correction recording were added later in Migrations 010–012. KPI calculation and user-level positive JWT testing remain outstanding. Snapshot tables currently have no data.
 
 ### Migration 007 — reporting read-policy corrections
 - Version: `20261114100228`; name: `migration_007_reporting_read_policy_corrections`.
@@ -103,24 +103,59 @@ Existing project charter, PRD, architecture, data model, database design, securi
 - Verification confirmed all four hardening checks in the database function definition; Security Advisor returned no findings.
 - Positive authenticated action tests remain blocked because the project currently has no Auth users or role assignments.
 
+### Migration 010 — weekly cycle lifecycle, snapshot generation and corrections
+- Applied version: `20261114100957`; name: `migration_010_weekly_snapshot_generation_and_corrections`.
+- Exact source committed at `supabase/migrations/20261114100957_migration_010_weekly_snapshot_generation_and_corrections.sql`.
+- Added service-role-only SECURITY INVOKER RPCs for cycle creation, cycle closure, snapshot generation, snapshot finalization and correction recording. RPCs have empty search_path and are not executable by anon/authenticated roles.
+- Cycle creation and closure require an active effective-dated platform_admin role; closure is blocked until cutoff. Snapshot correction requires platform_admin or configuration_approver and a reason.
+- Snapshot generation requires a published global reporting configuration effective at the cycle cutoff, captures project records and records global/project configuration-version links.
+- Finalization validates project capture counts, transitions the portfolio snapshot from building to finalized, and transitions the cycle from closed to snapshotted in one transaction.
+- Correction records link a finalized replacement snapshot for the same period, as-of date and timezone; the original snapshot is not modified.
+
+### Migration 011 — source cutoff integrity
+- Applied version: `20261114101116`; name: `migration_011_snapshot_source_cutoff_integrity`.
+- Source committed at `supabase/migrations/20261114101116_migration_011_snapshot_source_cutoff_integrity.sql`.
+- Projects created on/before the cutoff are captured even if subsequently updated; each payload flags whether the captured project state is actually as of the cutoff. Portfolio summary reports when post-cutoff source changes are present. This avoids silently omitting projects but does not reconstruct historical project values.
+- The snapshot configuration resolver was further hardened in Migration 012 to require versions to have been created and published by the cutoff.
+
+### Migration 012 — scheduled weekly snapshot processing
+- Applied version: `20261114101226`; name: `migration_012_scheduled_weekly_snapshot_processing`.
+- Source committed at `supabase/migrations/20261114101226_migration_012_scheduled_weekly_snapshot_processing.sql`.
+- Enabled `pg_cron` and scheduled `weekly-portfolio-snapshot-processor` every 15 minutes. It processes pre-created open cycles after their cutoff: close → build → finalize.
+- Added private `reporting_snapshot_job_runs` for success/failure tracking. Each cycle attempt is isolated; failed attempts roll back the cycle changes and record the error for later retry.
+- Processor is SECURITY INVOKER, empty search_path, EXECUTE granted only to PostgreSQL `postgres`; it is not a public API.
+- Smoke test of the processor returned zero processed cycles (expected because no cycles exist). Cron job is active; no actual scheduled run record had appeared at verification time.
+- Updated effective configuration selection to include only versions created/published by the cutoff and effective at that cutoff.
+
+### Migration 013 — snapshot foreign-key indexes
+- Applied version: `20261114101258`; name: `migration_013_snapshot_foreign_key_indexes`.
+- Source committed at `supabase/migrations/20261114101258_migration_013_snapshot_foreign_key_indexes.sql`.
+- Added five indexes for snapshot/job-run foreign keys identified by the performance advisor.
+
+### Weekly reporting Edge Function
+- `weekly-reporting-snapshots` deployed ACTIVE at version 1 with JWT verification enabled.
+- Source committed at `supabase/functions/weekly-reporting-snapshots/index.ts`.
+- Exposes create_cycle, close_cycle, build_snapshot, finalize_snapshot and record_correction actions. It validates user JWTs and delegates privileged writes to the restricted database RPCs.
+- Detailed implementation and limits: `docs/database/WEEKLY_REPORTING_SNAPSHOT_PIPELINE.md`.
+
 ## Security and implementation limitations
 - No actual end-to-end RLS/JWT authorization test has been run.
 - No Auth users or role assignments have been provisioned.
 - No configuration set, version, dimension, KPI or rule parameter has been seeded.
 - The `reporting-config-governance` Edge Function is deployed at version 3 with JWT verification enabled. It delegates to the atomic service-role-only PostgreSQL RPC introduced in Migration 008 and hardened in Migration 009. Database validation and audit insertion are transactionally coupled; positive end-to-end tests still require real Auth users and role assignments.
-- Weekly snapshot storage and database immutability controls exist after Migration 006; generation pipeline, KPI calculations, scheduler, correction workflow and end-to-end role tests remain outstanding.
+- Weekly snapshot generation, finalization, correction recording and pg_cron scheduling are implemented through Migrations 010–012. KPI calculation and historical source-version reconstruction remain outstanding. Positive end-to-end role tests remain blocked by the absence of Auth users and role assignments.
 - Supabase Storage buckets/policies are not implemented.
 - No application frontend/backend code exists.
 
 ## Next sequence
 1. Reconcile exact SQL source files for migrations 001–007 in the version-controlled migration directory; exact source files for migrations 001–004 still need to be archived/committed if not already present.
 2. Provision controlled non-production test identities and execute positive/negative JWT tests for all configuration actions, including project membership boundaries and separation of duties.
-3. Implement and test the governed KPI calculation engine against approved formula templates, then build transactional weekly snapshot generation, exact configuration resolution, immutable finalization and correction-chain service.
-4. Provision test Auth identities and execute positive/negative JWT/RLS tests, including cross-project isolation and executive access.
+3. Implement and test the governed KPI calculation engine against approved formula templates; then run an end-to-end cycle → close → build → finalize → correction scenario with controlled test users/configuration/project data.
+4. Add historical source versioning if exact as-of-cutoff reconstruction is required, then validate the cron job's first scheduled execution and failure/retry behavior.
 5. Build project operational schema: contracts, activities, milestones, invoices/payments, risks, licenses, updates and document metadata.
 6. Implement actual Auth test users and cross-project positive/negative RLS tests.
 7. Select frontend framework only after user discussion; then implement UI, timelines, CEO dashboard and exports.
 8. Update this checkpoint after every verified milestone.
 
 ## Current verified state
-The dedicated Supabase project now has migrations 001–009 applied. The configuration data model and transactional governance RPC now exist, and the governance Edge Function is deployed at version 3. Positive end-to-end user tests, a KPI calculation engine, weekly snapshot generation pipeline, operational modules and UI remain incomplete. Existing Staff Time & Performance resources have not been intentionally modified.
+The dedicated Supabase project now has migrations 001–013 applied. Configuration governance is transactional and deployed in Edge Function version 3. Weekly reporting cycle/snapshot RPCs and correction recording are deployed; the weekly-reporting-snapshots Edge Function is ACTIVE at version 1; pg_cron is scheduled every 15 minutes to process due cycles. The scheduler processor's direct smoke test returned zero processed cycles because no cycles exist. There are still zero Auth users, active global role assignments, projects, reporting configuration sets or reporting cycles. KPI evaluation, operational modules, exact historical as-of reconstruction, positive end-to-end tests and frontend/UI remain incomplete. Existing Staff Time & Performance resources have not been intentionally modified.
