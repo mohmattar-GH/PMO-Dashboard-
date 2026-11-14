@@ -1,0 +1,1 @@
+-- Migration 025 threshold-boundary correction. The final canonical evaluator definition is consolidated in migration 024 source archive. Hosted correction: first matching ordered band wins; values above finite bounds use the final null-bound band.\n
