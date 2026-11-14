@@ -34,3 +34,90 @@ Migration 027 aligned evaluator inputs with the required parameter names in the 
 - `threshold_status_v1`: `value` names a numeric input key and `thresholds` contains ordered bands.
 - `weighted_sum_v1`: `values` contains pre-resolved input keys and `weights` contains matching numeric weights.
 Synthetic assertions were rerun against this configuration-compatible contract. This still does not implement source resolution from `source_mapping`.
+
+## Implemented source-resolution and snapshot integration — migrations 028–032
+
+The KPI pipeline now has a trusted backend source resolver and is wired into snapshot creation through an `AFTER INSERT` trigger on `project_snapshots`. Snapshot creation, KPI resolution, metric inserts and project/portfolio rollup updates share the same database transaction. A calculation error aborts the snapshot build transaction.
+
+### Source mapping contract
+
+For templates that consume named inputs, configure `source_mapping.inputs` as an object keyed by the input names used in `parameters`:
+
+```json
+{
+  "inputs": {
+    "baseline_due": {
+      "source": "activities",
+      "field": "baseline_due_date",
+      "aggregate": "max"
+    },
+    "forecast_due": {
+      "source": "activities",
+      "field": "forecast_due_date",
+      "aggregate": "max"
+    }
+  }
+}
+```
+
+The corresponding date-variance parameters refer to `baseline_due` and `forecast_due`, with `day_basis: "calendar_days"`.
+
+Supported aggregates:
+- `count`: count source records.
+- `sum` and `avg`: numeric fields only.
+- `min` and `max`: deterministic text ordering; numeric-looking results are returned as numbers.
+- `value`: only returns a value when exactly one source row exists. Multiple rows remain missing rather than silently selecting one.
+
+The `count_v1` template uses its configured `source` parameter directly and does not require an input map.
+
+### Source registry
+
+The static registry currently supports:
+- `projects`
+- `activities`
+- `milestones`
+- `invoices`
+- `cash_transactions`
+- `payment_allocations`
+- `risks`
+- `licenses`
+- `weekly_updates`
+- `management_decisions`
+- `contract_deliverables`
+- `contracts`
+- `financial_terms`
+
+Each source has an explicit field allowlist. Configuration values are never used as SQL identifiers. The resolver supports one project at a time, a maximum of 5,000 source rows per input, and includes up to 100 source record IDs in lineage. Custom filters, joins and arbitrary source expressions are not supported.
+
+Payment allocation records are interpreted as of cutoff using their creation and reversal timestamps. Cash transactions are treated as immutable source records.
+
+### Cutoff integrity
+
+For sources with `updated_at`, if a record existed by the cutoff but was modified after it, the resolver marks the affected KPI `not_reported` with a `not_reconstructable` lineage status. It does not use the newer value as if it existed at the cutoff. Records created after the cutoff are excluded. This is a deliberate safe limitation until immutable operational source history is implemented.
+
+### Snapshot outputs
+
+- Each active KPI is resolved using the effective linked configuration. A project-scoped KPI definition overrides a global definition with the same KPI code.
+- Metric rows now retain `configuration_version_id`, `formula_template_code`, and `source_cutoff`, alongside source record lineage.
+- KPI metrics are inserted during project snapshot creation; a calculation failure rolls back the snapshot transaction.
+- Project snapshot payloads include KPI calculation status, missing/insufficient/not-reconstructable counts, and per-dimension weighted values/statuses.
+- Portfolio summary includes KPI calculation status and project coverage counts.
+- Dimension weighted values are calculated only when all active KPI weights are present, sum to 1, and all numeric inputs are available. Otherwise the dimension is explicitly `weights_not_configured` or `insufficient_data`.
+- Overall calculated project health remains `not_reported`. A configurable dimension-to-health aggregation/status mapping and complete health override workflow have not yet been implemented.
+
+### Verification performed after migrations 028–032
+
+- Synthetic SQL assertions passed for source mapping resolution on an empty project, missing values, payment-allocation field allowlisting, count-source allowlisting, weighted progress example (55), and threshold status selection.
+- Privilege checks confirmed the calculation entry point is executable by `service_role` and not by `authenticated` or `anon`.
+- Snapshot calculation trigger exists; `snapshot_metric_values` has RLS enabled.
+- Security Advisor: no findings. Health Advisor: no findings.
+- Performance Advisor: no unindexed-FK finding after adding the configuration-version index. Remaining notices are INFO-level unused-index observations due to no representative workload.
+- Full snapshot integration with real Auth users, projects and published configurations has not been run: the dedicated project currently has no provisioned users/projects/configurations.
+
+### Remaining work
+
+1. Provision controlled test identities, project records and a published test configuration, then run positive and negative JWT/RLS tests and a full weekly snapshot build/finalize test.
+2. Add immutable source-history tables/triggers so changed source rows can be reconstructed for historical cutoffs rather than flagged.
+3. Implement configurable dimension-to-project-health aggregation, thresholds, critical overrides and reasoned PM override separation.
+4. Add richer source filters and source definitions only through reviewed static adapters.
+5. Reconcile and commit the exact historical SQL source for migrations 028 and 029. Migrations 030–032 and this implementation note are committed; do not assume the earlier two migration source files are already present in GitHub.
