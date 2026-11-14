@@ -68,6 +68,25 @@
 - Structural verification SQL is committed; actual role-based authorization tests remain outstanding and require test users/projects.
 - Deployment gate: create CLI migration in repository, review, apply only to `oihawkpbtgqxxliaamxs`, then verify schema/grants/RLS and run advisors and negative access tests.
 
+## Supabase Migration 001 and 002 applied — 14 November 2026
+
+- Target verified: `Executive PPM Platform`, ref `oihawkpbtgqxxliaamxs`, PostgreSQL 17.11, status `ACTIVE_HEALTHY`.
+- Migration 001 applied: version `20261114093442`, name `migration_001_identity_access_project_foundation`.
+- Migration 002 applied: version `20261114093557`, name `migration_002_foreign_key_indexes`.
+- Created seven public tables: `app_role_definitions`, `user_profiles`, `user_global_role_assignments`, `clients`, `portfolios`, `projects`, `project_memberships`.
+- Created private `security_audit_events` table.
+- All eight tables verified with RLS enabled.
+- Nine application role definitions seeded. No user profiles, role assignments, clients, portfolios, projects or memberships have been provisioned.
+- Policies verified: authenticated read policies on the role catalogue, own profile/role assignment, project membership and project rows; self profile update is column-limited to display_name/job_title.
+- Grant inspection found no `anon` table privileges on these tables. Authenticated has only the intended table SELECT grants; profile UPDATE is restricted to display_name/job_title at column level. Service-role grants are server-side only.
+- Migration 002 adds six foreign-key indexes flagged by the first performance advisor run.
+- Security advisor: one INFO finding remains for `private.security_audit_events` having RLS enabled but no policies. This is intentional: the schema is not exposed to the Data API; anon/authenticated have no access; service_role has explicit SELECT/INSERT and bypasses RLS. Keep this documented and reassess if private-schema access model changes.
+- Performance advisor after Migration 002: only unused-index INFO findings remain. With no operational workload/data, these are not actionable yet; review after realistic query usage.
+- Health advisor: no findings.
+- Important limitation: role-based negative tests with actual Auth identities and two projects have NOT been run. Structural/policy/grant checks are not a substitute for end-to-end JWT/RLS tests.
+- Supabase migration CLI/local timestamped `supabase/migrations` files are still not created in the repository. The applied migration versions are recorded by Supabase and the corresponding SQL artifacts remain under `docs/database`; reconcile a proper CLI migration workflow before normalizing local development.
+- Existing Staff Time & Performance Supabase project and `project-draft` GitHub repository were not modified.
+
 ## Not implemented yet
 
 - Application code/UI and framework selection.
