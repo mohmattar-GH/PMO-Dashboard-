@@ -138,6 +138,30 @@ Existing project charter, PRD, architecture, data model, database design, securi
 - Exposes create_cycle, close_cycle, build_snapshot, finalize_snapshot and record_correction actions. It validates user JWTs and delegates privileged writes to the restricted database RPCs.
 - Detailed implementation and limits: `docs/database/WEEKLY_REPORTING_SNAPSHOT_PIPELINE.md`.
 
+### Migration 014 — operational project records
+- Applied version: `20261114101917`; source: `supabase/migrations/20261114101917_migration_014_operational_project_records.sql`.
+- Added 13 operational tables for contracts/deliverables, financial terms, milestones, activities/dependencies, invoices, cash transactions/payment allocations, risks, licenses, weekly updates and management decisions.
+- Includes same-project composite foreign keys for contract/milestone/activity/invoice/payment relationships; separate baseline, approved revised, forecast and actual dates; progress bounds; risk data; payment allocations; and weekly management reporting fields.
+- Enabled RLS on all operational tables. Added role-scoped project and finance read/write policies. Project managers/admins manage core records; finance roles manage financial records; assigned team leads update assigned activities.
+- Executive viewers currently have read access to finance records in addition to portfolio/project reporting. This is a policy choice to review with the final data-classification requirements.
+
+### Migration 015 — operational audit and FK indexes
+- Applied version: `20261114101943`; source: `supabase/migrations/20261114101943_migration_015_operational_audit_and_fk_indexes.sql`.
+- Added 30 indexes for operational foreign keys flagged by the performance advisor.
+- Added private audit capture triggers to all 13 operational tables; before/after record JSON and actor/action/entity/project are recorded in `private.security_audit_events`.
+- Revoked DELETE privilege from authenticated users for all operational tables.
+
+### Migration 016 — operational RLS policy optimization
+- Applied version: `20261114102007`; source: `supabase/migrations/20261114102007_migration_016_operational_policy_optimization.sql`.
+- Split SELECT, INSERT and UPDATE policies to avoid overlapping permissive SELECT policies. Combined project activity update authorization for PM/admin and assigned team leads.
+- Performance Advisor no longer reports unindexed foreign keys or multiple permissive policies. Remaining notices are INFO-level unused indexes because there is no representative workload.
+
+### Migration 017 — configurable risk and invoice status rules
+- Applied version: `20261114102027`; source: `supabase/migrations/20261114102027_migration_017_configurable_risk_and_invoice_status_rules.sql`.
+- Removed the fixed 1–5 ceiling and generated probability×impact risk score. Probability/impact are positive integer inputs; risk score is nullable and only trusted backend/database roles can set it pending the governed calculation engine.
+- Removed hard-coded invoice status CHECK list so future status mappings remain configuration-driven.
+- Operational schema details and limitations: `docs/database/OPERATIONAL_PROJECT_DATA_MODEL.md`.
+
 ## Security and implementation limitations
 - No actual end-to-end RLS/JWT authorization test has been run.
 - No Auth users or role assignments have been provisioned.
@@ -158,4 +182,4 @@ Existing project charter, PRD, architecture, data model, database design, securi
 8. Update this checkpoint after every verified milestone.
 
 ## Current verified state
-The dedicated Supabase project now has migrations 001–013 applied. Configuration governance is transactional and deployed in Edge Function version 3. Weekly reporting cycle/snapshot RPCs and correction recording are deployed; the weekly-reporting-snapshots Edge Function is ACTIVE at version 1; pg_cron is scheduled every 15 minutes to process due cycles. The scheduler processor's direct smoke test returned zero processed cycles because no cycles exist. There are still zero Auth users, active global role assignments, projects, reporting configuration sets or reporting cycles. KPI evaluation, operational modules, exact historical as-of reconstruction, positive end-to-end tests and frontend/UI remain incomplete. Existing Staff Time & Performance resources have not been intentionally modified.
+The dedicated Supabase project now has migrations 001–017 applied. Configuration governance is transactional and deployed in Edge Function version 3. Weekly reporting cycle/snapshot RPCs and correction recording are deployed; the weekly-reporting-snapshots Edge Function is ACTIVE at version 1; pg_cron is scheduled every 15 minutes to process due cycles. The operational data model for contracts, schedule, finance, risks, licenses, weekly updates and management decisions is now deployed, with RLS and private audit triggers. The scheduler processor's direct smoke test returned zero processed cycles because no cycles exist. There are still zero Auth users, active global role assignments, projects, reporting configuration sets or reporting cycles. KPI evaluation, transactional finance workflows, approved variation/change-request and re-baseline workflows, document storage, exact historical as-of reconstruction, positive end-to-end tests and frontend/UI remain incomplete. Existing Staff Time & Performance resources have not been intentionally modified.
