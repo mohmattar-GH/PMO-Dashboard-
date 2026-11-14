@@ -293,3 +293,30 @@ The dedicated Supabase project now has migrations 001–023 applied. Configurati
 5. Continue with KPI coverage/portfolio metrics, then operational CRUD and UI only after the user's UI/UX proposal review.
 
 CR Management remains explicitly deferred to a future release. Do not build its module/workflow/UI in this release.
+
+### Migration source reconciliation and full synthetic snapshot test — migrations 028–039 (14 November 2026)
+- Reconstructed and committed migration source files 028 and 029 from the live applied database definitions and schema. They are source reconstructions, not recovery of the original local SQL files; clean replay remains to be independently validated.
+- Corrected migration 032 filename in GitHub to match applied Supabase version `20261114161839`.
+- Applied migration 033 so weekly snapshot build/finalize RPC responses expose actual KPI status instead of stale `not_implemented`.
+- Applied migrations 034–039 to resolve the append-only snapshot guard conflict with the KPI snapshot trigger:
+  - Service-role build workflow may update only explicitly allowed project KPI payload keys during calculation.
+  - Service-role build workflow may update only approved source-capture/KPI summary keys on a portfolio snapshot while it is building.
+  - Project snapshot fields outside the KPI payload allowlist remain immutable.
+  - Snapshot metric rows remain immutable.
+  - Finalized snapshots remain immutable except for the controlled building-to-finalized transition.
+  - Migration 037 is a temporary diagnostic revision; migration 038 supersedes it with the final allowlisted payload guard. Both are retained in repository migration history for replay.
+- **Full synthetic database snapshot test passed:** created a temporary Auth identity, platform-admin role assignment, synthetic project/activity, published global config, dimension, KPI and closed reporting cycle inside one transaction; invoked actual weekly build and finalize RPCs; asserted KPI metric = 1/status calculated, dimension = calculated, and finalization = finalized/status calculated.
+- Test transaction was rolled back. Follow-up verification confirmed zero persisted synthetic projects, cycles, Auth users or KPI metric rows.
+- This is a SQL/database integration test under a simulated service-role database session, not a real Edge Function/JWT E2E test.
+- Supabase advisors after migrations 033–039: Security no findings; Health no findings; Performance has 87 INFO-level unused-index notices. No indexes were removed.
+- GitHub now contains migrations 028–039 and updated `docs/database/KPI_CALCULATION_ENGINE.md`.
+
+### Updated next steps
+1. Validate clean migration replay from the committed repository in an isolated database/branch when an approved/cost-free environment is available.
+2. Run real Edge Function/JWT and role-specific RLS tests using controlled Auth identities.
+3. Implement immutable operational source history for true historical as-of reporting.
+4. Implement configurable dimension-to-project-health aggregation, thresholds, critical overrides and reasoned PM override handling.
+5. Continue portfolio KPI rollups and data completeness, then operational CRUD.
+6. Before frontend work, present the UI direction/navigation/screens/workflows for user review and approval.
+
+CR Management remains explicitly deferred to a future release. Existing Staff Time & Performance resources remain untouched.
