@@ -22,6 +22,15 @@
 - Submit/approve/publish/supersede transitions lock the version row, verify expected current status and write the audit record in the same transaction.
 - No arbitrary SQL or user-supplied executable formula is evaluated.
 
+## Migration 009 — rule validation hardening
+- Applied version: `20261114100642`; name: `migration_009_reporting_rule_validation_hardening`.
+- Source: `supabase/migrations/20261114100642_migration_009_reporting_rule_validation_hardening.sql`.
+- Formula-template metadata now enforces required parameter keys for each KPI template.
+- KPI references must point to active dimensions; weighted KPIs must be assigned to an active dimension.
+- Rule parameters now receive type validation for number, integer, text, boolean, date and duration values. Numeric parameters support configured min/max bounds; all parameter types can use configured enumerated allowed values.
+- Catalog/source checks confirmed the new validations are present in the deployed function. Security Advisor returned no findings.
+- Full action-level tests remain blocked until test Auth users and effective-dated role assignments are provisioned.
+
 ## Supported actions
 All requests require a valid Supabase user JWT and a non-empty reason (8–1000 characters).
 - `create_draft`: create a global/project configuration set and initial draft version, or create a new draft version in an existing set.
