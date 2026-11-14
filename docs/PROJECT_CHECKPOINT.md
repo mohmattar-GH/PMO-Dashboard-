@@ -76,24 +76,31 @@ Existing project charter, PRD, architecture, data model, database design, securi
 - Verification: migration history confirms version 006; catalog query confirms RLS enabled on all six tables and one scoped SELECT policy each; Supabase Security and Health advisors returned no findings.
 - Important limitation: this is the storage/governance foundation only. No cycle-generation service, data extraction, KPI calculation engine, automatic snapshot finalization, scheduler, correction workflow or user-level JWT test has been implemented. The snapshot tables currently have no data.
 
+### Migration 007 — reporting read-policy corrections
+- Version: `20261114100228`; name: `migration_007_reporting_read_policy_corrections`.
+- Applied successfully and SQL source committed at `supabase/migrations/20261114100228_migration_007_reporting_read_policy_corrections.sql`.
+- Corrected a global configuration-set SELECT policy correlation that previously compared the version's configuration_set_id to the version row's own id rather than the parent set id.
+- Tightened project-scoped snapshot configuration-lineage reads so project membership must match a project snapshot within the same portfolio snapshot.
+- Verified the corrected policy definition in PostgreSQL; Security advisor returned no findings after the migration.
+
 ## Security and implementation limitations
 - No actual end-to-end RLS/JWT authorization test has been run.
 - No Auth users or role assignments have been provisioned.
 - No configuration set, version, dimension, KPI or rule parameter has been seeded.
-- No automatic audit triggers/service workflow, approval workflow, configuration validation engine or KPI evaluator exists yet.
+- The `reporting-config-governance` Edge Function is deployed (JWT verification enabled) and supports create-draft, save-rules, submit, approve, publish and supersede actions with reason-required audit calls. Migration 005 provides the private audit RPC. However, the Edge Function currently uses multiple independent database requests per action; transactional atomicity, full validation, concurrency-safe version numbering and robust rollback are not yet complete.
 - Weekly snapshot storage and database immutability controls exist after Migration 006; generation pipeline, KPI calculations, scheduler, correction workflow and end-to-end role tests remain outstanding.
 - Supabase Storage buckets/policies are not implemented.
 - No application frontend/backend code exists.
 
 ## Next sequence
-1. Commit and reconcile exact SQL source files for applied migrations 001–004 into a proper version-controlled migration directory.
-2. Implement backend-controlled configuration authoring, validation, submit/approve/publish workflow and append-only audit capture.
-3. Add dimension/KPI weight-total validation and formula-template allowlisting; prohibit arbitrary SQL evaluation.
-4. Add snapshot tables and immutable weekly reporting snapshots referencing exact configuration versions.
+1. Reconcile exact SQL source files for migrations 001–007 in the version-controlled migration directory; exact source files for migrations 001–004 still need to be archived/committed if not already present.
+2. Harden the deployed configuration governance workflow: atomic database RPCs, full payload validation, dimension/KPI weight-total checks, formula-template registry/allowlisting, effective-dated membership checks and concurrency-safe version numbering.
+3. Add transactional weekly snapshot generation, exact configuration resolution, immutable finalization and correction-chain service; do not calculate official KPIs until the governed calculation engine is validated.
+4. Provision test Auth identities and execute positive/negative JWT/RLS tests, including cross-project isolation and executive access.
 5. Build project operational schema: contracts, activities, milestones, invoices/payments, risks, licenses, updates and document metadata.
 6. Implement actual Auth test users and cross-project positive/negative RLS tests.
 7. Select frontend framework only after user discussion; then implement UI, timelines, CEO dashboard and exports.
 8. Update this checkpoint after every verified milestone.
 
 ## Current verified state
-The dedicated Supabase project now has migrations 001–006 applied. The configuration data model and access controls exist at database level, but the configuration validation/transactional workflow, formula engine, weekly snapshot generation pipeline, operational modules, UI and user-level security tests remain incomplete. Existing Staff Time & Performance resources have not been intentionally modified.
+The dedicated Supabase project now has migrations 001–007 applied. The configuration data model and access controls exist at database level, but the configuration validation/transactional workflow, formula engine, weekly snapshot generation pipeline, operational modules, UI and user-level security tests remain incomplete. Existing Staff Time & Performance resources have not been intentionally modified.
