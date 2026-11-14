@@ -262,3 +262,34 @@ The dedicated Supabase project now has migrations 001–023 applied. Configurati
 - Re-ran synthetic assertions against all six configuration-compatible parameter shapes, including weighted example 55, threshold selection, missing count and zero denominator; assertions passed.
 - GitHub migration source committed at `supabase/migrations/20261114150610_migration_027_align_evaluator_with_config_schema.sql`; test file and KPI engine documentation updated.
 - Evaluator remains a primitive only. Weekly snapshot generation still does not invoke it or populate `snapshot_metric_values`. Static source adapters, metric lineage, aggregation, health calculation and transactional snapshot integration remain pending.
+
+### KPI source resolution and snapshot integration — migrations 028–032 (14 November 2026)
+- Applied Supabase migrations:
+  - `20261114161625 migration_028_static_kpi_source_adapters`
+  - `20261114161652 migration_029_snapshot_kpi_source_resolution_and_capture`
+  - `20261114161804 migration_030_kpi_source_and_portfolio_rollup_hardening`
+  - `20261114161818 migration_031_snapshot_metric_configuration_index`
+  - `20261114161831 migration_032_payment_allocation_cutoff_reconstruction`
+- Implemented private static source field allowlists and source row adapters for projects, activities, milestones, invoices, cash transactions, payment allocations, risks, licenses, weekly updates, management decisions, contract deliverables, contracts and financial terms.
+- Supported mapping shape is `source_mapping.inputs.<input_key> = { source, field, aggregate }`. Supported aggregates are count, sum, avg, min, max and value (value is returned only for exactly one source row). No dynamic SQL/table/column identifiers or arbitrary expressions.
+- Count source allowlist now includes contracts and financial terms as well as payment allocations.
+- Historical cutoff guard: records created after cutoff are excluded. If a source record created on/before cutoff has a later `updated_at`, affected KPI is marked not reported / not reconstructable rather than using current state as historical truth. Cash transactions are treated as immutable; payment allocations are reconstructed by created/reversed timestamps.
+- Resolver limits each source input to 5,000 rows and retains up to 100 source record IDs in lineage.
+- Added metric metadata: `configuration_version_id`, `formula_template_code`, `source_cutoff`. Added the FK index for `configuration_version_id`.
+- Snapshot integration: an `AFTER INSERT` trigger on `project_snapshots` runs KPI resolution/evaluation and inserts metric rows in the same transaction as snapshot building. Calculation errors roll back the build. Project-level configuration definitions override global definitions by matching KPI code; ambiguous duplicate definitions within same scope are rejected.
+- Project snapshot payload records KPI counts/status, per-dimension weighted values/statuses and explicitly leaves overall calculated health as Not Reported until configurable health aggregation is implemented. Portfolio summary rolls up KPI coverage/status.
+- Dimension weighted values are produced only when all KPI weights are configured, sum to 1, and all numeric inputs exist; otherwise status is `weights_not_configured` or `insufficient_data`.
+- Payment allocations are now a supported source; their historical reversal state is derived from timestamps. Migration 032 corrected the cutoff guard so a known reversal timestamp is used to reconstruct state at cutoff rather than falsely marking it unavailable.
+- Verification: synthetic SQL assertions passed for resolver behavior on an empty project, missing inputs, payment allocation field allowlist, count source allowlist, weighted progress example (55) and threshold status. Function privilege checks: service_role=true, authenticated=false, anon=false. Trigger exists; snapshot metric RLS is enabled.
+- Advisors after migration 031/032: Security no findings; Health no findings; no unindexed-FK finding; remaining Performance notices are INFO-level unused indexes because there is no representative workload.
+- GitHub commits for migrations 030–032 and updated KPI engine documentation are committed. **Source reconciliation outstanding:** exact SQL source files for migrations 028 and 029 have not yet been committed. Do not treat repository migration history as fully replayable until these two files are reconstructed and checked.
+- **End-to-end limitations:** no Auth users, projects, published configs or weekly cycles exist in this dedicated database, so a full snapshot build/finalize and real JWT/RLS tests were not possible. No overall project health aggregation or PM override workflow. Immutable operational source history is still required for true as-of historical reconstruction.
+
+### Current next steps
+1. Reconstruct and commit exact migration SQL sources for 028 and 029; validate a clean migration replay/source archive.
+2. Provision controlled test identities and synthetic project/configuration data, then run full snapshot build/finalize and role-specific JWT/RLS tests.
+3. Implement immutable operational source history.
+4. Implement configurable dimension-to-project-health aggregation, status thresholds, critical overrides and reasoned PM override handling.
+5. Continue with KPI coverage/portfolio metrics, then operational CRUD and UI only after the user's UI/UX proposal review.
+
+CR Management remains explicitly deferred to a future release. Do not build its module/workflow/UI in this release.
