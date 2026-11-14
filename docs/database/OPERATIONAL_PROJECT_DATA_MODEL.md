@@ -93,3 +93,11 @@ Two read-only database projections now expose operational events for future time
 - The payment/risk view projects invoice issue/due dates, cash transactions and risk intervals.
 - Authenticated SELECT grants are present; underlying source-table RLS applies. Security Advisor returned no findings and Health Advisor returned no findings. Performance Advisor reports unused-index INFO notices only (91) because no representative application workload exists; no indexes were removed on that basis.
 - Current row counts are zero because there are no project/operational records yet. JWT-based role isolation tests remain outstanding.
+
+## Operational source history
+
+Migrations 041–042 add append-only row-state history for project and operational source tables used by reporting. The private history stores full row images for baseline, insert, update and delete events, with source/project/record identifiers, event timestamp, transaction ID and actor where available. The KPI source adapter resolves the latest state at or before a requested reporting cutoff and excludes records deleted by that cutoff.
+
+Coverage began at `2026-11-14 16:31:06.635565+00`; all covered source tables were empty at rollout, so no business records required backfill. A cutoff before coverage start is returned as not reconstructable. History storage is private and service-role readable only; source writes automatically create history rows in the same transaction.
+
+**Known limitation:** the timestamp is captured when the row trigger executes, not at transaction commit. Transactions that straddle a reporting cutoff can therefore require stronger commit-time ordering before this can be treated as audit-grade historical evidence.
