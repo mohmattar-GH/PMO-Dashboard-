@@ -47,7 +47,7 @@
 4. Approved contract variations are not yet represented as a dedicated approval/variation ledger. The financial aggregate field must not be treated as an independently verified approved-variation calculation until that workflow exists.
 5. A governed change-request/re-baseline approval workflow remains outstanding.
 6. Project documents and private Storage bucket integration remain outstanding.
-7. Timeline custom-event/category tables and the timeline UI remain outstanding; timeline views should derive events from these operational records.
+7. Timeline read models are implemented in Migration 023 as security-invoker views over operational source records. Custom-event/category support, UI, filters/zoom/export and real JWT row-visibility tests remain outstanding.
 8. Full source history is not yet retained for exact historical as-of reconstruction. Weekly snapshot source-cutoff flags identify post-cutoff changes but do not reconstruct prior values.
 9. KPI/risk evaluation, validated calculation templates and financial roll-up engine remain outstanding.
 10. Positive/negative end-to-end JWT/RLS tests require controlled Auth users and role assignments.
@@ -58,7 +58,7 @@
 3. Add change requests and governed re-baseline approvals.
 4. Add document metadata, private Storage and record-level access checks.
 5. Implement validated KPI and risk calculations using published configuration versions.
-6. Add source history, timeline event projection and weekly snapshot end-to-end tests.
+6. Add immutable source history and complete weekly snapshot end-to-end tests. Timeline read-model projections are now available through Migration 023.
 7. Build frontend workflows only after the user confirms the framework/workflow direction.
 
 
@@ -86,3 +86,10 @@ Two read-only database projections now expose operational events for future time
 - The master schedule projection preserves all four date scenarios independently; it does not infer one scenario from another.
 - Current datasets are empty because no project or operational data has been provisioned. Validate view results and row visibility with controlled JWT users before production.
 - Custom user-defined timeline events/categories, timeline UI, filtering/zoom/export, KPI evaluation and portfolio dashboard aggregates remain future work.
+
+## Timeline backend implementation (Migration 023)
+- Migration 023 adds `project_master_schedule_timeline` and `project_payment_risk_timeline`, both read-only `security_invoker` views.
+- The master view projects activity/milestone baseline, approved revised, forecast and actual dates independently, plus contract commencement/end, license expiry/renewal notice and management decision due dates.
+- The payment/risk view projects invoice issue/due dates, cash transactions and risk intervals.
+- Authenticated SELECT grants are present; underlying source-table RLS applies. Security Advisor returned no findings and Health Advisor returned no findings. Performance Advisor reports unused-index INFO notices only (91) because no representative application workload exists; no indexes were removed on that basis.
+- Current row counts are zero because there are no project/operational records yet. JWT-based role isolation tests remain outstanding.
