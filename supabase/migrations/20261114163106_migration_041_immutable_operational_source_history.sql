@@ -23,6 +23,8 @@ create table private.operational_record_history (
 );
 create index operational_record_history_asof_idx
  on private.operational_record_history(source_table,project_id,record_id,recorded_at desc,history_id desc);
+create index operational_record_history_project_time_idx
+ on private.operational_record_history(project_id,recorded_at desc);
 
 alter table private.operational_history_coverage enable row level security;
 alter table private.operational_record_history enable row level security;
