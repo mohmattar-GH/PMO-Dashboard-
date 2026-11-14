@@ -56,6 +56,18 @@
 8. `docs/database/MIGRATION_001_DESIGN.md` — proposed first migration scope, table definitions, security approach and acceptance criteria.
    - Commit: `d2b33c1386d2760df867a971a72549f07ceacd4b`
 
+## Migration 001 executable draft — 14 November 2026
+
+- `docs/database/MIGRATION_001_EXECUTABLE_DRAFT.sql` committed (`90ae8f338bf8ce2fb4cc2126838405a598c9a934`).
+- `docs/database/MIGRATION_001_VERIFICATION.sql` committed (`82ba1900ea9bc5a2abd56f630a83efacdad1ab32`).
+- `docs/database/MIGRATION_001_REVIEW_NOTES.md` committed (`ded68db5b4841e1654883f64599dea11e05c321c`).
+- Draft scope: role catalogue, user profiles, trusted global role assignments, clients, portfolios, project registry, project memberships, private audit events, grants, RLS and indexes.
+- Supabase documentation was consulted for Data API grants/RLS, policy structure and view security. No anonymous business-data grants are included.
+- The migration has NOT been applied. Supabase remains active/healthy with zero tables and zero migration history.
+- Supabase CLI was not available in the execution environment. A CLI-generated timestamped file under `supabase/migrations` has not yet been created. Do not represent the SQL draft as a deployed migration.
+- Structural verification SQL is committed; actual role-based authorization tests remain outstanding and require test users/projects.
+- Deployment gate: create CLI migration in repository, review, apply only to `oihawkpbtgqxxliaamxs`, then verify schema/grants/RLS and run advisors and negative access tests.
+
 ## Not implemented yet
 
 - Application code/UI and framework selection.
