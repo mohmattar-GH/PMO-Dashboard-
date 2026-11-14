@@ -83,6 +83,17 @@ Existing project charter, PRD, architecture, data model, database design, securi
 - Tightened project-scoped snapshot configuration-lineage reads so project membership must match a project snapshot within the same portfolio snapshot.
 - Verified the corrected policy definition in PostgreSQL; Security advisor returned no findings after the migration.
 
+### Migration 008 — atomic reporting configuration governance
+- Applied version: `20261114100526`; name: `migration_008_atomic_reporting_configuration_governance`.
+- Exact source committed as `supabase/migrations/20261114100526_migration_008_atomic_reporting_configuration_governance.sql`. An initial filename timestamp mismatch was corrected in GitHub; the superseded incorrectly named file was deleted. The committed filename now matches Supabase migration history.
+- Added private `reporting_formula_templates` registry with six initial allowlisted calculation templates; this is a controlled metadata registry, not a KPI evaluator.
+- Added `public.manage_reporting_configuration`, a SECURITY INVOKER PostgreSQL RPC with an empty search_path, callable only by service_role. The Edge Function now delegates each operation to this single RPC rather than issuing separate database writes.
+- Draft creation/version allocation, draft rule replacement, lifecycle transitions and audit insertion now execute transactionally. Row locks serialize version allocation and state transitions. Failed validation or audit insertion rolls back all changes.
+- Validates actor role assignments and effective dates, project membership for project-scoped creation, payload limits, active dimension weights, per-dimension KPI weights, allowlisted calculation-method/template pairings, dimension references and JSON object shapes.
+- The Edge Function `reporting-config-governance` is ACTIVE at version 3 with JWT verification enabled and source committed at `supabase/functions/reporting-config-governance/index.ts`.
+- Verification: migration 008 is in Supabase history; PostgreSQL catalog confirms SECURITY INVOKER, empty search_path and EXECUTE granted only to service_role (not authenticated); negative actor authorization test rejected a UUID with no role assignment; Security and Health advisors returned no findings.
+- Current project contains zero Auth users, zero active global role assignments and zero configuration sets. Positive end-to-end JWT/approval tests cannot yet be run. Explicit parameter value/domain validation and formula-template required-parameter enforcement remain hardening items.
+
 ## Security and implementation limitations
 - No actual end-to-end RLS/JWT authorization test has been run.
 - No Auth users or role assignments have been provisioned.
@@ -94,7 +105,7 @@ Existing project charter, PRD, architecture, data model, database design, securi
 
 ## Next sequence
 1. Reconcile exact SQL source files for migrations 001–007 in the version-controlled migration directory; exact source files for migrations 001–004 still need to be archived/committed if not already present.
-2. Harden the deployed configuration governance workflow: atomic database RPCs, full payload validation, dimension/KPI weight-total checks, formula-template registry/allowlisting, effective-dated membership checks and concurrency-safe version numbering.
+2. Complete configuration governance hardening: parameter-domain validation, template-specific required parameter checks, KPI dimension-assignment rules, and positive/negative JWT tests using provisioned users.
 3. Add transactional weekly snapshot generation, exact configuration resolution, immutable finalization and correction-chain service; do not calculate official KPIs until the governed calculation engine is validated.
 4. Provision test Auth identities and execute positive/negative JWT/RLS tests, including cross-project isolation and executive access.
 5. Build project operational schema: contracts, activities, milestones, invoices/payments, risks, licenses, updates and document metadata.
@@ -103,4 +114,4 @@ Existing project charter, PRD, architecture, data model, database design, securi
 8. Update this checkpoint after every verified milestone.
 
 ## Current verified state
-The dedicated Supabase project now has migrations 001–007 applied. The configuration data model and access controls exist at database level, but the configuration validation/transactional workflow, formula engine, weekly snapshot generation pipeline, operational modules, UI and user-level security tests remain incomplete. Existing Staff Time & Performance resources have not been intentionally modified.
+The dedicated Supabase project now has migrations 001–007 applied. The configuration data model and transactional governance RPC now exist, and the governance Edge Function is deployed at version 3. Full parameter-domain validation, positive end-to-end user tests, the KPI calculation engine, weekly snapshot generation pipeline, operational modules and UI remain incomplete. Existing Staff Time & Performance resources have not been intentionally modified.
