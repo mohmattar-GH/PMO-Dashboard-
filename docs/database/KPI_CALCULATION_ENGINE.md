@@ -121,3 +121,42 @@ For sources with `updated_at`, if a record existed by the cutoff but was modifie
 3. Implement configurable dimension-to-project-health aggregation, thresholds, critical overrides and reasoned PM override separation.
 4. Add richer source filters and source definitions only through reviewed static adapters.
 5. Reconcile and commit the exact historical SQL source for migrations 028 and 029. Migrations 030–032 and this implementation note are committed; do not assume the earlier two migration source files are already present in GitHub.
+
+## Weekly snapshot lifecycle integration and immutability correction — migrations 033–039
+
+A full synthetic snapshot build exposed a conflict between the KPI trigger and the pre-existing append-only snapshot guards. The guards were tightened so the trusted build workflow can enrich only designated calculation fields while the snapshot is still building; ordinary edits remain rejected.
+
+- Project snapshot KPI enrichment is allowed only when the verified service-role request claim is present, the private KPI calculation function has enabled its transaction-local `app.snapshot_kpi_calculation` flag, the parent portfolio snapshot is still `building`, and every project snapshot column other than the eight designated KPI payload keys is unchanged.
+- Portfolio snapshot summary enrichment is allowed only for the service-role build path, only while `building`, and only for the explicit source-capture and KPI rollup summary keys.
+- Snapshot metrics remain immutable. Finalized portfolio snapshots remain immutable except for the existing building-to-finalized transition.
+- The weekly build and finalize RPC responses now return the actual KPI calculation status from the snapshot summary rather than the old `not_implemented` marker.
+- Migration 037 was a temporary diagnostic guard revision; migration 038 replaces it with the final allowlisted payload guard. It is retained in migration history for replay fidelity.
+
+### End-to-end synthetic snapshot test
+
+A transaction-scoped synthetic integration test was run using:
+- One temporary Auth user and platform-admin assignment.
+- One synthetic project and one verified activity.
+- One published global reporting configuration, one dimension and one `count_v1` KPI.
+- One closed reporting cycle and the actual weekly snapshot build/finalize RPCs.
+
+Assertions passed:
+- The snapshot trigger created a KPI metric of `1` with status `calculated`.
+- The dimension result was `calculated`.
+- Snapshot finalization succeeded and returned KPI status `calculated`.
+
+The entire test transaction was rolled back. A follow-up query confirmed zero persisted test projects, cycles, Auth users or test KPI metrics. This validates the database build/finalize path under a simulated service-role database session; it is not yet a real Edge Function/JWT end-to-end test.
+
+### Migration source reconciliation
+
+- Migration source files 028 and 029 have been reconstructed from the live applied function definitions and current schema, then committed. They were not recovered from the original historical local migration files; clean-database replay still needs independent verification.
+- Migration files 030–039 are now committed, with migration 032 filename aligned to the actual Supabase migration version `20261114161839`.
+- Security Advisor: no findings. Health Advisor: no findings. Performance Advisor currently reports 87 INFO-level unused-index notices; with no representative production workload, none were removed.
+
+### Remaining work
+
+1. Verify a clean migration replay in an isolated database/branch when a cost-free or approved test environment is available.
+2. Run a true Edge Function invocation with real Auth/JWT identities and verify role-specific RLS behavior. The SQL integration test did not exercise user JWTs.
+3. Add immutable operational source history for true historical as-of reconstruction.
+4. Implement configurable dimension-to-project-health aggregation, thresholds, critical overrides and reasoned PM override handling.
+5. Continue KPI portfolio rollups and completeness rules, then operational CRUD and UI only after the user's UI/UX proposal review.
