@@ -160,3 +160,7 @@ The entire test transaction was rolled back. A follow-up query confirmed zero pe
 3. Add immutable operational source history for true historical as-of reconstruction.
 4. Implement configurable dimension-to-project-health aggregation, thresholds, critical overrides and reasoned PM override handling.
 5. Continue KPI portfolio rollups and completeness rules, then operational CRUD and UI only after the user's UI/UX proposal review.
+
+### Empty-portfolio handling — migration 040
+- If a weekly snapshot contains no projects, the build and finalize responses now report KPI status `not_reported`, not `pending_calculation`.
+- A transaction-scoped synthetic empty-portfolio build/finalize test passed; the test transaction was rolled back.
