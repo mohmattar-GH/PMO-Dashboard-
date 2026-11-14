@@ -164,3 +164,24 @@ The entire test transaction was rolled back. A follow-up query confirmed zero pe
 ### Empty-portfolio handling — migration 040
 - If a weekly snapshot contains no projects, the build and finalize responses now report KPI status `not_reported`, not `pending_calculation`.
 - A transaction-scoped synthetic empty-portfolio build/finalize test passed; the test transaction was rolled back.
+
+## Immutable operational source history — migrations 041–042
+
+- Added private append-only `operational_record_history` and `operational_history_coverage` tables.
+- Row-state capture triggers cover 14 source tables: projects, activities, milestones, invoices, cash transactions, payment allocations, risks, licenses, weekly updates, management decisions, contract deliverables, contracts, financial terms and contract variations.
+- Each insert/update/delete captures a full row image, source table, project and record IDs, event timestamp, transaction ID and actor ID where available. Existing rows are backfilled as baseline states at coverage start.
+- KPI source adapters now read the latest row state at or before the requested cutoff. Deleted rows are excluded after their delete event. This replaces the earlier blanket "changed after cutoff" rejection for records within the history coverage window.
+- Cutoffs before a source's coverage start are explicitly marked not reconstructable. Coverage began at `2026-11-14 16:31:06.635565+00`. All operational source tables were empty at rollout, so baseline backfill count was zero.
+- History tables are private, have RLS enabled, and are readable only by `service_role`; capture is performed by a private SECURITY DEFINER trigger function with a fixed empty search path and no direct EXECUTE grants.
+- Synthetic history tests passed: an activity's earlier value was returned at its earlier cutoff, the updated value at the later cutoff, and the row disappeared after its delete event. A pre-coverage cutoff was rejected as not reconstructable.
+- A full history-backed weekly snapshot build/finalize test passed with a synthetic activity-count KPI = 1 / `calculated`. Test transaction rolled back; zero test users/projects/cycles/history rows remain.
+- Security Advisor: no findings. Health Advisor: no findings. Performance Advisor: 85 INFO-level unused-index notices; no indexes were removed.
+
+### Historical timestamp limitation
+History timestamps are captured by the row trigger at event execution time, not at transaction commit. A write transaction that begins before a reporting cutoff but commits after it could be represented by its trigger timestamp before the cutoff. If strict commit-time historical ordering is required, we must add a commit-timestamp strategy or serialize source writes against snapshot cutoff processing. Do not describe the current implementation as audit-grade commit-time reconstruction.
+
+### Next work
+1. Implement configurable dimension-to-project-health aggregation, thresholds, critical overrides and reasoned PM override handling.
+2. Run real Edge Function/JWT role-specific RLS tests.
+3. Validate clean migration replay from GitHub in an isolated database/branch when an approved/cost-free environment is available.
+4. Continue KPI portfolio completeness/rollups, then operational CRUD.
