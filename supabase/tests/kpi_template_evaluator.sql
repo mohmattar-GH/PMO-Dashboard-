@@ -19,6 +19,6 @@ begin
  x:=private.evaluate_kpi_template_v1('count_v1','{"source":"activities"}','{}');
  if x->>'status'<>'not_reported' then raise exception 'missing count failed %',x; end if;
 end $$;
-select has_function_privilege('service_role','private.evaluate_kpi_template_v1(text,jsonb,jsonb)') as service_role_can_execute,
-       has_function_privilege('authenticated','private.evaluate_kpi_template_v1(text,jsonb,jsonb)') as authenticated_can_execute,
-       has_function_privilege('anon','private.evaluate_kpi_template_v1(text,jsonb,jsonb)') as anon_can_execute;
+select has_function_privilege('service_role','private.evaluate_kpi_template_v1(text,jsonb,jsonb)','EXECUTE') as service_role_can_execute,
+       has_function_privilege('authenticated','private.evaluate_kpi_template_v1(text,jsonb,jsonb)','EXECUTE') as authenticated_can_execute,
+       has_function_privilege('anon','private.evaluate_kpi_template_v1(text,jsonb,jsonb)','EXECUTE') as anon_can_execute;
