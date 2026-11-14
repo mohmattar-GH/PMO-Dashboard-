@@ -320,3 +320,5 @@ CR Management remains explicitly deferred to a future release. Do not build its 
 6. Before frontend work, present the UI direction/navigation/screens/workflows for user review and approval.
 
 CR Management remains explicitly deferred to a future release. Existing Staff Time & Performance resources remain untouched.
+
+- Migration 040 handles the empty-portfolio edge case: build/finalize status is `not_reported` when no projects exist. A transaction-scoped synthetic empty-portfolio snapshot build/finalize test passed and was rolled back.
