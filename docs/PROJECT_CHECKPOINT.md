@@ -162,6 +162,18 @@ Existing project charter, PRD, architecture, data model, database design, securi
 - Removed hard-coded invoice status CHECK list so future status mappings remain configuration-driven.
 - Operational schema details and limitations: `docs/database/OPERATIONAL_PROJECT_DATA_MODEL.md`.
 
+### Migrations 018–020 — transactional finance and contract variations
+- Migration 018 applied: `20261114102719`; GitHub source: `supabase/migrations/20261114102719_migration_018_transactional_finance_and_contract_variations.sql` (initial file was created under the wrong version prefix and subsequently aligned to the applied version).
+- Added `project_contract_variations` with draft → submitted → approved/rejected workflow. Project managers submit; finance roles decide with mandatory reason; actor/timestamps recorded.
+- Approved variation deltas recalculate `project_financial_terms.approved_variations` within the same transaction; generated revised contract value reflects original + approved variations.
+- Added `allocate_invoice_cash` and `reverse_invoice_cash_allocation` SECURITY INVOKER RPCs. Row locks, project/currency/type/status checks and outstanding-balance checks protect allocations. Reversals preserve the original allocation and audit trail.
+- Added `project_invoice_balances` view with `security_invoker=true`, exposing total, applied, outstanding and settlement indicator under source-table RLS.
+- Migration 019 applied: `20261114102819`; added allocation integrity trigger so direct table writes cannot bypass validation, one-way reversal controls, immutable original contract value, calculated-only approved variation aggregate and indexes for all new foreign keys. Removed duplicate allocation UPDATE policy.
+- Migration 020 applied: `20261114102910`; submission timestamps are assigned by database clock rather than client-supplied values.
+- Security Advisor and Health Advisor: no findings. Performance Advisor: no unindexed foreign keys or multiple permissive policies; remaining findings are INFO-level unused indexes due to no representative workload.
+- Catalog verification: invoice allocation has exactly one UPDATE policy; variation RLS enabled; invoice balance view is security-invoker; all three new foreign keys have indexes; both RPCs are SECURITY INVOKER, callable by authenticated only, not anon.
+- Detailed design and limitations: `docs/database/TRANSACTIONAL_FINANCE_AND_VARIATIONS.md`.
+
 ## Security and implementation limitations
 - No actual end-to-end RLS/JWT authorization test has been run.
 - No Auth users or role assignments have been provisioned.
@@ -182,4 +194,4 @@ Existing project charter, PRD, architecture, data model, database design, securi
 8. Update this checkpoint after every verified milestone.
 
 ## Current verified state
-The dedicated Supabase project now has migrations 001–017 applied. Configuration governance is transactional and deployed in Edge Function version 3. Weekly reporting cycle/snapshot RPCs and correction recording are deployed; the weekly-reporting-snapshots Edge Function is ACTIVE at version 1; pg_cron is scheduled every 15 minutes to process due cycles. The operational data model for contracts, schedule, finance, risks, licenses, weekly updates and management decisions is now deployed, with RLS and private audit triggers. The scheduler processor's direct smoke test returned zero processed cycles because no cycles exist. There are still zero Auth users, active global role assignments, projects, reporting configuration sets or reporting cycles. KPI evaluation, transactional finance workflows, approved variation/change-request and re-baseline workflows, document storage, exact historical as-of reconstruction, positive end-to-end tests and frontend/UI remain incomplete. Existing Staff Time & Performance resources have not been intentionally modified.
+The dedicated Supabase project now has migrations 001–020 applied. Configuration governance is transactional and deployed in Edge Function version 3. Weekly reporting cycle/snapshot RPCs and correction recording are deployed; the weekly-reporting-snapshots Edge Function is ACTIVE at version 1; pg_cron is scheduled every 15 minutes to process due cycles. The operational data model for contracts, schedule, finance, risks, licenses, weekly updates and management decisions is now deployed, with RLS and private audit triggers. The scheduler processor's direct smoke test returned zero processed cycles because no cycles exist. There are still zero Auth users, active global role assignments, projects, reporting configuration sets or reporting cycles. KPI evaluation, change-request/schedule impact and re-baseline workflows, document storage, exact historical as-of reconstruction, positive end-to-end tests and frontend/UI remain incomplete. Existing Staff Time & Performance resources have not been intentionally modified.
