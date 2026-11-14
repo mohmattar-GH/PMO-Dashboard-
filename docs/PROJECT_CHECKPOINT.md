@@ -130,7 +130,7 @@ Existing project charter, PRD, architecture, data model, database design, securi
 ### Migration 013 — snapshot foreign-key indexes
 - Applied version: `20261114101258`; name: `migration_013_snapshot_foreign_key_indexes`.
 - Source committed at `supabase/migrations/20261114101258_migration_013_snapshot_foreign_key_indexes.sql`.
-- Added five indexes for snapshot/job-run foreign keys identified by the performance advisor.
+- Added five indexes for snapshot/job-run foreign keys identified by the performance advisor. Re-run Performance Advisor found no remaining unindexed foreign keys; 37 INFO-level unused-index notices remain because there is no representative workload.
 
 ### Weekly reporting Edge Function
 - `weekly-reporting-snapshots` deployed ACTIVE at version 1 with JWT verification enabled.
