@@ -1,5 +1,7 @@
 -- Executive PPM Platform
 -- Migration 002: index foreign-key lookup columns identified by advisor.
+-- STATUS: applied successfully on 2026-11-14.
+-- Supabase migration version: 20261114093557.
 -- Target: oihawkpbtgqxxliaamxs
 -- RLS remains enabled; no access policy or data behavior is changed.
 
