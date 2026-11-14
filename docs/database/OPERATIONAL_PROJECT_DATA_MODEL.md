@@ -71,3 +71,18 @@
 - Current-version view: `public.project_document_current_versions` (security invoker).
 - Both document tables have RLS and operational audit triggers.
 - Backend is implemented; frontend UI and real-user upload/download/authorization tests remain outstanding. Do not describe document management as end-to-end complete until those tests and UI are delivered.
+
+
+## Timeline read models (Migration 023)
+Two read-only database projections now expose operational events for future timeline interfaces:
+
+| View | Source events | Date semantics |
+|---|---|---|
+| `project_master_schedule_timeline` | Activities, milestones, contract commencement/end, license renewal/expiry, management decision due dates | Separate rows for baseline, approved revised, forecast and actual activity/milestone dates; contractual/forecast event dates for other records |
+| `project_payment_risk_timeline` | Invoice issue/due dates, cash transactions, risk exposure intervals | Actual invoice issue/cash dates; contractual invoice due dates; risk interval from identification to resolution or target resolution |
+
+- Both views use PostgreSQL `security_invoker = true`, are SELECT-granted to authenticated users, and rely on source-table RLS. They do not create duplicate event records.
+- Stable event identifiers include source type, source record ID and event/date-basis discriminator. Each row carries the source record ID/reference, status, owner where applicable, severity, amount/currency where applicable and JSON metadata for drill-through.
+- The master schedule projection preserves all four date scenarios independently; it does not infer one scenario from another.
+- Current datasets are empty because no project or operational data has been provisioned. Validate view results and row visibility with controlled JWT users before production.
+- Custom user-defined timeline events/categories, timeline UI, filtering/zoom/export, KPI evaluation and portfolio dashboard aggregates remain future work.
