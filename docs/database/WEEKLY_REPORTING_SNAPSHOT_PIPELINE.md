@@ -56,9 +56,9 @@ Reporting cycles include a code, period start/end, cutoff timestamp, as-of date 
 - Migrations 006–013 are present in Supabase migration history.
 - All six public snapshot tables have RLS enabled.
 - All five public cycle/snapshot RPCs are SECURITY INVOKER; EXECUTE is false for anon/authenticated and true for service_role.
-- A negative cycle-creation test rejected an actor with no active role assignment.
+- A negative cycle-creation test rejected an actor with no active role assignment; no cycle was inserted.
 - The scheduler job exists and is active; direct processor smoke test completed with zero processed/failed cycles.
-- Security Advisor returned no findings after scheduler setup. Performance Advisor previously identified five unindexed snapshot foreign keys; Migration 013 adds the corresponding indexes. Re-run the advisor after migration 013 to confirm.
+- Security and Health Advisors returned no findings after scheduler setup. After Migration 013, Performance Advisor reports no unindexed foreign keys; remaining findings are INFO-level unused indexes (37) because no representative application workload exists.
 - No real project or reporting-cycle data was inserted for testing.
 
 ## Next work
