@@ -94,19 +94,28 @@ Existing project charter, PRD, architecture, data model, database design, securi
 - Verification: migration 008 is in Supabase history; PostgreSQL catalog confirms SECURITY INVOKER, empty search_path and EXECUTE granted only to service_role (not authenticated); negative actor authorization test rejected a UUID with no role assignment; Security and Health advisors returned no findings.
 - Current project contains zero Auth users, zero active global role assignments and zero configuration sets. Positive end-to-end JWT/approval tests cannot yet be run. Explicit parameter value/domain validation and formula-template required-parameter enforcement remain hardening items.
 
+### Migration 009 — reporting rule validation hardening
+- Applied version: `20261114100642`; name: `migration_009_reporting_rule_validation_hardening`.
+- SQL source committed at `supabase/migrations/20261114100642_migration_009_reporting_rule_validation_hardening.sql`.
+- Added formula-template-specific required KPI parameter checks.
+- KPI dimension references must resolve to active dimensions; weighted KPIs must belong to an active dimension.
+- Parameter values are type-checked for number, integer, text, boolean, date and duration. Numeric parameters support configured minimum/maximum checks; enumerated allowed values are enforced when configured.
+- Verification confirmed all four hardening checks in the database function definition; Security Advisor returned no findings.
+- Positive authenticated action tests remain blocked because the project currently has no Auth users or role assignments.
+
 ## Security and implementation limitations
 - No actual end-to-end RLS/JWT authorization test has been run.
 - No Auth users or role assignments have been provisioned.
 - No configuration set, version, dimension, KPI or rule parameter has been seeded.
-- The `reporting-config-governance` Edge Function is deployed (JWT verification enabled) and supports create-draft, save-rules, submit, approve, publish and supersede actions with reason-required audit calls. Migration 005 provides the private audit RPC. However, the Edge Function currently uses multiple independent database requests per action; transactional atomicity, full validation, concurrency-safe version numbering and robust rollback are not yet complete.
+- The `reporting-config-governance` Edge Function is deployed at version 3 with JWT verification enabled. It delegates to the atomic service-role-only PostgreSQL RPC introduced in Migration 008 and hardened in Migration 009. Database validation and audit insertion are transactionally coupled; positive end-to-end tests still require real Auth users and role assignments.
 - Weekly snapshot storage and database immutability controls exist after Migration 006; generation pipeline, KPI calculations, scheduler, correction workflow and end-to-end role tests remain outstanding.
 - Supabase Storage buckets/policies are not implemented.
 - No application frontend/backend code exists.
 
 ## Next sequence
 1. Reconcile exact SQL source files for migrations 001–007 in the version-controlled migration directory; exact source files for migrations 001–004 still need to be archived/committed if not already present.
-2. Complete configuration governance hardening: parameter-domain validation, template-specific required parameter checks, KPI dimension-assignment rules, and positive/negative JWT tests using provisioned users.
-3. Add transactional weekly snapshot generation, exact configuration resolution, immutable finalization and correction-chain service; do not calculate official KPIs until the governed calculation engine is validated.
+2. Provision controlled non-production test identities and execute positive/negative JWT tests for all configuration actions, including project membership boundaries and separation of duties.
+3. Implement and test the governed KPI calculation engine against approved formula templates, then build transactional weekly snapshot generation, exact configuration resolution, immutable finalization and correction-chain service.
 4. Provision test Auth identities and execute positive/negative JWT/RLS tests, including cross-project isolation and executive access.
 5. Build project operational schema: contracts, activities, milestones, invoices/payments, risks, licenses, updates and document metadata.
 6. Implement actual Auth test users and cross-project positive/negative RLS tests.
@@ -114,4 +123,4 @@ Existing project charter, PRD, architecture, data model, database design, securi
 8. Update this checkpoint after every verified milestone.
 
 ## Current verified state
-The dedicated Supabase project now has migrations 001–007 applied. The configuration data model and transactional governance RPC now exist, and the governance Edge Function is deployed at version 3. Full parameter-domain validation, positive end-to-end user tests, the KPI calculation engine, weekly snapshot generation pipeline, operational modules and UI remain incomplete. Existing Staff Time & Performance resources have not been intentionally modified.
+The dedicated Supabase project now has migrations 001–009 applied. The configuration data model and transactional governance RPC now exist, and the governance Edge Function is deployed at version 3. Positive end-to-end user tests, a KPI calculation engine, weekly snapshot generation pipeline, operational modules and UI remain incomplete. Existing Staff Time & Performance resources have not been intentionally modified.
