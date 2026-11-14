@@ -211,3 +211,17 @@ The dedicated Supabase project now has migrations 001–020 applied. Configurati
 
 ### Scope decision — Change Request Management deferred
 - CR Management remains out of the current release. Do not add CR module/screens/approval workflow or CR-specific re-baselining. Existing contract variation functionality remains distinct. Preserve immutable original baselines and revisit CR integration only in a future release.
+
+
+### Migration 023 — secure timeline read models
+- Applied version: `20261114104801`; name: `migration_023_timeline_read_models`.
+- Source committed at `supabase/migrations/20261114104801_migration_023_timeline_read_models.sql`.
+- Added `public.project_master_schedule_timeline`, a read-only `security_invoker` view projecting activity and milestone baseline, approved-revised, forecast and actual date scenarios as separate event rows, plus contract commencement/end, license renewal/expiry and management decision due dates.
+- Added `public.project_payment_risk_timeline`, a read-only `security_invoker` view projecting invoice issue/due events, actual cash transactions and risk exposure intervals with severity/escalation and source metadata.
+- Both views are granted SELECT to authenticated users only. They do not store duplicate timeline records; source operational tables remain authoritative and their RLS continues to govern rows.
+- Verification: migration 023 appears in Supabase migration history; both views exist and execute successfully. Current row counts are zero because no projects or operational records have been provisioned. Security Advisor returned no findings. The views have not yet been tested with real JWT identities/role combinations.
+- Not included yet: custom timeline events/categories, timeline UI, interactive filters/zoom, export, KPI evaluation, dashboard roll-ups, or exact historical as-of reconstruction.
+
+### UI governance decision
+- The user explicitly wants to participate in UI/UX decisions. Before frontend implementation, present the proposed visual direction, navigation, dashboard composition, screens and workflows for user review and agreement. Do not select a frontend framework or finalize significant UI/UX decisions unilaterally.
+- No frontend implementation or production deployment is authorized by this checkpoint update.
