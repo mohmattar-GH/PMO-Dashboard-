@@ -1,0 +1,2 @@
+create index if not exists snapshot_metric_values_configuration_version_idx
+on public.snapshot_metric_values(configuration_version_id);
