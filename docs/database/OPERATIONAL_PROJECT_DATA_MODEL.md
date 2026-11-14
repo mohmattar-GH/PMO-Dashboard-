@@ -60,3 +60,14 @@
 5. Implement validated KPI and risk calculations using published configuration versions.
 6. Add source history, timeline event projection and weekly snapshot end-to-end tests.
 7. Build frontend workflows only after the user confirms the framework/workflow direction.
+
+
+## Secure project document management (Migrations 021–022)
+- Document metadata and version history are stored separately from file bytes. Files reside in the private `project-documents` Storage bucket.
+- Current limits: 50 MiB per file; PDF, DOC/DOCX, XLS/XLSX, PPT/PPTX, JPEG, PNG, TXT and CSV.
+- Classification is mandatory and access is evaluated at request time against active project memberships and effective global role assignments. The classifications are `project`, `management`, `finance`, and `restricted`.
+- Uploads use a pending metadata row and a unique immutable object path. Storage INSERT policy requires a matching pending version and write access. Finalization requires the object to exist and uses a database timestamp. Uploaded versions cannot be edited; new content is a new version.
+- Reads require an uploaded version and current read permission. No public bucket, public URL, authenticated object update policy or authenticated object delete policy is configured.
+- Current-version view: `public.project_document_current_versions` (security invoker).
+- Both document tables have RLS and operational audit triggers.
+- Backend is implemented; frontend UI and real-user upload/download/authorization tests remain outstanding. Do not describe document management as end-to-end complete until those tests and UI are delivered.
