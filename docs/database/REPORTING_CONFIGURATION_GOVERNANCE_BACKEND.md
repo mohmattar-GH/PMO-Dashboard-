@@ -62,7 +62,7 @@ All requests require a valid Supabase user JWT and a non-empty reason (8–1000 
 
 ## Remaining hardening
 - Add positive and negative JWT tests with actual Auth users and role assignments, including project membership boundaries and separation of duties.
-- Add explicit parameter-value type/range validation against each template's parameter schema; current validation checks parameter metadata shape and allowed value_type, but does not yet enforce every declared value's domain.
-- Require/validate KPI dimension assignment where KPI weights are used, and add formula-specific required parameter checks.
+- Add comprehensive tests for all parameter types and configured validation boundaries using dedicated test Auth users.
 - Consider replacing wildcard CORS with approved application origins when frontend origins are established.
-- Add operational database records, KPI calculation engine, weekly snapshot generation, scheduling and immutable correction workflow.
+- Implement operational source modules and a validated KPI calculation engine; the weekly snapshot generation, scheduling and immutable correction foundation is documented in `docs/database/WEEKLY_REPORTING_SNAPSHOT_PIPELINE.md`.
+
