@@ -322,3 +322,22 @@ CR Management remains explicitly deferred to a future release. Do not build its 
 CR Management remains explicitly deferred to a future release. Existing Staff Time & Performance resources remain untouched.
 
 - Migration 040 handles the empty-portfolio edge case: build/finalize status is `not_reported` when no projects exist. A transaction-scoped synthetic empty-portfolio snapshot build/finalize test passed and was rolled back.
+
+### Immutable operational source history — migrations 041–042 (14 November 2026)
+- Applied `20261114163106 migration_041_immutable_operational_source_history` and `20261114163134 migration_042_operational_history_service_read_policy`.
+- Added private append-only history and coverage tables. Triggers cover 14 tables: projects, activities, milestones, invoices, cash transactions, payment allocations, risks, licenses, weekly updates, management decisions, contract deliverables, contracts, financial terms and contract variations.
+- History stores baseline/insert/update/delete row images with source, project, record, event timestamp, transaction ID and actor ID where available.
+- KPI source adapters now read the latest historical row image at or before the reporting cutoff; deleted records are excluded after their deletion event. A cutoff before source coverage is explicitly not reconstructable.
+- History coverage began at `2026-11-14 16:31:06.635565+00`. All 14 source tables were empty at rollout; backfilled row count = 0.
+- Private history tables have RLS enabled and service-role-only read policies. The capture trigger is private SECURITY DEFINER with a fixed empty search path and no direct execute grants.
+- Synthetic history tests passed for insert/update/delete as-of behavior and the pre-coverage guard. A full history-backed weekly snapshot build/finalize test also passed with activity count KPI = 1/status calculated.
+- Test transactions were rolled back. Verification found zero persisted test users, projects, cycles or history rows.
+- Advisors after migration 042: Security no findings; Health no findings; Performance 85 INFO-level unused-index notices.
+- **Known limitation:** event time is captured by the trigger, not transaction commit time. A transaction that straddles a reporting cutoff can require stronger commit-time ordering before the history model can be called audit-grade.
+
+### Next priorities
+1. Configurable dimension-to-project-health aggregation, thresholds, critical overrides and reasoned PM override handling.
+2. Real Edge Function/JWT role-specific RLS tests.
+3. Clean migration replay validation in an isolated database/branch.
+4. KPI portfolio completeness/rollups and then operational CRUD.
+5. UI/UX proposal review before frontend implementation.
