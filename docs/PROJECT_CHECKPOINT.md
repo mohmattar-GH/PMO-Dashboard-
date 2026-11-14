@@ -66,12 +66,22 @@ Existing project charter, PRD, architecture, data model, database design, securi
 - Structural verification confirmed migration operations succeeded. Actual JWT-based positive/negative authorization tests with separate Auth users and projects remain outstanding.
 - Migration history must be rechecked before future schema changes. Applied migrations are not a substitute for committing matching SQL source files into the repository; reconcile the migration source/archive workflow before handing the project to another developer.
 
+### Migration 006 — weekly reporting snapshot foundation
+- Version: `20261114100135`; name: `migration_006_weekly_reporting_snapshots`.
+- Applied successfully to the dedicated PPM Supabase project and SQL source committed at `supabase/migrations/20261114100135_migration_006_weekly_reporting_snapshots.sql`.
+- Added six public tables: `reporting_cycles`, `portfolio_snapshots`, `project_snapshots`, `snapshot_metric_values`, `snapshot_config_links`, and `snapshot_corrections`.
+- RLS enabled on all six tables. Authenticated users receive read-only access; portfolio-level snapshot access is limited to effective-dated platform_admin/executive_viewer roles, while project snapshots and metrics also permit active project members. Service role has backend write privileges.
+- Snapshot lifecycle is append-only: portfolio snapshots can transition from building to finalized once; child project snapshots, metric values and configuration links can only be inserted while the parent is building and cannot be updated/deleted. Corrections are separate records with reason and approver.
+- Reporting-cycle rows linked to a snapshot cannot be changed or deleted. Configuration-version links retain the exact rule versions used by a snapshot.
+- Verification: migration history confirms version 006; catalog query confirms RLS enabled on all six tables and one scoped SELECT policy each; Supabase Security and Health advisors returned no findings.
+- Important limitation: this is the storage/governance foundation only. No cycle-generation service, data extraction, KPI calculation engine, automatic snapshot finalization, scheduler, correction workflow or user-level JWT test has been implemented. The snapshot tables currently have no data.
+
 ## Security and implementation limitations
 - No actual end-to-end RLS/JWT authorization test has been run.
 - No Auth users or role assignments have been provisioned.
 - No configuration set, version, dimension, KPI or rule parameter has been seeded.
 - No automatic audit triggers/service workflow, approval workflow, configuration validation engine or KPI evaluator exists yet.
-- No weekly snapshot table or immutable snapshot pipeline exists yet.
+- Weekly snapshot storage and database immutability controls exist after Migration 006; generation pipeline, KPI calculations, scheduler, correction workflow and end-to-end role tests remain outstanding.
 - Supabase Storage buckets/policies are not implemented.
 - No application frontend/backend code exists.
 
@@ -86,4 +96,4 @@ Existing project charter, PRD, architecture, data model, database design, securi
 8. Update this checkpoint after every verified milestone.
 
 ## Current verified state
-The dedicated Supabase project now has migrations 001–004 applied. The configuration data model and access controls exist at database level, but the end-to-end configuration workflow, automatic audit capture, formula engine, snapshots, operational modules, UI and user-level security tests remain incomplete. Existing Staff Time & Performance resources have not been intentionally modified.
+The dedicated Supabase project now has migrations 001–006 applied. The configuration data model and access controls exist at database level, but the configuration validation/transactional workflow, formula engine, weekly snapshot generation pipeline, operational modules, UI and user-level security tests remain incomplete. Existing Staff Time & Performance resources have not been intentionally modified.
