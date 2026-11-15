@@ -448,3 +448,36 @@ CR Management remains explicitly deferred to a future release. Existing Staff Ti
 - Next validation must create a transaction-rolled-back fixture through the real schema and invoke the deployed calculation/snapshot functions. Cover global-only, dimension override, KPI override, combined override, missing metrics, invalid weights, threshold boundaries, critical-dimension Red, PM-reported status separation, portfolio rollup, empty portfolio and snapshot finalization/immutability.
 - Do not mark the KPI/health engine production-validated until those deployed-function tests and real role/JWT tests pass.
 - No persistent test users, projects, configuration rows, or snapshots were created during this validation pass.
+
+
+## Deployed KPI/health integration test results — 15 November 2026
+
+A transaction-scoped fixture was run against the live Supabase database. All fixture writes were rolled back and post-test queries confirmed zero persisted test users, projects, reporting cycles, configuration sets or baseline history rows.
+
+### Real deployed project-health resolver
+- Project-level dimension override with inherited global KPI definitions/metrics: calculated score 75, status Amber; returned the project dimension label and project configuration version.
+- Critical-dimension override: score 90, status Red, with reason identifying DELIVERY as the critical Red dimension.
+- Missing KPI metric: returned null score and Not Reported, with dimension status insufficient_data. Missing data was not treated as Green.
+
+### Portfolio rollup and finalization
+- Amber, Red and Not Reported portfolio rollups returned the expected status and counts.
+- Three transaction-scoped snapshot finalization calls succeeded after required KPI/health fields and rollups were populated.
+- The health/rollup/finalization test used manually inserted snapshot metric fixtures after the project snapshot insert trigger had run with inactive KPI definitions. It validates the deployed health resolver, rollup and finalizer, but does not independently prove the KPI resolver produced those manually inserted metrics.
+
+### Full deployed snapshot build → KPI trigger → finalize
+- A separate transaction-scoped fixture invoked the actual public.build_weekly_portfolio_snapshot and public.finalize_weekly_portfolio_snapshot functions under a simulated service-role database claim.
+- Used a published global configuration with a real active count_v1 KPI mapped to the projects source. A baseline history row was inserted at a cutoff-safe timestamp to represent a project already existing at the cutoff; the real project insert history trigger also fired during fixture creation.
+- Snapshot build returned one project and KPI calculation status calculated.
+- The metric row was PROJECT_COUNT = 1, status calculated, linked to the expected configuration version.
+- Project dimension score was 1, calculated health Green, and source-state-as-of-cutoff was true.
+- Snapshot finalization succeeded and returned status finalized with KPI status calculated.
+- The test transaction was rolled back. Follow-up queries confirmed no fixture data persisted.
+
+### Test boundaries
+- These are database integration tests with a simulated service-role claim inside the SQL session, not a real Edge Function invocation using a signed JWT. Role-specific RLS tests remain outstanding.
+- The fixture did not validate historical source capture at transaction commit-time; the existing history system timestamps row events with clock_timestamp(). Its documented transaction/cutoff edge case remains open.
+- The health tests validate the deployed function against project/global configuration links, including migration 050 inheritance. They do not yet cover every configuration inheritance permutation or every formula template end-to-end.
+
+### Current status
+- KPI source resolution, project health calculation, portfolio health rollup, and weekly snapshot build/finalization now have a successful live database integration path under transaction-scoped test data.
+- Do not label the platform production-ready. Remaining gates: real Auth/JWT and role-specific RLS tests, all inheritance combinations and invalid-configuration cases, source-history commit-time semantics, and clean migration replay from GitHub.
