@@ -411,3 +411,14 @@ CR Management remains explicitly deferred to a future release. Existing Staff Ti
 - No schema change was applied for this finding. Before fixing, define deterministic inheritance semantics for dimension-level overrides and KPI-level overrides, including how project-specific KPI definitions map to the effective dimension, and ensure the KPI result set and health aggregation use the same effective configuration resolution.
 - Current database has zero projects, zero auth users and zero configuration sets. Therefore populated end-to-end and real JWT/RLS tests remain blocked until fixtures and test identities are provisioned.
 - Next: implement and test a single effective-configuration resolution model shared by KPI selection and health aggregation; cover global-only, project-dimension-only, project-KPI-only, and combined overrides. Then run rolled-back integration fixtures and role/JWT tests.
+
+
+## Health configuration inheritance correction — migration 050 (15 November 2026)
+- Applied Supabase migration version `20261115062820`, name `migration_050_consistent_effective_kpi_inheritance_for_health`.
+- Reworked the health aggregation CTE to resolve active KPI definitions across all configuration versions linked to the snapshot, selecting the project-scoped KPI by KPI code when present and otherwise inheriting the global KPI. Effective dimensions are still resolved by dimension code with project dimensions taking precedence.
+- The health dimension calculation now joins snapshot metric rows using the selected KPI's configuration version and KPI code, aligning it with the effective KPI selection logic in the KPI snapshot calculator.
+- This corrects the specific defect where a project dimension override could exclude inherited global KPIs from health scoring.
+- GitHub migration source: `supabase/migrations/20261115062820_migration_050_consistent_effective_kpi_inheritance_for_health.sql`; commit `4c1689b7530e4690a026d31c6ea3bcf79be4de41`.
+- Supabase Security and Health Advisors returned no findings after migration 050. Performance Advisor returned 83 INFO unused-index notices; no indexes removed.
+- The live function definition was inspected and contains the new `effective_kpis` CTE. However, no populated project/configuration fixture exists, so the four inheritance combinations and full snapshot path have not yet been demonstrated end-to-end. Migration 050 is deployed but not production-validated.
+- Next tests: global-only; project dimension override with inherited global KPIs; project KPI override; combined project dimension and KPI overrides; then transaction-rolled-back full snapshot build/finalize and role/JWT tests.
