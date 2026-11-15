@@ -101,3 +101,9 @@ Migrations 041–042 add append-only row-state history for project and operation
 Coverage began at `2026-11-14 16:31:06.635565+00`; all covered source tables were empty at rollout, so no business records required backfill. A cutoff before coverage start is returned as not reconstructable. History storage is private and service-role readable only; source writes automatically create history rows in the same transaction.
 
 **Known limitation:** the timestamp is captured when the row trigger executes, not at transaction commit. Transactions that straddle a reporting cutoff can therefore require stronger commit-time ordering before this can be treated as audit-grade historical evidence.
+
+## Project health reporting
+
+Project weekly updates now require a reason when a PM reports Green, Amber, Red or Not Reported health. The weekly snapshot engine calculates a separate health score/status from configured KPI and dimension weights, thresholds and critical-dimension overrides. The PM-reported status and reason are retained separately; they do not silently replace the calculated result.
+
+Portfolio snapshots include calculated project-health counts and a portfolio status. Any project with missing/unreported calculated health prevents the portfolio from being presented as Green.
