@@ -224,3 +224,7 @@ The live Supabase database was tested using transaction-scoped fixtures; all fix
 5. Broader formula-template and operational-source coverage tests.
 
 The backend should be described as integration-tested for the tested database paths, not production-ready.
+
+
+### Role-scoped RLS smoke test — 15 November 2026
+A transaction-rolled-back SQL smoke test used two temporary Auth identities and two projects. A project_manager and a team_lead were each assigned to project A only. Under the authenticated database role with per-user request.jwt.claims, each user saw one assigned project and neither saw project B. The project_manager could read project financial terms; the team_lead saw no financial rows. The fixture was rolled back. This verifies database RLS predicates with simulated claims, not signed JWT verification or a real Edge Function invocation; those remain outstanding.
