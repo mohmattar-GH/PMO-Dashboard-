@@ -204,3 +204,23 @@ History timestamps are captured by the row trigger at event execution time, not 
 2. Test populated end-to-end snapshots (all three health statuses, missing-data behavior, critical override, project override, PM reason, portfolio aggregation).
 3. Test authorization with actual authenticated role JWTs.
 4. Add a formal PM health override workflow with separate actor/time/reason audit trail if PM override is intended to override calculated health. Current implementation stores PM-reported health separately and does not overwrite calculated health.
+
+
+## Live deployed integration verification — 15 November 2026
+
+The live Supabase database was tested using transaction-scoped fixtures; all fixture changes were rolled back and follow-up checks confirmed no test users, projects, cycles, configuration sets or test history rows remained.
+
+- The deployed project-health resolver returned Amber for a project dimension override inheriting global KPIs (score 75), Red for a critical dimension score of 90, and Not Reported for a missing KPI metric.
+- Portfolio rollup returned the expected Amber, Red and Not Reported counts/statuses. Snapshot finalization succeeded for each fixture after its KPI/health summary was populated.
+- A separate full database workflow invoked the actual weekly snapshot builder, project-snapshot KPI trigger and finalizer. An active count_v1 KPI mapped to the projects source produced PROJECT_COUNT = 1 / calculated; the project dimension scored 1 and health was Green; finalization returned finalized/calculated.
+- The build test used a simulated service-role claim in the SQL session and a cutoff-safe baseline row in the history table. It is not a real Edge Function invocation with a signed JWT.
+- The health/rollup test inserted synthetic metric rows after the project snapshot trigger, so it verifies the deployed health and rollup functions but not all KPI resolver branches.
+
+### Still outstanding
+1. Real Edge Function calls with signed Auth JWTs and role-specific RLS positive/negative tests.
+2. Exhaustive project/global inheritance combinations, duplicate KPI-code and invalid-weight/configuration rejection tests.
+3. Historical source commit-time cutoff semantics; row-history events currently use clock_timestamp() and do not guarantee strict commit-order reconstruction.
+4. Clean migration replay from GitHub in an isolated database/branch.
+5. Broader formula-template and operational-source coverage tests.
+
+The backend should be described as integration-tested for the tested database paths, not production-ready.
