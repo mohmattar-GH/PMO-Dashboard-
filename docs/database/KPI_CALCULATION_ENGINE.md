@@ -185,3 +185,22 @@ History timestamps are captured by the row trigger at event execution time, not 
 2. Run real Edge Function/JWT role-specific RLS tests.
 3. Validate clean migration replay from GitHub in an isolated database/branch when an approved/cost-free environment is available.
 4. Continue KPI portfolio completeness/rollups, then operational CRUD.
+
+## Configurable project and portfolio health — migrations 043–047
+
+- Added `project_weekly_updates.reported_health_reason`; a PM health report requires an allowed status and a reason of 8–1000 characters. Calculated health remains a separate field.
+- Added a private service-role-only project health resolver. It reads the configuration version linked to the snapshot, with project-level health rule parameters falling back to global parameters.
+- Configurable rule parameters: score minimum/maximum, ordered status thresholds (Green/Amber/Red with an open-ended final threshold), and critical dimension codes.
+- Dimension scores are calculated from active KPI values and KPI weights. Overall project score is calculated from dimension scores and dimension weights. Missing/incomplete KPI data or invalid weights produces `not_reported`, never Green.
+- A configured critical dimension at/below the configured Red boundary forces overall project health to Red. The result includes the score, dimension-level values, configuration version and calculation reason.
+- The KPI snapshot calculation now writes calculated health, PM-reported health and reason into the building project snapshot. Snapshot immutability remains enforced; only the trusted build-time calculation path may update the approved health fields.
+- Migration 047 adds a trusted portfolio health rollup: Green/Amber/Red/Not Reported counts, portfolio status, and counts of projects with calculated and PM-reported health. Missing project health causes portfolio status to remain Not Reported rather than being treated as Green.
+- Supabase Security Advisor: no findings. Health Advisor: no findings. Performance Advisor: 83 INFO-level unused-index notices, expected before representative workload; no indexes removed.
+- Verification confirmed migrations 043–047 are applied, the KPI calculator invokes project and portfolio health logic, the snapshot guards allow only the required build-time health fields, and the health helper/portfolio rollup are not executable by authenticated or anon roles.
+- The PPM database still has zero users, projects and configuration sets. Therefore a real end-to-end snapshot test with populated configuration and role-specific JWT sessions remains outstanding. Do not mark the health engine production-validated yet.
+
+### Remaining health-engine work
+1. Seed a reviewed initial global reporting configuration through the governed configuration workflow.
+2. Test populated end-to-end snapshots (all three health statuses, missing-data behavior, critical override, project override, PM reason, portfolio aggregation).
+3. Test authorization with actual authenticated role JWTs.
+4. Add a formal PM health override workflow with separate actor/time/reason audit trail if PM override is intended to override calculated health. Current implementation stores PM-reported health separately and does not overwrite calculated health.
