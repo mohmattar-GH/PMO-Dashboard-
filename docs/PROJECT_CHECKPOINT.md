@@ -422,3 +422,29 @@ CR Management remains explicitly deferred to a future release. Existing Staff Ti
 - Supabase Security and Health Advisors returned no findings after migration 050. Performance Advisor returned 83 INFO unused-index notices; no indexes removed.
 - The live function definition was inspected and contains the new `effective_kpis` CTE. However, no populated project/configuration fixture exists, so the four inheritance combinations and full snapshot path have not yet been demonstrated end-to-end. Migration 050 is deployed but not production-validated.
 - Next tests: global-only; project dimension override with inherited global KPIs; project KPI override; combined project dimension and KPI overrides; then transaction-rolled-back full snapshot build/finalize and role/JWT tests.
+
+
+## KPI/health engine validation pass — 15 November 2026
+
+### Environment and security checks
+- Confirmed Supabase migration history contains all migrations through 20261115062820 migration_050_consistent_effective_kpi_inheritance_for_health.
+- Inspected deployed function privileges and execution context for private.calculate_project_health_v1, private.calculate_project_snapshot_kpis_v1 and private.refresh_portfolio_health_rollup_v1.
+- All three are SECURITY INVOKER, use an empty search_path, and have EXECUTE denied to anon and authenticated; EXECUTE is granted to service_role.
+- Re-read current Supabase RLS documentation before validation.
+- Latest Advisors: Security = no findings; Health = no findings; Performance = 83 INFO-level unused-index notices. These index notices are expected while the project has no representative workload; no indexes were removed.
+
+### Migration 050 inheritance regression probe
+- Executed a read-only SQL regression probe using the same effective-dimension and effective-KPI selection pattern introduced in migration 050.
+- Four combinations returned complete, weighted dimension scores:
+  1. Global configuration only: score 70.
+  2. Project dimension override with inherited global KPIs: score 70.
+  3. Project KPI override with global dimension: score 75.
+  4. Combined project dimension and KPI overrides: score 75.
+- The probe confirmed that inherited KPI metrics remain associated with their originating configuration version and that project KPI definitions take precedence by KPI code.
+- Scope limitation: this was a SQL logic probe using isolated in-query fixtures, not a populated database fixture invoking the deployed health function or snapshot builder. It does not constitute end-to-end validation of migration 050.
+
+### Remaining integration validation — still open
+- The PPM database still has no provisioned application users, projects, or reporting configuration sets. Therefore, full snapshot build/finalization and real Auth/JWT/RLS tests have not been run.
+- Next validation must create a transaction-rolled-back fixture through the real schema and invoke the deployed calculation/snapshot functions. Cover global-only, dimension override, KPI override, combined override, missing metrics, invalid weights, threshold boundaries, critical-dimension Red, PM-reported status separation, portfolio rollup, empty portfolio and snapshot finalization/immutability.
+- Do not mark the KPI/health engine production-validated until those deployed-function tests and real role/JWT tests pass.
+- No persistent test users, projects, configuration rows, or snapshots were created during this validation pass.
