@@ -400,3 +400,14 @@ CR Management remains explicitly deferred to a future release. Existing Staff Ti
 5. Verify snapshot build/finalization functions, including migration 048 guards, against real fixture rows and empty portfolios.
 6. Finish formal PM override workflow with actor/time/reason audit; current PM-reported status remains separate from calculated health.
 7. Reconcile historical source capture coverage and cutoff/transaction ordering before claiming audit-grade historical reconstruction.
+
+
+## Health engine validation — configuration inheritance finding (15 November 2026)
+
+### Additional defect identified; correction not yet applied
+- Code review of `private.calculate_project_health_v1` found that effective dimensions are selected by dimension code with project configuration preferred over global configuration.
+- The subsequent dimension KPI aggregation joins `kpi_definitions` only to the selected dimension's `configuration_version_id`. If a project configuration overrides a dimension but does not redefine every KPI for that dimension, global KPI definitions selected by `calculate_project_snapshot_kpis_v1` may not be included in the health dimension score.
+- This can cause an otherwise valid project dimension to be marked insufficient-data/not-reported. It is an implementation/configuration inheritance defect, not merely a missing test.
+- No schema change was applied for this finding. Before fixing, define deterministic inheritance semantics for dimension-level overrides and KPI-level overrides, including how project-specific KPI definitions map to the effective dimension, and ensure the KPI result set and health aggregation use the same effective configuration resolution.
+- Current database has zero projects, zero auth users and zero configuration sets. Therefore populated end-to-end and real JWT/RLS tests remain blocked until fixtures and test identities are provisioned.
+- Next: implement and test a single effective-configuration resolution model shared by KPI selection and health aggregation; cover global-only, project-dimension-only, project-KPI-only, and combined overrides. Then run rolled-back integration fixtures and role/JWT tests.
