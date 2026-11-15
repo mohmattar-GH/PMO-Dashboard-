@@ -488,3 +488,30 @@ A transaction-scoped fixture was run against the live Supabase database. All fix
 - Under SET LOCAL ROLE authenticated with per-user request.jwt.claims, both users saw exactly one of the two fixture projects (their assigned project only).
 - Project Manager could read the project's financial terms (1 row); Team Lead could not (0 rows).
 - The entire transaction rolled back. This tests PostgreSQL RLS behavior with simulated JWT claims, not signature verification or an actual Supabase Auth-issued token/Edge Function request. Real signed JWT tests remain a release gate.
+
+
+## Follow-on security and historical-cutoff review — 15 November 2026
+
+### Supabase auth review
+- Re-read the current Supabase Edge Function authorization-header and Auth integration documentation. Both deployed functions, `reporting-config-governance` and `weekly-reporting-snapshots`, are ACTIVE and have `verify_jwt=true`.
+- Inspected both deployed function sources. Each requires a Bearer token, calls `admin.auth.getUser(token)`, and derives the actor UUID from the verified Auth user. Neither function uses user-editable `user_metadata` for authorization. Privileged database operations are delegated to service-role RPCs which perform role checks.
+- A direct signed-JWT Edge Function invocation could not be run through the currently available connected tools: there is no Edge Function invoke/HTTP request action, and the project has zero Auth users. No user credentials or tokens were requested or exposed.
+- SQL RLS smoke tests with simulated `request.jwt.claims` passed for project scoping and Finance-vs-Team-Lead visibility. These do not verify JWT signatures, Auth session validity, or the gateway's `verify_jwt` check.
+- Supabase current authorization docs: https://supabase.com/docs/guides/functions/auth-headers and https://supabase.com/docs/guides/functions/auth-legacy-jwt.
+
+### Historical cutoff integrity — unresolved correctness issue
+- Confirmed all 14 operational history source tables have active coverage beginning `2026-11-14 16:31:06.635565+00`; the current database has zero projects, users, cycles and configuration sets.
+- Confirmed `track_commit_timestamp=off` in PostgreSQL.
+- The history trigger writes `recorded_at=clock_timestamp()` and `transaction_id=pg_current_xact_id()::text`. Historical reconstruction currently selects the latest row image by `recorded_at <= cutoff`; it does not test whether the source transaction had committed by the cutoff.
+- A transaction that begins before a cutoff, writes its history row before the cutoff, but commits after the cutoff can be incorrectly treated as visible in the historical report. The current implementation therefore cannot yet be described as audit-grade transaction-time reconstruction.
+- PostgreSQL 17 provides `pg_current_snapshot()`, `pg_visible_in_snapshot(xid8, pg_snapshot)` and related snapshot functions. A possible correction is to capture a transaction-visibility snapshot when a reporting cycle is closed and use it consistently for project registry capture, KPI source reconstruction, and finalization. This requires a reviewed schema/function migration and explicit definition of the actual reporting cutoff time; it has not been implemented.
+- Relevant PostgreSQL 17 reference: https://www.postgresql.org/docs/17/functions-info.html#FUNCTIONS-PG-SNAPSHOT-SYNCHRONIZATION.
+
+### Supabase changelog review
+- Reviewed the current Supabase breaking-change index. The November 10, 2026 TLS 1.2 CBC cipher removal is relevant only to obsolete clients; it does not require a database schema change for this project. The Supabase CLI v3 behavior change is not currently relevant because changes are being made through connected MCP tools.
+- Changelog: https://supabase.com/changelog?types=breaking-change.
+
+### Current gate
+- Do not mark authentication/JWT integration or historical cutoff reconstruction complete.
+- Do not claim production readiness.
+- Before UI implementation, resolve the historical visibility boundary and obtain a way to run real Auth-issued JWT tests. The UI proposal can be prepared for user review separately; no frontend code has been started.
