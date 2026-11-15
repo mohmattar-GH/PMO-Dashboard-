@@ -228,3 +228,13 @@ The backend should be described as integration-tested for the tested database pa
 
 ### Role-scoped RLS smoke test — 15 November 2026
 A transaction-rolled-back SQL smoke test used two temporary Auth identities and two projects. A project_manager and a team_lead were each assigned to project A only. Under the authenticated database role with per-user request.jwt.claims, each user saw one assigned project and neither saw project B. The project_manager could read project financial terms; the team_lead saw no financial rows. The fixture was rolled back. This verifies database RLS predicates with simulated claims, not signed JWT verification or a real Edge Function invocation; those remain outstanding.
+
+
+## Follow-on cutoff/auth review — 15 November 2026
+
+- Both deployed Edge Functions were inspected: `verify_jwt=true`; each verifies the Bearer token using `admin.auth.getUser(token)` and passes the verified Auth UUID to privileged RPCs. No user-editable `user_metadata` authorization was found in the deployed handlers.
+- Real signed-JWT invocation remains untested because the project currently has zero Auth users and the connected toolset has no Edge Function invocation/HTTP action. SQL tests using simulated JWT claims are not equivalent to signed-token validation.
+- All 14 operational history sources currently have active coverage from `2026-11-14 16:31:06.635565+00`.
+- PostgreSQL `track_commit_timestamp` is `off`. The trigger records `clock_timestamp()` and the transaction ID, but current as-of reconstruction filters by recorded event time rather than transaction visibility. A transaction that spans the cutoff can therefore be misclassified.
+- PostgreSQL 17 transaction snapshot functions (`pg_current_snapshot`, `pg_visible_in_snapshot`) provide a possible route to consistent transaction visibility, but the current reporting-cycle lifecycle does not capture a visibility snapshot. No migration has been applied for this yet.
+- This is an audit-grade historical correctness gate. Do not claim exact as-of reconstruction or production readiness until the reporting-cycle cutoff boundary, project registry reconstruction and all KPI source adapters use a verified transaction-visibility model.
