@@ -360,3 +360,22 @@ CR Management remains explicitly deferred to a future release. Existing Staff Ti
 2. Exercise Green/Amber/Red, missing-data, critical override, project-specific config fallback, PM reported status and portfolio rollup cases.
 3. Run actual role JWT/RLS tests.
 4. Finish formal PM override audit workflow, then proceed with the agreed UI/UX proposal for user review before frontend implementation.
+
+
+## Health-engine audit continuation — 15 November 2026
+
+### Migration 048 — portfolio health rollup completeness
+- Applied migration version `20261115061519`, name `migration_048_finalize_health_rollup_completeness`.
+- Snapshot build now explicitly refreshes the portfolio health rollup after all project snapshot insert/calculation triggers have completed.
+- Snapshot finalization now rejects a snapshot if the portfolio health summary keys are absent or if any project snapshot lacks calculated-health/KPI calculation fields.
+- This closes the empty-project-trigger gap: an empty portfolio receives an explicit Not Reported rollup rather than a missing health summary.
+- SQL source committed at `supabase/migrations/20261115061519_migration_048_finalize_health_rollup_completeness.sql`.
+- Verification: migration 048 appears in Supabase migration history; live function-definition checks confirm the build-time rollup call and finalization guard are present. Security Advisor and Health Advisor returned no findings.
+- No user/project/configuration data was created or modified; the project remains empty.
+
+### Health/KPI audit findings — open validation items
+- The health calculation uses per-version KPI definitions joined to the effective dimension version. Project-scoped dimensions can override global dimensions by dimension code. Confirm that the configuration authoring workflow requires project-scoped KPI definitions to be complete for every overridden dimension; otherwise a project override can intentionally/accidentally result in insufficient data.
+- Threshold evaluation and critical-dimension override logic have been inspected statically but not exercised against populated fixtures. Specifically test score boundary inclusivity, the configured Red boundary, threshold ordering and critical-dimension behavior.
+- Portfolio health status is intentionally Not Reported if any project is Not Reported; validate whether this conservative portfolio policy is the desired management rule before seeding production defaults.
+- Snapshot build/finalize functions remain SECURITY INVOKER, fixed empty search_path, service_role-only EXECUTE. The private health helper and portfolio rollup are not executable by anon/authenticated. Security and Health Advisors currently return no findings.
+- A transaction-rolled-back populated test with all health cases and real Auth/JWT/RLS tests is still outstanding. Do not mark this engine production-validated.
