@@ -481,3 +481,10 @@ A transaction-scoped fixture was run against the live Supabase database. All fix
 ### Current status
 - KPI source resolution, project health calculation, portfolio health rollup, and weekly snapshot build/finalization now have a successful live database integration path under transaction-scoped test data.
 - Do not label the platform production-ready. Remaining gates: real Auth/JWT and role-specific RLS tests, all inheritance combinations and invalid-configuration cases, source-history commit-time semantics, and clean migration replay from GitHub.
+
+
+### Additional role-scoped RLS smoke test — 15 November 2026
+- Ran a transaction-rolled-back RLS smoke test with two temporary Auth identities and two projects. User A was project_manager on project A; User B was team_lead on project A; neither was assigned to project B.
+- Under SET LOCAL ROLE authenticated with per-user request.jwt.claims, both users saw exactly one of the two fixture projects (their assigned project only).
+- Project Manager could read the project's financial terms (1 row); Team Lead could not (0 rows).
+- The entire transaction rolled back. This tests PostgreSQL RLS behavior with simulated JWT claims, not signature verification or an actual Supabase Auth-issued token/Edge Function request. Real signed JWT tests remain a release gate.
