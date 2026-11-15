@@ -379,3 +379,24 @@ CR Management remains explicitly deferred to a future release. Existing Staff Ti
 - Portfolio health status is intentionally Not Reported if any project is Not Reported; validate whether this conservative portfolio policy is the desired management rule before seeding production defaults.
 - Snapshot build/finalize functions remain SECURITY INVOKER, fixed empty search_path, service_role-only EXECUTE. The private health helper and portfolio rollup are not executable by anon/authenticated. Security and Health Advisors currently return no findings.
 - A transaction-rolled-back populated test with all health cases and real Auth/JWT/RLS tests is still outstanding. Do not mark this engine production-validated.
+
+
+## Health/KPI audit continuation — 15 November 2026 (migration 049)
+
+### Critical-dimension threshold defect fixed
+- Static inspection found that critical-dimension override logic searched for a numeric upper bound on the Red threshold. The required final Red band uses `upper_bound: null`, so the lookup returned NULL and the fallback cutoff (`score_min - 1`) prevented a critical dimension from triggering Red.
+- Applied Supabase migration `20261115061840 migration_049_critical_dimension_threshold_classification`.
+- The revised function now classifies each configured critical dimension against the same ordered threshold bands used for overall health; a critical dimension classified Red forces overall calculated health to Red.
+- Migration source committed at `supabase/migrations/20261115091700_migration_049_critical_dimension_threshold_classification.sql` (GitHub commit `5b453a7b2f84fa746787178be88c1a63a03c9128`).
+- Verified the deployed function contains the revised loop; the helper remains SECURITY INVOKER with empty search_path and EXECUTE restricted to service_role (anon/authenticated false).
+- Threshold boundary query using illustrative bands Green <=60, Amber <=80, Red >80 returned: 55/60 Green; 61/80 Amber; 81/100 Red. This tests the band classification expression, not a populated end-to-end project snapshot.
+- Security Advisor: no findings. Health Advisor: no findings. Performance Advisor: 83 INFO unused-index notices; no indexes removed.
+
+### Remaining validation — do not mark production-ready
+1. Run a populated, transaction-rolled-back end-to-end snapshot test covering overall health, critical dimension Red override, missing data, global/project parameter fallback and PM-reported status separation.
+2. Confirm project-scoped configuration override semantics when a project replaces a dimension but omits one or more KPIs; decide whether this should inherit global KPIs or produce insufficient data, then enforce that rule in validation.
+3. Validate portfolio rollup policy: currently any project Not Reported makes the portfolio overall Not Reported, even if other projects are Red/Amber. Confirm this conservative rule against management requirements.
+4. Execute actual Auth/JWT/RLS tests for platform admin, PM, finance, team lead and executive viewer.
+5. Verify snapshot build/finalization functions, including migration 048 guards, against real fixture rows and empty portfolios.
+6. Finish formal PM override workflow with actor/time/reason audit; current PM-reported status remains separate from calculated health.
+7. Reconcile historical source capture coverage and cutoff/transaction ordering before claiming audit-grade historical reconstruction.
