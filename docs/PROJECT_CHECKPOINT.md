@@ -341,3 +341,22 @@ CR Management remains explicitly deferred to a future release. Existing Staff Ti
 3. Clean migration replay validation in an isolated database/branch.
 4. KPI portfolio completeness/rollups and then operational CRUD.
 5. UI/UX proposal review before frontend implementation.
+
+### Configurable project and portfolio health — migrations 043–047 (15 November 2026)
+- Applied migrations 043–047 to `Executive PPM Platform` (`oihawkpbtgqxxliaamxs`).
+- Added PM-reported health reason (8–1000 characters required for a reported status) to weekly updates. PM-reported status is stored separately from calculated health.
+- Added a private service-role-only configurable project health calculation using snapshot-linked configuration: score range, Green/Amber/Red thresholds, dimension weights, KPI weights and critical-dimension Red overrides.
+- Project-level health parameters fall back to the global configuration where omitted.
+- Incomplete or missing dimensions/KPIs/weights produce Not Reported rather than Green.
+- KPI snapshot calculation writes calculated health, score, reason, configuration version and latest PM-reported health/reason into the immutable snapshot through the existing trusted build-time path.
+- Added portfolio rollup with health status counts and Not Reported-safe portfolio status.
+- Verified migrations 043–047 are applied; KPI calculator calls project health and portfolio rollup; snapshot guard permits only the required build-time health fields; authenticated and anon roles do not have EXECUTE on the private health helper/rollup.
+- Security Advisor: no findings. Health Advisor: no findings. Performance Advisor: 83 INFO unused-index notices; no indexes removed.
+- Current PPM project has zero users, projects and configuration sets. Populated end-to-end snapshot and real JWT/RLS tests remain outstanding; health engine is not production-validated.
+- PM reported health is separate from calculated health. A formal PM override workflow with actor/time/reason audit remains outstanding; no PM report can silently overwrite calculated health.
+
+### Next priorities
+1. Seed the reviewed global configuration through the governed workflow and test populated end-to-end snapshots.
+2. Exercise Green/Amber/Red, missing-data, critical override, project-specific config fallback, PM reported status and portfolio rollup cases.
+3. Run actual role JWT/RLS tests.
+4. Finish formal PM override audit workflow, then proceed with the agreed UI/UX proposal for user review before frontend implementation.
