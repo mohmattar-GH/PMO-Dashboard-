@@ -238,3 +238,23 @@ A transaction-rolled-back SQL smoke test used two temporary Auth identities and 
 - PostgreSQL `track_commit_timestamp` is `off`. The trigger records `clock_timestamp()` and the transaction ID, but current as-of reconstruction filters by recorded event time rather than transaction visibility. A transaction that spans the cutoff can therefore be misclassified.
 - PostgreSQL 17 transaction snapshot functions (`pg_current_snapshot`, `pg_visible_in_snapshot`) provide a possible route to consistent transaction visibility, but the current reporting-cycle lifecycle does not capture a visibility snapshot. No migration has been applied for this yet.
 - This is an audit-grade historical correctness gate. Do not claim exact as-of reconstruction or production readiness until the reporting-cycle cutoff boundary, project registry reconstruction and all KPI source adapters use a verified transaction-visibility model.
+
+
+## Closure-boundary historical reconstruction (migrations 051–053, 16 November 2026)
+
+The reporting cycle now stores both the scheduled cutoff and an immutable actual closure boundary. The closure trigger captures `closed_at` and PostgreSQL `pg_current_snapshot()` atomically. KPI source history and project registry reconstruction use `pg_visible_in_snapshot(transaction_id, closure_snapshot)`, so transactions not committed and visible at closure are excluded even if their recorded event timestamp is earlier.
+
+Configuration versions now record `published_transaction_id xid8` on the transition to published. Snapshot building filters configuration versions by whether that publication transaction was visible at closure. The published transaction ID is protected against mutation.
+
+Live database end-to-end verification passed:
+- Pre-closure project/config committed before closure were included.
+- A project created after closure was excluded.
+- A pre-closure project update committed after closure was excluded; the snapshot retained its pre-closure project name.
+- `PROJECT_COUNT=1` was calculated, project health was Green, and weekly snapshot finalization succeeded.
+- Closure metadata identified `transaction_snapshot_at_closure`; scheduled-cutoff and closure-state flags were distinct.
+- Separate tests verified closure-boundary immutability and exclusion of a post-closure configuration publication.
+- All test fixtures, including operational history rows, were cleaned up and zero remaining test rows were verified.
+
+See `docs/database/REPORTING_CYCLE_CLOSURE_VISIBILITY.md` for implementation detail and test limitations.
+
+Remaining: a long-running transaction race test across two independent database sessions; real Auth-issued JWT/Edge Function tests; isolated clean migration replay; broader source adapter coverage. The platform is not yet production-ready.
