@@ -559,3 +559,14 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - This is a design specification only. No frontend code, framework/component-library selection, or deployment has started.
 - User review is now required for dashboard composition, project tabs, CEO finance visibility and presentation mode before proceeding to wireframes or implementation.
 - CR Management remains deferred; Staff Time & Performance remains untouched.
+
+
+## Executive Dashboard layout control — 16 November 2026
+
+- User explicitly confirmed the requirement to control the dashboard layout.
+- Added Screen E02, Executive Dashboard Layout Editor, to `docs/UI_SCREEN_SPECIFICATIONS.md`.
+- Authorized administrators can add/remove/hide/restore/reorder/resize/reposition dashboard components, control grid columns and component widths, preview, save drafts, publish versioned layouts and reset to the approved default.
+- Role-specific layouts are supported; personal layout editing remains administrator-controlled.
+- Layout changes cannot grant access to underlying restricted data. Removing a dashboard component never deletes operational data or KPI definitions.
+- KPI formulas and thresholds remain governed by the Configuration Center. Historical finalized reports remain unchanged.
+- This remains a design specification only; no frontend implementation has started.
