@@ -12,7 +12,7 @@ as $function$
 begin
  if old.status='published' then
    if tg_op='UPDATE' and old.status='published' and new.status='superseded'
-      and (to_jsonb(new)-'status'-'published_transaction_id')=(to_jsonb(old)-'status'-'published_transaction_id') then
+      and (to_jsonb(new)-'status')=(to_jsonb(old)-'status') then
      return new;
    end if;
    raise exception 'Published reporting configuration versions are immutable except for superseding';
