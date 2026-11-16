@@ -541,3 +541,11 @@ Security and Health Advisors: no findings on the final scan. Performance Advisor
 
 ### Next product phase
 Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal for user review before any frontend implementation. Keep CR Management deferred and leave Staff Time & Performance untouched.
+
+
+## UI/UX proposal prepared for user review — 16 November 2026
+
+- Created `docs/UI_UX_PROPOSAL.md` in GitHub commit `2a02cd32edcbc92bb8f4fad10ef728d1b43673b9`.
+- Proposal covers visual direction, primary navigation, Executive Overview, project workspace, Master Schedule, Payments & Risk Timeline, Reports & Snapshots, Configuration Center, role-based experience and interaction principles.
+- This is a proposal only. No frontend code, framework selection, component-library selection or deployment has been started.
+- Await user approval or requested revisions to the navigation, dashboard composition, project tabs and interaction approach before producing detailed wireframes or implementing UI.
