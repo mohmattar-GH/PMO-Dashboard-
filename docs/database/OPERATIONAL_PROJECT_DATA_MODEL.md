@@ -107,3 +107,12 @@ Coverage began at `2026-11-14 16:31:06.635565+00`; all covered source tables wer
 Project weekly updates now require a reason when a PM reports Green, Amber, Red or Not Reported health. The weekly snapshot engine calculates a separate health score/status from configured KPI and dimension weights, thresholds and critical-dimension overrides. The PM-reported status and reason are retained separately; they do not silently replace the calculated result.
 
 Portfolio snapshots include calculated project-health counts and a portfolio status. Any project with missing/unreported calculated health prevents the portfolio from being presented as Green.
+
+
+## Reporting-cycle historical boundary update — 16 November 2026
+
+Migrations 051–053 add an immutable actual closure boundary to reporting cycles (`closed_at`, `closure_snapshot`). The scheduled `cutoff_at` is retained as reporting metadata; the transaction visibility snapshot captured at closure is authoritative for source reconstruction. Operational history and project registry reads use PostgreSQL `pg_visible_in_snapshot`. Published configuration versions record their publication transaction ID so post-closure publications cannot enter an earlier cycle's report.
+
+A live database end-to-end test verified inclusion of pre-closure project/configuration state, exclusion of a post-closure project and post-closure update, KPI calculation, Green health and snapshot finalization. See `docs/database/REPORTING_CYCLE_CLOSURE_VISIBILITY.md`.
+
+Still outstanding: two-session long-running transaction race test, real Auth/JWT tests, isolated clean migration replay, and full source adapter coverage.
