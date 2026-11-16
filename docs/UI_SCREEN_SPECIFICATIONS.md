@@ -140,8 +140,9 @@ Initial supported component types:
 Each component has controlled settings for title, explanatory text, size, supported data binding, filters, grouping, display format, sort order and visibility. The catalogue is extensible through future registered component types; it does not accept arbitrary code, SQL or untrusted widgets.
 
 ### Layout governance
-- Maintain a system-approved default layout and optionally approved role-specific layouts (CEO, Project Manager, Finance, etc.).
-- Administrators can create and manage role layouts. Personal layout editing is disabled unless explicitly enabled by an administrator.
+- **Only administrators** may create, edit, reorder, resize, hide, restore, remove, preview, save, publish or reset shared dashboard layouts.
+- Ordinary users, including CEO / Executive Viewer, Project Managers and Finance users, have read-only access to the dashboard layout. They cannot rearrange components or save personal layouts.
+- Maintain a system-approved default layout and optionally administrator-managed role-specific layouts (CEO, Project Manager, Finance, etc.).
 - Layout access never grants access to underlying records. Components must respect the viewer's existing project, finance and role permissions.
 - Layout changes are versioned and audited with author, timestamp, change summary and publication state.
 - Draft changes are not visible to other users until published.
