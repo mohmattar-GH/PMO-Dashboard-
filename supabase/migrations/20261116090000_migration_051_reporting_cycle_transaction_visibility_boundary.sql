@@ -171,6 +171,15 @@ begin
     'p.created_at<=v_cycle.cutoff_at',
     'p.created_at<=v_cycle.closed_at');
   v_def := replace(v_def,
+    'and exists(select 1 from public.projects p where p.id=s.project_id and p.created_at<=v_cycle.closed_at)',
+    'and exists(select 1 from (' ||
+      'select distinct on (h.record_id) h.record_id,h.operation ' ||
+      'from private.operational_record_history h ' ||
+      'where h.source_table=''projects'' ' ||
+      'and pg_visible_in_snapshot(h.transaction_id::xid8,v_cycle.closure_snapshot::pg_snapshot) ' ||
+      'order by h.record_id,h.recorded_at desc,h.history_id desc' ||
+      ') historical_project where historical_project.record_id=s.project_id and historical_project.operation<>''delete'' )');
+  v_def := replace(v_def,
     'v_watermark timestamptz := clock_timestamp();',
     'v_watermark timestamptz;');
   v_def := replace(v_def,
