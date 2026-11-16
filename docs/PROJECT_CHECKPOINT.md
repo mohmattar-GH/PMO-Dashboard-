@@ -515,3 +515,29 @@ A transaction-scoped fixture was run against the live Supabase database. All fix
 - Do not mark authentication/JWT integration or historical cutoff reconstruction complete.
 - Do not claim production readiness.
 - Before UI implementation, resolve the historical visibility boundary and obtain a way to run real Auth-issued JWT tests. The UI proposal can be prepared for user review separately; no frontend code has been started.
+
+
+## 16 November 2026 — transaction-visibility historical reconstruction (migrations 051–053)
+
+**Implemented and verified in the live Supabase project.** The reporting model now preserves the scheduled reporting cutoff while making the actual database closure boundary authoritative for reconstructing a weekly snapshot.
+
+- Migration 051: adds immutable `reporting_cycles.closed_at` and serialized PostgreSQL `closure_snapshot`; guarded cycle closure captures both atomically. Operational history reads and project registry capture now use PostgreSQL transaction visibility (`pg_visible_in_snapshot`) plus the closure timestamp. Finalization validates against the closure-visible project set.
+- Migration 052: adds `reporting_configuration_versions.published_transaction_id xid8`, captured by the database on the transition to published. Snapshot generation only includes configuration publication transactions visible at cycle closure.
+- Migration 053: allows the new closure metadata keys in the protected portfolio snapshot summary mutation guard.
+- Scheduled cutoff remains in snapshot metadata; reports identify `transaction_snapshot_at_closure`, actual close timestamp and whether scheduled cutoff equals closure.
+- A live transaction-rolled-back integration test created a project and published config before closure, then created another project and updated the first project after closure. The generated snapshot included only the pre-closure project and its pre-closure row image; `PROJECT_COUNT=1`, KPI status calculated, project health Green, and snapshot finalization succeeded.
+- Additional tests confirmed closure boundary capture/immutability, exclusion of post-closure config publication, and publication transaction ID immutability.
+- Test users, projects, portfolios, cycles, snapshots, configuration fixtures and test history rows were removed; final cleanup checks returned zero.
+
+Detailed design and test record: `docs/database/REPORTING_CYCLE_CLOSURE_VISIBILITY.md`.
+
+### Remaining gates
+- Exercise a long-running transaction started before closure but committed after closure using two independent database sessions.
+- Exercise Edge Functions using real Supabase Auth-issued signed JWTs; available connected tools do not currently expose direct Edge Function invocation, and no permanent Auth user was provisioned for testing.
+- Replay migrations 001–053 from GitHub in an isolated Supabase branch/database.
+- Re-run role-specific RLS tests with actual signed JWTs.
+
+Security and Health Advisors: no findings on the final scan. Performance Advisor: 15 informational unused-index notices; no index removals were made. The full platform is not yet production-ready.
+
+### Next product phase
+Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal for user review before any frontend implementation. Keep CR Management deferred and leave Staff Time & Performance untouched.
