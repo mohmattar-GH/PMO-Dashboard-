@@ -89,3 +89,8 @@ Verified:
 ## Release interpretation
 
 The closure-boundary correction is implemented and passed the described live database integration tests. Do not describe the entire platform as production-ready until the remaining Auth/JWT, concurrent-transaction race and clean migration-replay gates are complete.
+
+
+## Scheduled processing integration
+
+The existing `private.process_due_reporting_cycles()` job selects due `open` cycles and transitions each to `closed`. Migration 051's reporting-cycle trigger captures the closure timestamp and visibility snapshot on that transition. The same job then builds and finalizes the snapshot. A failed build is handled by the job's existing exception block; the closure update is rolled back with the failed attempt, leaving the cycle eligible for retry. No separate closure path or manual timestamp is required.
