@@ -110,6 +110,56 @@ A CEO-ready weekly portfolio briefing: show where management attention is needed
 ### Required states
 - No projects; no finalized snapshot; partial / insufficient source data; mixed currencies; KPI calculation failed; no prior snapshot for comparison; user lacks access to financial panel.
 
+
+## 3.1 Screen E02 — Executive Dashboard Layout Editor
+
+### Purpose
+Give authorized administrators direct control over the dashboard's composition and arrangement without code changes or deletion of operational data.
+
+### Entry and editing mode
+- An **Edit Layout** action is available to users with the dashboard-layout administration permission.
+- Entering edit mode displays the component catalogue, editable dashboard canvas and layout controls.
+- Components can be added from the catalogue, dragged/reordered, resized within supported grid sizes, moved between sections, hidden, restored or removed from the active layout.
+- Support configurable grid columns and component widths; the layout reflows responsively on smaller screens.
+- Show an unsaved-changes indicator. Users can preview, save draft, discard changes, and publish an approved layout.
+- Provide reset-to-approved-default.
+
+### Component catalogue
+Initial supported component types:
+- KPI card / KPI group.
+- Chart (supported chart types only).
+- Data table / project list.
+- Project health/status distribution.
+- Milestone and schedule summary.
+- Financial summary and receivables.
+- Risk summary / top risks.
+- Management decisions and escalations.
+- Weekly narrative / priorities.
+- Configurable information/status list based on registered data fields.
+
+Each component has controlled settings for title, explanatory text, size, supported data binding, filters, grouping, display format, sort order and visibility. The catalogue is extensible through future registered component types; it does not accept arbitrary code, SQL or untrusted widgets.
+
+### Layout governance
+- Maintain a system-approved default layout and optionally approved role-specific layouts (CEO, Project Manager, Finance, etc.).
+- Administrators can create and manage role layouts. Personal layout editing is disabled unless explicitly enabled by an administrator.
+- Layout access never grants access to underlying records. Components must respect the viewer's existing project, finance and role permissions.
+- Layout changes are versioned and audited with author, timestamp, change summary and publication state.
+- Draft changes are not visible to other users until published.
+- Historical finalized reports retain the layout/configuration context used for that report; new layout versions do not rewrite old snapshots.
+- Dashboard placement/removal never deletes source records, KPI definitions or operational data.
+- KPI formula, threshold and scoring changes remain under the separate Configuration Center approval/version lifecycle.
+
+### Acceptance criteria
+- An authorized administrator can add, remove, hide, restore, reorder, resize and reposition components.
+- The administrator can control grid columns and component widths, preview the result and publish a new layout version.
+- A component removed from the canvas can be added again from the catalogue.
+- Publishing a role layout does not bypass row-level or field-level data authorization.
+- Users without layout permission cannot change the shared layout.
+- Responsive layout reflows without overlap or inaccessible controls.
+- Reset restores the currently approved default layout.
+- All layout changes are auditable and historical reports remain unchanged.
+
+
 ## 4. Screen P01 — Projects Register
 
 ### Purpose
