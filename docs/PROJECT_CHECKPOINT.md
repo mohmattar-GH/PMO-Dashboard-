@@ -570,3 +570,12 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - Layout changes cannot grant access to underlying restricted data. Removing a dashboard component never deletes operational data or KPI definitions.
 - KPI formulas and thresholds remain governed by the Configuration Center. Historical finalized reports remain unchanged.
 - This remains a design specification only; no frontend implementation has started.
+
+
+## Dashboard layout permissions decision — 16 November 2026
+
+- User confirmed that **only administrators** may control dashboard layouts.
+- Ordinary users (including CEO / Executive Viewer, Project Managers and Finance) have read-only dashboard layouts and cannot rearrange components or save personal layouts.
+- Administrators manage the default and any role-specific shared layouts.
+- Layout editing permissions do not grant access to underlying data; existing data authorization remains enforced.
+- Updated `docs/UI_SCREEN_SPECIFICATIONS.md` accordingly. This is a specification decision; frontend implementation has not started.
