@@ -549,3 +549,13 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - Proposal covers visual direction, primary navigation, Executive Overview, project workspace, Master Schedule, Payments & Risk Timeline, Reports & Snapshots, Configuration Center, role-based experience and interaction principles.
 - This is a proposal only. No frontend code, framework selection, component-library selection or deployment has been started.
 - Await user approval or requested revisions to the navigation, dashboard composition, project tabs and interaction approach before producing detailed wireframes or implementing UI.
+
+
+## UI direction approved; detailed screen specifications drafted — 16 November 2026
+
+- User approved the overall UI/UX direction and navigation proposal, including the visual concept sample.
+- Created `docs/UI_SCREEN_SPECIFICATIONS.md` in commit 3fd02424aa4b30521bd20f6febaf256eca28d29a.
+- Draft 1 specifies the global application shell, Executive Overview, Projects Register, Project Workspace shared header and its ten tabs, interactions, role behavior, empty/error/permission states and acceptance criteria.
+- This is a design specification only. No frontend code, framework/component-library selection, or deployment has started.
+- User review is now required for dashboard composition, project tabs, CEO finance visibility and presentation mode before proceeding to wireframes or implementation.
+- CR Management remains deferred; Staff Time & Performance remains untouched.
