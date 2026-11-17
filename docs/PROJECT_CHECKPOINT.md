@@ -597,3 +597,12 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - Financial content remains hidden unless the CEO / Executive Viewer has explicit administrator-granted financial permission. Presentation Mode cannot bypass backend authorization.
 - Presentation Mode does not allow layout editing or operational data changes; shared layout management remains administrator-only.
 - Specification recorded in `docs/UI_SCREEN_SPECIFICATIONS.md`; frontend implementation remains pending completion and approval of the screen design.
+
+
+## Executive Dashboard density decision — 17 November 2026
+
+- User selected **Detailed** information density for the standard Executive Dashboard.
+- The standard dashboard should show richer charts, KPI breakdowns, project-level operational information, trends, upcoming milestones, risks, decisions and weekly narrative, organized in scrollable sections.
+- The CEO Presentation Mode remains a separate, simplified meeting experience.
+- Administrator-only layout control remains in force.
+- Decision recorded in `docs/UI_SCREEN_SPECIFICATIONS.md`; frontend implementation remains pending.
