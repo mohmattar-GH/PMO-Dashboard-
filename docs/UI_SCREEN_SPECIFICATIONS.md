@@ -285,6 +285,15 @@ Tabs with no permission are hidden or shown as restricted according to the agree
 - Without the explicit grant, financial components and navigation entries are omitted or display a clear access-restricted state without leaking values or metadata.
 - This restriction does not prevent the administrator from assigning a separate financial permission to a CEO / Executive Viewer account where approved.
 
+
+### CEO weekly-meeting presentation mode
+- Provide a dedicated **Presentation Mode** for weekly CEO / executive portfolio reviews.
+- Presentation Mode is a read-only, meeting-oriented view with simplified navigation and controls, clear reporting-period and snapshot status, and an executive-first sequence of portfolio health, delivery, management attention, risks, decisions and weekly narrative.
+- Financial components appear only when the signed-in executive has the separately granted financial-data permission; presentation mode never bypasses data authorization.
+- Support full-screen viewing and clear previous/next section navigation. Exports, if enabled, use the same access checks and selected reporting snapshot.
+- Clearly display the reporting week, snapshot status/as-of time and whether the displayed information is a finalized snapshot or a live view.
+- Presentation Mode does not permit layout editing or operational data changes. Only administrators can manage the underlying shared dashboard layouts.
+
 ## 7. Screen-level acceptance criteria
 
 - Dashboard values are sourced from a selected finalized snapshot or clearly labelled live operational view; never mix the two silently.
