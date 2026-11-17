@@ -588,3 +588,12 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - The restriction covers financial dashboard components and KPIs, contract values, invoices, payments, receivables and financial drill-downs.
 - This must be enforced in backend authorization/RLS and field-level controls where applicable; hiding UI elements alone is insufficient.
 - The decision is recorded in `docs/UI_SCREEN_SPECIFICATIONS.md`. No frontend implementation has started.
+
+
+## CEO presentation mode decision — 17 November 2026
+
+- User confirmed that the Executive Dashboard must include a dedicated Presentation Mode for weekly CEO meetings.
+- Mode is read-only, meeting-oriented, and shows reporting period/snapshot status clearly, with executive-first sections and simplified navigation.
+- Financial content remains hidden unless the CEO / Executive Viewer has explicit administrator-granted financial permission. Presentation Mode cannot bypass backend authorization.
+- Presentation Mode does not allow layout editing or operational data changes; shared layout management remains administrator-only.
+- Specification recorded in `docs/UI_SCREEN_SPECIFICATIONS.md`; frontend implementation remains pending completion and approval of the screen design.
