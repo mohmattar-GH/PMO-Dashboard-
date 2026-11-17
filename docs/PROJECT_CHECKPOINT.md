@@ -579,3 +579,12 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - Administrators manage the default and any role-specific shared layouts.
 - Layout editing permissions do not grant access to underlying data; existing data authorization remains enforced.
 - Updated `docs/UI_SCREEN_SPECIFICATIONS.md` accordingly. This is a specification decision; frontend implementation has not started.
+
+
+## CEO financial visibility decision — 17 November 2026
+
+- User selected **Option 3: Restricted access**.
+- CEO / Executive Viewer has no financial-data visibility by default. An administrator must explicitly grant it.
+- The restriction covers financial dashboard components and KPIs, contract values, invoices, payments, receivables and financial drill-downs.
+- This must be enforced in backend authorization/RLS and field-level controls where applicable; hiding UI elements alone is insufficient.
+- The decision is recorded in `docs/UI_SCREEN_SPECIFICATIONS.md`. No frontend implementation has started.
