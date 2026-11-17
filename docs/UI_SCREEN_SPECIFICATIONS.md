@@ -277,6 +277,14 @@ Tabs with no permission are hidden or shown as restricted according to the agree
 - Record decision and rationale with audit history.
 - Dashboard surfaces items requiring executive action.
 
+
+### CEO / Executive Viewer financial-data visibility
+- Default policy: **restricted**. CEO / Executive Viewer does not receive financial information merely by holding the CEO / Executive Viewer role.
+- An administrator must explicitly grant financial-data visibility before the user can see financial dashboard components, financial KPIs, invoice/payment details, contract values, receivables, or financial drill-downs.
+- The permission must be enforced by backend authorization/RLS and applicable field-level controls, not only by hiding dashboard components or tabs.
+- Without the explicit grant, financial components and navigation entries are omitted or display a clear access-restricted state without leaking values or metadata.
+- This restriction does not prevent the administrator from assigning a separate financial permission to a CEO / Executive Viewer account where approved.
+
 ## 7. Screen-level acceptance criteria
 
 - Dashboard values are sourced from a selected finalized snapshot or clearly labelled live operational view; never mix the two silently.
