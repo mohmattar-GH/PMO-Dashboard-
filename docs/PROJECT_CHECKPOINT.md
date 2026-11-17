@@ -606,3 +606,14 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - The CEO Presentation Mode remains a separate, simplified meeting experience.
 - Administrator-only layout control remains in force.
 - Decision recorded in `docs/UI_SCREEN_SPECIFICATIONS.md`; frontend implementation remains pending.
+
+
+## Executive Dashboard — project phase visibility requirement — 17 November 2026
+- User requested that the dashboard clearly identify each project's current phase.
+- Add current phase to project cards and Projects Register; add a portfolio phase breakdown with project counts and drill-down; provide phase filters.
+- Show phase progress and planned start / forecast completion / actual completion dates when available.
+- Retain phase transition history and time-in-phase visibility for management reporting.
+- Phase names, order, active state and permitted transitions must be configurable by administrators. Support lifecycle templates for projects with different delivery approaches; do not hardcode one lifecycle for all projects.
+- Missing phase data is shown as Not Reported / Unassigned. Phase is not interchangeable with overall project health or milestone completion.
+- Phase display follows existing dashboard layout permissions and data access rules.
+- This is a UI/product requirement only. No frontend implementation or database schema change has been made as part of this update.
