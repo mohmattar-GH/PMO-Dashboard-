@@ -324,3 +324,16 @@ Please review:
 5. Any essential fields or actions missing from the first two screens.
 
 **Approval gate:** This document is a draft screen specification. Frontend implementation remains blocked until the user approves the detailed screen structure and interaction approach. Framework and component-library selection remain open.
+
+
+### Project phase visibility on the Executive Dashboard
+- Add a prominent **Current Project Phase** field to every project card and the Projects Register row.
+- Add a portfolio-level **Phase Breakdown** component showing project counts by configured phase, with drill-down to the matching project list.
+- Provide dashboard filters for phase.
+- Show phase progress and planned start, forecast completion and actual completion dates when those values are available.
+- Preserve phase transition history so management can see when a project entered or exited a phase and identify time spent in each phase.
+- Phase definitions, names, ordering, active/inactive state and permitted transitions must be administrator-configurable; do not hardcode a universal lifecycle.
+- Support project-specific lifecycle templates where projects follow different delivery methods. Each project must have one clearly identified current phase under its assigned lifecycle.
+- Missing phase data must be displayed as Not Reported / Unassigned, never inferred.
+- Phase status and progress must remain distinct from overall project health and milestone completion.
+- Phase components and fields are subject to the same administrator-only dashboard layout control and viewer data permissions.
