@@ -294,6 +294,13 @@ Tabs with no permission are hidden or shown as restricted according to the agree
 - Clearly display the reporting week, snapshot status/as-of time and whether the displayed information is a finalized snapshot or a live view.
 - Presentation Mode does not permit layout editing or operational data changes. Only administrators can manage the underlying shared dashboard layouts.
 
+
+### Executive Dashboard information density
+- The standard Executive Dashboard uses the **Detailed** presentation density.
+- Show richer charts, KPI breakdowns, project-level operational information, trends, upcoming milestones, risks, decisions and weekly narrative, organized into clear sections with scrolling.
+- Preserve configurable component visibility, ordering, sizing and layout under administrator-only control.
+- The CEO Presentation Mode remains a separate, simplified meeting-oriented experience; its layout is governed by administrators independently of the standard dashboard.
+
 ## 7. Screen-level acceptance criteria
 
 - Dashboard values are sourced from a selected finalized snapshot or clearly labelled live operational view; never mix the two silently.
