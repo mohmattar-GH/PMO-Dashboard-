@@ -314,16 +314,23 @@ Tabs with no permission are hidden or shown as restricted according to the agree
 - No CR Management UI or behavior is introduced.
 - No frontend code, framework choice or deployment is authorized by this specification.
 
-## 8. Review decisions required
+## 8. Product-owner decisions confirmed and remaining review
 
-Please review:
-1. Executive Overview density and ordering: portfolio KPIs → delivery/health → commercial → management attention → weekly narrative.
-2. Project Workspace tab structure and labels.
-3. Whether the Finance tab should be visible to CEO / Executive Viewer by default, or only when explicitly granted.
-4. Whether a separate presentation mode is required for CEO meetings.
-5. Any essential fields or actions missing from the first two screens.
+### Confirmed decisions
+1. Standard Executive Dashboard information density: **Detailed**, with scrollable sections.
+2. Dashboard layout editing: **Administrator only**. Other roles have read-only layouts; no personal layout editing.
+3. CEO / Executive Viewer financial visibility: **Restricted by default**; explicit administrator grant required and enforced by backend authorization.
+4. CEO weekly meeting: dedicated, read-only **Presentation Mode**.
+5. Dashboard content: administrators can add, remove, hide, restore, reorder, resize and reposition components; layout changes do not delete source data.
+6. Project phase: current phase visible on project cards and register; portfolio phase breakdown and filters; phase progress/dates/history; administrator-configurable lifecycle templates and phase transitions.
 
-**Approval gate:** This document is a draft screen specification. Frontend implementation remains blocked until the user approves the detailed screen structure and interaction approach. Framework and component-library selection remain open.
+### Remaining review before frontend implementation
+- Review the complete dashboard information hierarchy and the Project Workspace tab structure.
+- Confirm whether any essential fields, actions or project-phase information are missing.
+- Review the interaction approach for the administrator Layout Editor and CEO Presentation Mode.
+- Select the frontend framework and component library only after the screen structure is approved.
+
+**Approval gate:** The decisions above are captured as the current design baseline, but the detailed screen specification remains a draft. Do not begin frontend implementation until the user explicitly approves the complete screen structure and interaction approach. No framework choice, component-library choice or deployment is implied by this document.
 
 
 ### Project phase visibility on the Executive Dashboard
