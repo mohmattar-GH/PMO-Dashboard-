@@ -617,3 +617,17 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - Missing phase data is shown as Not Reported / Unassigned. Phase is not interchangeable with overall project health or milestone completion.
 - Phase display follows existing dashboard layout permissions and data access rules.
 - This is a UI/product requirement only. No frontend implementation or database schema change has been made as part of this update.
+
+
+## Consolidated Executive Dashboard design decisions — 19 November 2026
+- Consolidated the decisions made during dashboard design into the UI screen specification.
+- Standard dashboard density is Detailed; sections may scroll.
+- Only administrators can add/remove/hide/restore/reorder/resize/reposition dashboard components and publish shared layouts. Other roles are read-only and cannot save personal layouts.
+- CEO / Executive Viewer financial visibility is restricted by default and requires explicit administrator authorization enforced by backend controls.
+- A dedicated read-only CEO Presentation Mode is required for weekly meetings.
+- Dashboard components are configurable without deleting or altering underlying operational data or KPI definitions.
+- Current project phase must be prominent on project cards and the Projects Register. Add a portfolio phase breakdown and phase filters; show progress and phase dates/history where available.
+- Phase lifecycle names, ordering, active states, templates and allowed transitions are administrator-configurable. Phase remains distinct from project health and milestone progress.
+- Updated the review section in `docs/UI_SCREEN_SPECIFICATIONS.md` to distinguish confirmed decisions from remaining screen-specification approval.
+- This is a documentation/design consolidation only. No frontend code, framework selection, database schema change or deployment was performed.
+- Frontend implementation remains blocked pending explicit approval of the complete screen structure and interaction approach.
