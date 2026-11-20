@@ -708,3 +708,16 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - Current database contains zero portfolio snapshots, zero project snapshots, zero snapshot metric rows and zero KPI definitions; therefore there is no existing historical dataset to classify or validate yet.
 - Real authenticated-user tests remain outstanding because no application users have been provisioned. API consumers must use the new snapshot index views and explicit column selections; `select *` on the base snapshot tables is intentionally not supported for authenticated users.
 - Current frontend CI for the latest migration commits was still running at the time of this checkpoint update.
+
+
+## Executive Overview live project-register connection — 21 November 2026
+
+- Added `src/LivePortfolioOverview.tsx` and connected the Executive Overview to `public.projects` through the authenticated Supabase browser client.
+- The read-only query returns project code, name, lifecycle status, start date, target end date, project-manager assignment indicator and related client name. Access remains governed by the existing `projects` and `clients` SELECT grants and RLS policies; no service-role key is used.
+- Added loading, query-error, empty-register and search-filter states. Summary counts derive only from rows returned to the signed-in user.
+- Replaced fixed demo reporting period and finalized snapshot indicators with an explicit live operational view / no-finalized-snapshot status.
+- Admin layout editor entry is now restricted to the database-derived `platform_admin` role. Layout persistence is not yet implemented; the editor remains preview-only.
+- Important data-model distinction: `projects.lifecycle_status` is not the configurable project phase. The current database has no phase assignment/history tables in the inspected public schema. Project phase, calculated health, verified progress, milestone achievement, risk rollups and executive decisions remain Not Reported until the respective live data contracts are connected.
+- Database currently contains zero project rows and zero Auth users. Therefore the frontend live query has not yet been verified using a real signed-in account; do not claim a complete end-to-end integration test.
+- Latest known completed CI: run 42 succeeded for prior commit `e06f07f35155ba9a1f4e11622a9bdbede51cf69d`. The GitHub connector did not return push-triggered workflow runs for the latest commits, so this slice's build result remains unverified through the available run-list action.
+- No schema changes, user provisioning, merge or deployment were performed in this slice.
