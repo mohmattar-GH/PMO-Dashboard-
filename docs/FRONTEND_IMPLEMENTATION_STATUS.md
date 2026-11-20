@@ -89,3 +89,10 @@ The browser app now requires a Supabase-authenticated session and an active data
 - Supabase Security Advisor still returns zero security lints after the frontend-only change. No database schema or permissions were modified.
 - KPI metric values are intentionally not exposed to Executive Viewer because the current snapshot metric table has no sensitivity classification. The KPI engine exists, but no KPI definitions/configuration rows are published. KPI cards remain unreported until a safe classified KPI read contract is designed.
 - There are currently zero project records, zero snapshot records, zero KPI definitions/configurations and zero Auth users. Live browser behavior and role-specific access still require real-user tests.
+
+
+## CI verification — 21 November 2026
+
+- GitHub Actions workflow run `44831475659` completed successfully for the latest frontend health-integration commit (`ace40388a4e54ada500e96e6c10d3d5f2733f74d`).
+- Dependency installation and the TypeScript type-check/production build steps both passed.
+- This verifies compilation/build only. It does not replace authenticated-browser, role-specific RLS, or end-to-end workflow testing.
