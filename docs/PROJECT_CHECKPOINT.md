@@ -774,3 +774,14 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - Security Advisor reports two WARN findings for the authenticated SECURITY DEFINER lifecycle RPCs. They are intentionally used to perform atomic assignment/history writes without direct client table-write grants; both use an empty search_path, explicit auth/profile/role checks, and revoke anon/PUBLIC execution. Real JWT tests remain required.
 - Migration 058 SQL is archived in GitHub; migration 057 source still needs to be archived before clean-environment replay can be claimed.
 - PR #1 remains draft and unmerged. No deployment or user provisioning was performed.
+
+
+## Private formula-template RLS hardening — 21 November 2026
+
+- Applied migration `20261120225701_enable_rls_reporting_formula_templates` to the Executive PPM Supabase project.
+- Enabled RLS on `private.reporting_formula_templates` as defense in depth.
+- No client policies were added because `anon` and `authenticated` have neither `USAGE` on the `private` schema nor `SELECT` on this table. The existing server-side `service_role` SELECT grant remains; `service_role` bypasses RLS.
+- Post-migration verification confirms RLS enabled, RLS not forced, client schema/table access still denied, and the service-role SELECT grant retained.
+- Security Advisor now reports one INFO finding because the table has RLS enabled with no policies; this is intentional for a private server-only table with no client access. Two existing WARN findings remain for the authenticated SECURITY DEFINER lifecycle assignment/transition RPCs and require real JWT tests and security review.
+- Matching SQL source committed at `supabase/migrations/20261120225701_enable_rls_reporting_formula_templates.sql`.
+- No application data, user access, existing Staff Time & Performance assets, PR merge or deployment was changed.
