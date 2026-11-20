@@ -372,3 +372,18 @@ Tabs with no permission are hidden or shown as restricted according to the agree
 ### Approval boundary
 - These are approved product/UI design decisions only.
 - No frontend implementation, framework selection, component-library selection, or deployment is authorized by this decision.
+
+## Scope supersession — Change Requests, Deliverables, Milestones & Notifications — 20 November 2026
+
+The user has explicitly approved including all four capabilities in the current release. This section supersedes earlier statements in this file that CR Management is out of scope or deferred.
+
+- Add portfolio-level Change Requests, Deliverables and Milestones registers and a full Notification Centre.
+- Add project-level Change Requests and Deliverables trackers; extend Schedule & Milestones with the milestone tracker.
+- Full CR lifecycle includes intake, impact assessment, configurable approvals, controlled implementation, verification, closure, immutable history and linked records.
+- Deliverables include versioned submissions, review, acceptance/rejection, resubmission and evidence.
+- Milestones include baseline/revised/forecast/actual dates, dependencies, achievement evidence and controlled re-baselining.
+- Notifications include in-app inbox, configurable event rules, recipients, reminders, escalation, acknowledgement, audit and delivery log. External channels require separately configured and tested integrations.
+- Existing contract variations, contract deliverables, milestones, activities, documents and audit tables must be reused/extended where appropriate. Do not create duplicate commercial adjustment or tracker sources.
+- All statuses, workflow stages, approval routing, thresholds, SLAs, recipients and reminder rules remain administrator-configurable, versioned and audited.
+- Detailed draft wireframes: `docs/UI_CR_DELIVERABLES_MILESTONES_NOTIFICATION_WIREFRAMES.md`.
+- These additions are approved scope, but their wireframes and interactions still require product-owner review. Frontend implementation remains blocked until explicit approval.
