@@ -696,3 +696,15 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - Important remaining security work: historical `project_snapshots` expose a JSON payload and `snapshot_metric_values` are currently readable by Executive Viewer. KPI sensitivity classification and a safe snapshot data contract are still required before financial KPIs or snapshot payloads can be exposed to executive users. Real JWT tests are also pending because no application users are provisioned yet.
 - The frontend build failure caused by literal escaped newline characters in `src/styles.css` was fixed in commit `13887dccc9bbdda957a77faf9bd87ca15565ff84`; GitHub Actions build run 29 completed successfully.
 - PR #1 remains draft and unmerged. No deployment has been performed.
+
+
+## Historical snapshot access hardening — 21 November 2026
+
+- Applied migration 055 to the live Executive PPM Supabase project.
+- Removed broad authenticated table-level SELECT from `project_snapshots` and `portfolio_snapshots`; granted only non-JSON metadata columns. Opaque `snapshot_payload` and `portfolio_summary` are not selectable by authenticated users.
+- Removed Executive Viewer access to unclassified `snapshot_metric_values`. Platform Admin and active project members retain the existing read path.
+- Applied migration 056: added `project_snapshot_index` and `portfolio_snapshot_index` views with `security_invoker=true`, exposing only safe metadata and preserving underlying RLS/column grants.
+- Verified the views carry the `security_invoker=true` option. Supabase Security Advisor returned zero lints after the changes.
+- Current database contains zero portfolio snapshots, zero project snapshots, zero snapshot metric rows and zero KPI definitions; therefore there is no existing historical dataset to classify or validate yet.
+- Real authenticated-user tests remain outstanding because no application users have been provisioned. API consumers must use the new snapshot index views and explicit column selections; `select *` on the base snapshot tables is intentionally not supported for authenticated users.
+- Current frontend CI for the latest migration commits was still running at the time of this checkpoint update.
