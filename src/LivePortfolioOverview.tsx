@@ -106,7 +106,7 @@ export default function LivePortfolioOverview({ search }: { search: string }) {
   const activeCount = projects.filter((project) => project.lifecycle_status === "active").length;
   const completedCount = projects.filter((project) => project.lifecycle_status === "completed").length;
   const otherCount = projects.length - activeCount - completedCount;
-  const healthFor = (projectId: string) => {
+  const healthFor = (projectId: string): 'green' | 'amber' | 'red' | 'not_reported' => {
     const value = latestHealth[projectId];
     if (value === "green" || value === "amber" || value === "red") return value;
     return "not_reported";
