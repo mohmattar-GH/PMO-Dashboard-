@@ -662,3 +662,13 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - Portfolio-level registers, project-level screens, KPIs, notification rules, role/approval matrix, audit, RLS, integration tests and historical snapshot behavior must be specified.
 - This scope approval does not authorize immediate frontend implementation. Present the relevant detailed wireframes and interactions for user review and approval first.
 - The earlier statements that CR Management is deferred are superseded by this decision. The separate Staff Time & Performance application remains untouched.
+
+## CR, Deliverables, Milestones & Notification wireframes prepared — 20 November 2026
+
+- User approved including all capabilities in the current release, superseding the earlier CR deferral.
+- Created `docs/UI_CR_DELIVERABLES_MILESTONES_NOTIFICATION_WIREFRAMES.md` in commit `25af38667f7fe2f57cd6705b7424100a6531fb82`.
+- Draft wireframes cover: portfolio CR register; detailed CR workspace with impact assessment, configurable approvals and implementation; portfolio deliverables register and versioned submission/review/acceptance; portfolio milestones register and controlled re-baselining; user Notification Centre; administrator notification-rules editor; permissions and cross-module behavior.
+- Updated `docs/UI_SCREEN_SPECIFICATIONS.md` with the scope supersession and new navigation/workspace requirements (commit `9f3ccef2b911084db91aebbaa9a0f355ec8085ad`).
+- This is design/documentation only. No frontend code, database migration, notification-provider integration or deployment was performed.
+- Await product-owner review of the seven decisions in the wireframe document before frontend implementation or related schema changes.
+- Keep Staff Time & Performance untouched.
