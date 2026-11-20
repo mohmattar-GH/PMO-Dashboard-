@@ -44,3 +44,9 @@ Both functions are SECURITY DEFINER because the browser is not granted direct wr
 - No projects or Auth users currently exist, so positive administrator assignment and Project Manager transition tests cannot yet be performed with real JWTs.
 - No template or phase labels are seeded. The dashboard should continue to show Not configured / Not Reported until an administrator creates and publishes a lifecycle, assigns it to a project, and sets its initial phase.
 - The existing project timeline read models have not yet been extended with phase history; that is a subsequent integration step.
+
+
+## Migration source archive status
+
+- Migration 058 source is committed at `supabase/migrations/20261120225145_migration_058_global_lifecycle_assignment_scope_fix.sql`.
+- The matching migration 057 SQL source still needs to be archived. Do not claim clean-environment migration replay is verified until both files are reconciled and a clean replay succeeds.
