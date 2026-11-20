@@ -721,3 +721,16 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - Database currently contains zero project rows and zero Auth users. Therefore the frontend live query has not yet been verified using a real signed-in account; do not claim a complete end-to-end integration test.
 - Latest known completed CI: run 42 succeeded for prior commit `e06f07f35155ba9a1f4e11622a9bdbede51cf69d`. The GitHub connector did not return push-triggered workflow runs for the latest commits, so this slice's build result remains unverified through the available run-list action.
 - No schema changes, user provisioning, merge or deployment were performed in this slice.
+
+
+## Snapshot-backed project health integration — 21 November 2026
+
+- Added a read-only frontend integration to the existing `project_snapshot_index` view (migration 056). Query requests only safe metadata: project ID, calculated health and snapshot creation time.
+- Snapshot query paginates at 1,000 rows and orders newest first; the latest visible calculated health is selected per project. Missing, unknown or absent snapshot status is classified as Not Reported, never Green.
+- Project register displays calculated health separately from project lifecycle status. PM-reported health is not substituted for calculated health.
+- Project Phase is explicitly shown as Not configured. Database inspection confirmed no lifecycle template, phase definition, project phase assignment or phase history tables exist yet; do not infer a phase from lifecycle status.
+- KPI metric values remain disconnected. Executive Viewer access to unclassified `snapshot_metric_values` was deliberately removed in migration 055. The KPI calculation engine and health aggregation exist, but there are currently no KPI definitions/configuration versions or snapshot values. Design a safe, sensitivity-classified KPI read contract before exposing any KPI metrics.
+- Security Advisor returned zero lints after this frontend-only change. No schema or RLS permissions were changed.
+- Database currently has zero projects, zero project/portfolio snapshots, zero KPI configuration rows and zero Auth users. Therefore authenticated browser behavior and role-specific RLS still need real-user tests.
+- Latest frontend slice commits: live register `27dc9f0e83bb4625141af0a29a58b0cbb3a3d8a8`, health integration `c1672a7b1f47140436f1ef97cfa71d40510cbf21`, styles `75a6a239d6b27d9d524f55f96cb9cb9a574ebd00`; documentation updated after these commits.
+- PR #1 remains draft and unmerged; no deployment was performed.
