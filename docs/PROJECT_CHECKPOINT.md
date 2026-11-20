@@ -631,3 +631,14 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - Updated the review section in `docs/UI_SCREEN_SPECIFICATIONS.md` to distinguish confirmed decisions from remaining screen-specification approval.
 - This is a documentation/design consolidation only. No frontend code, framework selection, database schema change or deployment was performed.
 - Frontend implementation remains blocked pending explicit approval of the complete screen structure and interaction approach.
+
+
+## Dashboard composition refinements approved — 20 November 2026
+
+- User confirmed the detailed dashboard should be less crowded through clearer hierarchy and progressive disclosure, while retaining the Detailed information density and scrollable sections.
+- Agreed hierarchy: (1) portfolio KPIs, project health and phase distribution; (2) projects requiring attention and upcoming priorities; (3) risks and management decisions; (4) further down, authorized financial position, milestone/schedule detail, weekly summary and phase history.
+- Financial component inclusion and restricted-panel-versus-hidden behavior must be administrator-configurable. This is a layout setting only; backend authorization/RLS must continue to enforce financial access independently.
+- User approved two separate, independently configurable phase components: Project Phase Distribution (counts/percentages and phase filter drill-down) and Recent Phase Changes (project, from/to phase, transition date, full history/time-in-phase).
+- Hiding/removing a dashboard component must not delete its underlying operational data or phase history.
+- This is a UI/product design decision only. No frontend code, framework/component-library choice, database schema change or deployment was performed.
+- Frontend implementation remains blocked pending approval of the complete screen structure and interaction approach.
