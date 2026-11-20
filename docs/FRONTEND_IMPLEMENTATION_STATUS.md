@@ -111,3 +111,14 @@ The browser app now requires a Supabase-authenticated session and an active data
 - The dashboard and existing timeline read models have not yet been connected to the new phase data. Until a lifecycle is configured and assigned, phase remains Not configured / Not Reported.
 - Design reference: `docs/database/PROJECT_LIFECYCLE_PHASE_MODEL.md`. Migration 058 SQL is archived in `supabase/migrations/20261120225145_migration_058_global_lifecycle_assignment_scope_fix.sql`; the matching migration 057 SQL source still needs to be archived before clean-environment replay can be claimed.
 - PR #1 remains draft and unmerged. No deployment or user provisioning was performed.
+
+
+## Executive phase read integration — 21 November 2026
+
+- Added migrations 059 and 060: active Executive Viewer users can read non-financial lifecycle phase information; added the security-invoker `project_phase_change_log` view for recent phase changes.
+- Connected `src/LivePortfolioOverview.tsx` to `project_current_phase` and `project_phase_change_log`.
+- Executive Overview now derives Project Phase Distribution using the configured phase display order, shows unassigned projects separately, and displays the latest 10 phase transitions.
+- Project Register now shows current phase, reported phase progress and forecast completion date when data exists. Missing phase assignment remains Not configured.
+- Both phase views are confirmed as `security_invoker=true`; direct SQL read checks succeeded (currently empty because there are no projects or phase assignments).
+- Security Advisor still reports the two intentional authenticated SECURITY DEFINER RPC warnings. No anon/PUBLIC execute access is granted. Real JWT role tests remain outstanding.
+- The latest frontend changes have not yet been verified by an accessible CI run; the GitHub workflow-run connector only returned PR-triggered runs and returned no run for the latest commits. Do not claim build success for this slice.
