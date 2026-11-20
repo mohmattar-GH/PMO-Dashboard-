@@ -295,6 +295,6 @@ The user has confirmed the following design decisions for this release:
 
 **Still awaiting product-owner decision:**
 
-7. **Notification acknowledgement:** Whether acknowledgement is required for every action-required notification or is configurable by event type and severity. Do not assume a default until confirmed.
+7. **Notification acknowledgement:** Configurable by selected event types and severity. Acknowledgement is required only for events/severities designated by the administrator; it is not mandatory for every action-required notification.
 
 These are approved product decisions for design. They do not authorize frontend implementation, schema changes or deployment. The user must still review and approve the complete wireframes and interaction approach before implementation begins.
