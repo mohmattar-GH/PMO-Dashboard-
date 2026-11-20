@@ -46,3 +46,13 @@ Updated: 20 November 2026
 ## Authentication implementation note
 
 The browser app now requires a Supabase-authenticated session and an active database profile before showing the workspace. Configure the two variables in `.env.example` for local execution. This gate is a frontend convenience; every data request remains protected by database RLS.
+
+
+## Security update — 21 November 2026
+
+- Supabase migration 054 adds administrator-controlled global/project-scoped executive financial access grants with reason, expiry, one-time revocation and retained audit fields.
+- RLS now requires an active grant for Executive Viewer access to project contracts, project financial terms, invoices, cash transactions, invoice allocations and contract variations. Finance and project-management role access is retained.
+- Invoice balance view now uses `security_invoker = true`.
+- Security Advisor returned no findings after this migration.
+- Not production-ready: executive access to historical `project_snapshots.snapshot_payload` and `snapshot_metric_values` still needs KPI sensitivity classification and a safe snapshot contract. Real JWT role-specific tests are pending; there are currently no provisioned app users.
+- Frontend stylesheet build failure fixed in commit `13887dccc9bbdda957a77faf9bd87ca15565ff84`; GitHub Actions run 29 passed.
