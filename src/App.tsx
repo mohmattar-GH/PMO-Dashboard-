@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import LivePortfolioOverview from "./LivePortfolioOverview";
 import {
   Activity, AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, Bell,
   CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
@@ -141,16 +142,16 @@ function App({ displayName, roles, onSignOut }: AppProps) {
             <p className="page-subtitle">A consolidated view of delivery performance, portfolio exposure and decisions.</p>
           </div>
           <div className="heading-actions">
-            <div className="period-selector"><CalendarDays size={15}/><span>Week of 16 Nov 2026</span><ChevronDown size={14}/></div>
+            <div className="period-selector"><CalendarDays size={15}/><span>Live operational view</span><ChevronDown size={14}/></div>
             {!presentation && <button className="button-secondary" onClick={() => setPresentation(true)}><Presentation size={16}/> Present</button>}
-            {!presentation && <button className="button-primary" onClick={() => setShowLayoutEditor(!showLayoutEditor)}><SlidersHorizontal size={16}/> Edit layout</button>}
+            {!presentation && roles.includes("platform_admin") && <button className="button-primary" onClick={() => setShowLayoutEditor(!showLayoutEditor)}><SlidersHorizontal size={16}/> Edit layout</button>}
             {presentation && <button className="button-secondary" onClick={() => setPresentation(false)}><X size={16}/> Exit presentation</button>}
           </div>
         </div>
 
-        <div className="snapshot-strip"><span className="snapshot-status"><CheckCircle2 size={14}/> SNAPSHOT FINALIZED</span><span>As of 20 Nov 2026, 18:00</span><span className="strip-separator">•</span><span>Reporting configuration v1.4</span><span className="strip-spacer"/><span className="demo-label">DEMO DATA · NOT LIVE</span></div>
+        <div className="snapshot-strip"><span className="snapshot-status"><CheckCircle2 size={14}/> LIVE DATA VIEW</span><span>Current operational records</span><span className="strip-spacer"/><span className="demo-label">NO FINALIZED SNAPSHOT</span></div>
 
-        {showLayoutEditor && !presentation && <section className="layout-editor">
+        {showLayoutEditor && !presentation && roles.includes("platform_admin") && <section className="layout-editor">
           <div className="layout-editor-heading"><div><strong><SlidersHorizontal size={17}/> Dashboard layout editor</strong><p>Administrator controls · changes are a local preview in this build</p></div><button className="icon-button" onClick={() => setShowLayoutEditor(false)}><X size={17}/></button></div>
           <div className="layout-options">
             {["Portfolio KPIs","Project Phase Distribution","Recent Phase Changes","Projects Requiring Attention","Portfolio Risks","Management Decisions","Financial Position","Milestone Performance","Weekly Summary"].map((name) =>
@@ -160,7 +161,7 @@ function App({ displayName, roles, onSignOut }: AppProps) {
           <div className="layout-footer"><span>Hidden components retain their underlying data.</span><button className="button-secondary small" onClick={() => {setHiddenWidgets([]); notify("Default layout restored in preview");}}>Reset default</button><button className="button-primary small" onClick={() => notify("Layout preview saved locally — publishing is not connected")}>Save preview</button></div>
         </section>}
 
-        {activeNav === "Executive Overview" || presentation ? <>
+        {activeNav === "Executive Overview" || presentation ? <><LivePortfolioOverview search={search} />{false && <>
           {!isHidden("Portfolio KPIs") && <section className="metrics-grid">
             <MetricCard label="Total projects" value="20" detail="Across 4 portfolios" icon={BriefcaseBusiness} tone="blue"/>
             <MetricCard label="On track" value="13" detail="65% of active portfolio" trend="up" icon={Target} tone="green"/>
@@ -234,7 +235,7 @@ function App({ displayName, roles, onSignOut }: AppProps) {
             <div className="panel-heading"><div><h3>Recent phase changes</h3><span className="panel-subtitle">Lifecycle transitions recorded this month</span></div><button className="text-action" onClick={() => setActiveNav("Projects")}>Full phase history <ArrowRight size={13}/></button></div>
             <div className="phase-change-list"><div><strong>Customer Portal</strong><span>Testing <ArrowRight size={13}/> Deployment</span><small>18 Nov 2026 · 3 days in previous phase</small></div><div><strong>Document Management</strong><span>Execution <ArrowRight size={13}/> Testing</span><small>14 Nov 2026 · 21 days in previous phase</small></div><div><strong>Data Warehouse</strong><span>Deployment <ArrowRight size={13}/> Closure</span><small>12 Nov 2026 · 8 days in previous phase</small></div></div>
           </section>}
-        </> : <section className="module-placeholder panel">
+        </>}</> : <section className="module-placeholder panel">
           <div className="placeholder-icon"><Command size={24}/></div><h2>{activeNav}</h2><p>The navigation and module entry point are in place. This screen will be implemented as the next delivery slice using the approved module wireframes and the existing governed backend.</p>
           <div className="placeholder-status"><span className="status-dot"/> UI foundation in progress</div>
           <button className="button-primary" onClick={() => setActiveNav("Executive Overview")}><ChevronLeft size={16}/> Back to Executive Overview</button>
