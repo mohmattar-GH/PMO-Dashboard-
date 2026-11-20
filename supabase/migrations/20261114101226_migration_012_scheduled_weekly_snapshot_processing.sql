@@ -2,7 +2,6 @@ begin;
 create extension if not exists pg_cron with schema pg_catalog;
 grant usage on schema cron to postgres;
 grant all privileges on all tables in schema cron to postgres;
-
 CREATE OR REPLACE FUNCTION public.build_weekly_portfolio_snapshot(p_reporting_cycle_id uuid, p_actor_user_id uuid DEFAULT NULL::uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -153,11 +152,12 @@ create policy reporting_snapshot_job_runs_deny_client_roles
 revoke all on private.reporting_snapshot_job_runs from public,anon,authenticated,service_role;
 grant all on private.reporting_snapshot_job_runs to postgres;
 
-CREATE OR REPLACE FUNCTION private.process_due_reporting_cycles()
- RETURNS jsonb
- LANGUAGE plpgsql
- SET search_path TO ''
-AS $function$
+create or replace function private.process_due_reporting_cycles()
+returns jsonb
+language plpgsql
+security invoker
+set search_path = ''
+as $function$
 declare
   v_cycle record;
   v_run_id uuid;
@@ -207,8 +207,10 @@ begin
   return jsonb_build_object('processed',v_success_count+v_failure_count,
     'succeeded',v_success_count,'failed',v_failure_count);
 end;
-$function$
-;
+$function$;
+
+revoke all on function private.process_due_reporting_cycles() from public,anon,authenticated,service_role;
+grant execute on function private.process_due_reporting_cycles() to postgres;
 
 select cron.schedule('weekly-portfolio-snapshot-processor','*/15 * * * *','select private.process_due_reporting_cycles();');
 commit;

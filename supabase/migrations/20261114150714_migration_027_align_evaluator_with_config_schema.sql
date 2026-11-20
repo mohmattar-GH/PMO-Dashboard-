@@ -1,9 +1,13 @@
-CREATE OR REPLACE FUNCTION private.evaluate_kpi_template_v1(p_template_code text, p_parameters jsonb, p_inputs jsonb)
- RETURNS jsonb
- LANGUAGE plpgsql
- IMMUTABLE
- SET search_path TO ''
-AS $function$
+create or replace function private.evaluate_kpi_template_v1(
+  p_template_code text,
+  p_parameters jsonb,
+  p_inputs jsonb
+)
+returns jsonb
+language plpgsql
+immutable
+set search_path = ''
+as $function$
 declare
   v_result numeric := null;
   v_value numeric;
@@ -205,8 +209,7 @@ begin
       when 'threshold_status_v1' then 'threshold_status' when 'weighted_sum_v1' then 'weighted_sum' end,
     'source_lineage',v_lineage);
 end;
-$function$
-
+$function$;
 revoke all on function private.evaluate_kpi_template_v1(text,jsonb,jsonb) from public;
 revoke all on function private.evaluate_kpi_template_v1(text,jsonb,jsonb) from anon, authenticated;
 grant execute on function private.evaluate_kpi_template_v1(text,jsonb,jsonb) to service_role;
