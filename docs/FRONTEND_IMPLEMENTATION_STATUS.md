@@ -22,7 +22,7 @@ Updated: 20 November 2026
 ## Important boundaries
 
 - Authentication UI and identity loading are implemented; real-user sign-in, session expiry, password recovery and role-specific end-to-end tests remain to be run against provisioned Auth users.
-- Dashboard content remains illustrative demo data. Live project and snapshot integration is not yet complete.
+- Executive Overview now reads the project register from Supabase using the authenticated browser session and existing project/client RLS policies. The overview does not use demo project rows.
 - The local finance preview control is not an authorization mechanism. Existing database policies require a dedicated audit and adjustment before financial information can be exposed to executive users. A review found executive-viewer role access in several finance-related SELECT policies; this must be corrected with explicit administrator-granted visibility before connecting finance data.
 - No operational CRUD, persistent dashboard layouts, notification delivery, exports or complete module workflows are claimed complete.
 - No deployment has been performed.
@@ -66,3 +66,16 @@ The browser app now requires a Supabase-authenticated session and an active data
 - Security Advisor returned zero lints after the changes.
 - Database currently has no KPI definitions and no snapshot rows. Real JWT/RLS tests remain pending until application users are provisioned.
 - Base snapshot table wildcard selects are intentionally unavailable to authenticated clients; consume the index views with explicit fields.
+
+
+## Live portfolio data connection — 21 November 2026
+
+- Added `src/LivePortfolioOverview.tsx` and connected the Executive Overview to the live `public.projects` table using the authenticated Supabase client.
+- Query is read-only and relies on existing Supabase RLS. It retrieves project code, name, lifecycle status, start/target-end dates, manager assignment indicator and related client name. It does not use a service-role credential.
+- The UI includes loading, query-error, empty-register and filtered-search states. Project totals are derived from the returned RLS-filtered rows; no synthetic projects are inserted.
+- Replaced the fixed demo reporting-period/snapshot banner with a live operational-view / no-finalized-snapshot indicator.
+- Dashboard layout editing is now shown only to users with the database-derived `platform_admin` role. The current layout editor remains a local preview and is not persistent.
+- The database currently has no project rows and no provisioned Auth users, so the real project query cannot yet be exercised through an authenticated browser session. This is a truthful empty state, not a successful end-to-end user test.
+- Project lifecycle status is not treated as configurable project phase or calculated health. Phase, health, verified progress, milestone achievement, risk rollups and decisions remain explicitly Not Reported until their governed data contracts are connected.
+- GitHub Actions run 42 passed for the previous frontend foundation commit. The GitHub connector does not expose push-triggered runs for the latest frontend commits, so the new slice's CI result remains unverified at this checkpoint.
+- No schema changes, user provisioning, merge or deployment were performed in this slice.
