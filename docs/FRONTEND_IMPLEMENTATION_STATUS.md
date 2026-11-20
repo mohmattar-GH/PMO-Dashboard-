@@ -56,3 +56,13 @@ The browser app now requires a Supabase-authenticated session and an active data
 - Security Advisor returned no findings after this migration.
 - Not production-ready: executive access to historical `project_snapshots.snapshot_payload` and `snapshot_metric_values` still needs KPI sensitivity classification and a safe snapshot contract. Real JWT role-specific tests are pending; there are currently no provisioned app users.
 - Frontend stylesheet build failure fixed in commit `13887dccc9bbdda957a77faf9bd87ca15565ff84`; GitHub Actions run 29 passed.
+
+
+## Historical snapshot access hardening — 21 November 2026
+
+- Live Supabase migrations 055 and 056 now restrict authenticated access to safe snapshot metadata columns; opaque project and portfolio JSON payloads are withheld.
+- Executive Viewer access to unclassified snapshot KPI values has been removed. Platform Admin and project-membership access paths remain.
+- Added security-invoker views `project_snapshot_index` and `portfolio_snapshot_index` for safe snapshot metadata retrieval.
+- Security Advisor returned zero lints after the changes.
+- Database currently has no KPI definitions and no snapshot rows. Real JWT/RLS tests remain pending until application users are provisioned.
+- Base snapshot table wildcard selects are intentionally unavailable to authenticated clients; consume the index views with explicit fields.
