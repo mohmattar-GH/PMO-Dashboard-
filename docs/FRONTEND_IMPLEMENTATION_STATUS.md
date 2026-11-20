@@ -4,31 +4,40 @@ Updated: 20 November 2026
 
 ## Delivery slice 1 — React application foundation
 
-- Repository: `mohmattar-GH/PMO-Dashboard-`
-- Branch: `feature/ppm-frontend-foundation`
-- Stack: React 18, TypeScript, Vite, lucide-react (versions pinned in package.json).
-- Added responsive application shell, dark navigation, executive dashboard, portfolio health, phase distribution, management attention, risks, financial restricted state, project register, administrator layout-preview controls, and CEO presentation-mode shell.
-- Navigation entry points are present for Portfolio, Projects, Master Schedule, Payments & Risk Timeline, Change Requests, Deliverables, Milestones, Notifications, Reports & Snapshots, Configuration and Administration.
+- React 18, TypeScript, Vite and lucide-react application shell.
+- Responsive Executive Overview, project register preview, health/phase distribution, management attention, risk exposure, restricted finance panel, layout editor preview and CEO presentation shell.
+- Demo content is visibly marked and is not represented as live project data.
+- GitHub Actions production build workflow is configured.
 
-## Important implementation boundary
+## Delivery slice 2 — Supabase authentication foundation
 
-This is the first frontend foundation slice. All displayed portfolio figures, projects, events and financial figures are illustrative demo data. They are visibly labelled as demo data and are not connected to Supabase. No user authentication, authorization, RLS verification, persistent layout saving, notification delivery, exports or operational CRUD is claimed complete.
+- Added pinned `@supabase/supabase-js` 2.119.2 and a browser client using the project URL and publishable key from environment variables.
+- Added a sign-in gate using Supabase email/password authentication, persistent sessions, automatic token refresh and auth-state handling.
+- On sign-in, the app reads the authenticated user's own active profile, global role assignments and project memberships through RLS-protected queries.
+- Role names shown in the shell are derived from database assignments, not editable user metadata.
+- Inactive/missing platform profiles are denied access.
+- No service-role key is included in browser code.
+- Added `.env.example` for local configuration.
 
-The financial visibility toggle is a local visual preview only; it is not an authorization mechanism. Backend authorization remains mandatory before any real financial data is exposed.
+## Important boundaries
 
-The module routes beyond the Executive Overview currently show implementation placeholders. The next slices must implement each approved wireframe against the existing backend, with role-aware access and loading/error/empty/restricted states.
+- Authentication UI and identity loading are implemented; real-user sign-in, session expiry, password recovery and role-specific end-to-end tests remain to be run against provisioned Auth users.
+- Dashboard content remains illustrative demo data. Live project and snapshot integration is not yet complete.
+- The local finance preview control is not an authorization mechanism. Existing database policies require a dedicated audit and adjustment before financial information can be exposed to executive users. A review found executive-viewer role access in several finance-related SELECT policies; this must be corrected with explicit administrator-granted visibility before connecting finance data.
+- No operational CRUD, persistent dashboard layouts, notification delivery, exports or complete module workflows are claimed complete.
+- No deployment has been performed.
 
 ## Next implementation sequence
 
-1. Install dependencies and run a clean TypeScript/Vite production build; commit lockfile and resolve all errors.
-2. Implement authentication/session handling and role-aware route guards using trusted database role assignments.
-3. Integrate dashboard and project register with existing RLS-protected views/RPCs; replace all demo data.
-4. Implement Project Workspace and schedule/finance/risk records.
-5. Implement CR, Deliverables, Milestones and Notifications wireframes and workflows.
-6. Implement admin configuration center, layout versioning, reporting snapshots and presentation mode.
+1. Finish database authorization review, especially explicit financial visibility grants for executive users.
+2. Implement a RLS-safe portfolio data contract and connect the Executive Overview to live data, replacing all demo values.
+3. Build Project Workspace and project register.
+4. Implement schedule, finance, risk and timeline modules.
+5. Implement Change Requests, Deliverables, Milestones and Notifications.
+6. Implement configuration center, versioned layout governance, reporting snapshots and presentation mode.
 7. Run real JWT role-specific RLS, integration, accessibility and regression tests before any production readiness claim.
 
 ## Explicit exclusions
 
 - Do not modify the separate Staff Time & Performance application or its Supabase project.
-- Do not deploy or publish without explicit user approval.
+- Do not merge or deploy without explicit user approval.
