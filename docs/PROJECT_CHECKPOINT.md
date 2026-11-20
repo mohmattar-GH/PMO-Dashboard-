@@ -816,3 +816,10 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - Previously restored migrations 057–060 were also checked against their stored applied SQL in this pass; all four matched exactly. No SQL content was changed in those four files during this check.
 - This establishes source-archive completeness and exact-source matching for migrations 001–004 and 057–060. It does not establish that the entire chain replays successfully on a fresh database.
 - Clean-environment replay remains an outstanding validation gate. No clean Supabase project/branch was created; no live schema/data changes, user provisioning, merge or deployment occurred. Staff Time & Performance remains untouched.
+
+
+## Clean migration replay validation — 21 November 2026
+
+The 61-migration source archive was restored from the exact SQL retained in the live Supabase migration ledger, and migration filename versions were aligned to the ledger. A clean local Supabase replay passed in GitHub Actions: `supabase start`, `supabase db reset`, and `supabase migration list` all succeeded; the final local migration history contained all 61 versions. The workflow uses a local PostgreSQL 17 stack and no hosted Supabase credentials. No hosted Supabase project or branch was created, and the live PPM database was not modified. Evidence: https://github.com/mohmattar-GH/PMO-Dashboard-/actions/runs/44835790149. Detailed record: `docs/database/MIGRATION_SOURCE_RECOVERY.md`. Dedicated checkpoint: `docs/checkpoints/2026-11-21-clean-migration-replay.md`.
+
+Remaining backend validation is unchanged: provision test Auth users and memberships for JWT/RLS tests; review lifecycle SECURITY DEFINER RPCs, Team Lead contract access, invoice cash-allocation reversal, and the KPI safe-read contract/sensitivity classification. Clean replay does not establish production readiness.
