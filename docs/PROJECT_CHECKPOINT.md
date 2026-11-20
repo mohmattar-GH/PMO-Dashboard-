@@ -681,5 +681,5 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - Milestone re-baselining supports either an approved CR or a separate approved re-baseline request; reason, prior baseline preservation, approval and audit history are mandatory.
 - Implement in-app notifications first. Email channel activation is conditional on provider integration and delivery testing.
 - Reminder/escalation schedules use global defaults with project-level overrides.
-- One product decision remains open: whether acknowledgement is mandatory for all action-required notifications or configurable by event/severity. Obtain user confirmation before finalizing notification behavior.
+- Notification acknowledgement is configurable by selected event types and severity. It is required only where the administrator designates it; it is not mandatory for every action-required notification.
 - These are design decisions only. Frontend implementation, schema changes and deployment remain blocked until the user reviews and approves the complete wireframes and interaction approach.
