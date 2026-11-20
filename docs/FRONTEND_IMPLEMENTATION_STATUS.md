@@ -79,3 +79,13 @@ The browser app now requires a Supabase-authenticated session and an active data
 - Project lifecycle status is not treated as configurable project phase or calculated health. Phase, health, verified progress, milestone achievement, risk rollups and decisions remain explicitly Not Reported until their governed data contracts are connected.
 - GitHub Actions run 42 passed for the previous frontend foundation commit. The GitHub connector does not expose push-triggered runs for the latest frontend commits, so the new slice's CI result remains unverified at this checkpoint.
 - No schema changes, user provisioning, merge or deployment were performed in this slice.
+
+
+## Snapshot-backed project health — 21 November 2026
+
+- Executive Overview now reads `project_snapshot_index`, the security-invoker metadata-only view added in migration 056. It requests only `project_id`, `calculated_health` and `created_at`; it does not request raw snapshot payloads or KPI metric values.
+- Snapshot rows are fetched in pages of 1,000, newest first. The latest visible calculated-health status per project is used; projects without a visible snapshot, or with an unrecognized/missing status, are counted as Not Reported.
+- The project register now displays calculated health separately from lifecycle status and PM-reported health. The phase column explicitly reads Not configured because no lifecycle-template/phase-assignment schema exists yet.
+- Supabase Security Advisor still returns zero security lints after the frontend-only change. No database schema or permissions were modified.
+- KPI metric values are intentionally not exposed to Executive Viewer because the current snapshot metric table has no sensitivity classification. The KPI engine exists, but no KPI definitions/configuration rows are published. KPI cards remain unreported until a safe classified KPI read contract is designed.
+- There are currently zero project records, zero snapshot records, zero KPI definitions/configurations and zero Auth users. Live browser behavior and role-specific access still require real-user tests.
