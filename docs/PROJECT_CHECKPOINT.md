@@ -758,7 +758,7 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - Current database has zero projects and zero Auth users. Therefore positive admin assignment, PM transitions, and actual dashboard read behavior cannot yet be tested.
 - Existing project timeline views and frontend register have not yet been extended to consume phase history. The frontend must continue to show Not configured / Not Reported until lifecycle setup is completed.
 - Design and implementation notes: `docs/database/PROJECT_LIFECYCLE_PHASE_MODEL.md`.
-- Supabase migrations 057/058 are applied. The original SQL for migration 057 has now been restored from the exact `statements` array retained in `supabase_migrations.schema_migrations` and committed at `supabase/migrations/20261120225103_migration_057_configurable_project_lifecycle_phases.sql`. Migration 058 source remains archived unchanged. The complete migration sequence still requires clean-environment replay before replay compatibility can be claimed.
+- Supabase migrations 057/058 are applied. The original SQL for migration 057 has now been restored from the exact `statements` array retained in `supabase_migrations.schema_migrations` and committed at `supabase/migrations/20261120225103_migration_057_configurable_project_lifecycle_phases.sql`. Migration 058 was also aligned to the exact applied SQL stored in Supabase migration history. The complete migration sequence still requires clean-environment replay before replay compatibility can be claimed.
 - PR #1 remains draft and unmerged; no deployment or user provisioning was performed.
 
 
@@ -796,3 +796,12 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - All four migrations 057–060 are present in live migration history and corresponding SQL files are now archived in GitHub.
 - Clean-environment replay has not yet been run. No claim of replay compatibility or production readiness is made.
 - No live database schema/data changes, user provisioning, merge or deployment occurred. Staff Time & Performance remains untouched.
+
+
+## Exact migration source archive verification — 21 November 2026
+
+- Retrieved the applied SQL statement arrays for migrations 057, 058, 059 and 060 directly from `supabase_migrations.schema_migrations` in the live PPM database.
+- Restored migration 057 and replaced the earlier reconstructed 059/060 files with their exact recorded SQL. Also aligned migration 058 to the exact stored SQL; the previous repository copy had additional explanatory header comments not present in the applied statement.
+- Re-fetched each GitHub migration file and compared its full text to the corresponding stored SQL statement. All four comparisons returned exact matches.
+- GitHub Actions Frontend build run `44834250881` completed successfully for checkpoint commit `b01610681755f21730968f552bc62da51508dfc1`. This verifies the frontend build for that commit; subsequent changes in this pass are SQL-source/documentation-only.
+- A clean-environment replay of the full migration chain remains unverified. No merge, deployment, live schema change, or Staff Time & Performance change occurred.
