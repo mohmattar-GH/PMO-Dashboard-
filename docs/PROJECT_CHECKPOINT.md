@@ -652,3 +652,13 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - A visual dashboard concept was generated in this conversation to illustrate the overall appearance. It uses illustrative sample content only and is not a functional screen or connected to live data.
 - Product-owner review is still required for the proposed section order, layout editor controls, Presentation Mode sequence, and whether phase-transition reason should be mandatory or optional/configurable.
 - No frontend code, framework/component-library selection, database schema change, or deployment has been performed. Do not begin frontend implementation until the user approves the wireframes and interaction approach.
+
+## Scope expansion — CR Management, Deliverables, Milestones & Notifications — 20 November 2026
+
+- User explicitly changed the prior scope decision and requested to include the complete Change Request management capability now, rather than defer it.
+- Added `docs/CHANGE_REQUEST_DELIVERABLES_MILESTONES_NOTIFICATIONS_SCOPE.md` (commit `5c24ed95f2d39328cc38b06969c1e9d302d61e23`).
+- Current release scope now includes end-to-end CR lifecycle and approvals, impact assessment, controlled application of approved changes, deliverables submission/review/acceptance tracking, milestone tracking/re-baselining, and configurable notification centre/rules.
+- Existing `project_contract_variations`, `contract_deliverables`, `project_milestones`, activities, audit and document infrastructure must be assessed and reused/extended where appropriate. Contract variations are not a substitute for full CR management; avoid duplicate variation/financial records.
+- Portfolio-level registers, project-level screens, KPIs, notification rules, role/approval matrix, audit, RLS, integration tests and historical snapshot behavior must be specified.
+- This scope approval does not authorize immediate frontend implementation. Present the relevant detailed wireframes and interactions for user review and approval first.
+- The earlier statements that CR Management is deferred are superseded by this decision. The separate Staff Time & Performance application remains untouched.
