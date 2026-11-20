@@ -683,3 +683,16 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - Reminder/escalation schedules use global defaults with project-level overrides.
 - Notification acknowledgement is configurable by selected event types and severity. It is required only where the administrator designates it; it is not mandatory for every action-required notification.
 - These are design decisions only. Frontend implementation, schema changes and deployment remain blocked until the user reviews and approves the complete wireframes and interaction approach.
+
+
+## Executive financial access controls — 21 November 2026
+
+- Applied Supabase migration 054, `executive_financial_access_grants`, to the separate Executive PPM Platform project.
+- Added administrator-managed, project-scoped or global executive financial access grants. Grants require a reason, can expire, are revocable once, and retain grant/revocation actor and timestamps. Authenticated users cannot delete grant history.
+- Updated SELECT RLS for project contracts, contract financial terms, invoices, cash transactions, invoice allocations and contract variations. Executive Viewer access now requires an active grant in addition to the active Executive Viewer role. Existing Project Manager, Finance, Finance Admin and Platform Admin access paths are retained.
+- Changed `project_invoice_balances` to a security-invoker view so underlying invoice/allocation RLS applies.
+- Supabase Security Advisor returned no findings immediately after migration.
+- The migration source is committed as `supabase/migrations/20261121010000_migration_054_executive_financial_access_grants.sql`.
+- Important remaining security work: historical `project_snapshots` expose a JSON payload and `snapshot_metric_values` are currently readable by Executive Viewer. KPI sensitivity classification and a safe snapshot data contract are still required before financial KPIs or snapshot payloads can be exposed to executive users. Real JWT tests are also pending because no application users are provisioned yet.
+- The frontend build failure caused by literal escaped newline characters in `src/styles.css` was fixed in commit `13887dccc9bbdda957a77faf9bd87ca15565ff84`; GitHub Actions build run 29 completed successfully.
+- PR #1 remains draft and unmerged. No deployment has been performed.
