@@ -50,3 +50,11 @@ Both functions are SECURITY DEFINER because the browser is not granted direct wr
 
 - Migration 058 source is committed at `supabase/migrations/20261120225145_migration_058_global_lifecycle_assignment_scope_fix.sql`.
 - The matching migration 057 SQL source still needs to be archived. Do not claim clean-environment migration replay is verified until both files are reconciled and a clean replay succeeds.
+
+
+## Executive phase read access and dashboard connection
+
+- Migration 059 adds active Executive Viewer read access to non-financial lifecycle phase metadata, assignments and history. It does not change financial RLS.
+- Migration 060 adds `project_phase_change_log`, a `security_invoker=true` view with project and from/to phase names for the dashboard's recent-change component.
+- `src/LivePortfolioOverview.tsx` now reads `project_current_phase` and `project_phase_change_log`, shows phase distribution in configured order, unassigned counts, recent 10 changes, and current phase/progress/forecast date in the register.
+- Empty results are expected until projects and lifecycle assignments are created.
