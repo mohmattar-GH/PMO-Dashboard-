@@ -672,3 +672,14 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - This is design/documentation only. No frontend code, database migration, notification-provider integration or deployment was performed.
 - Await product-owner review of the seven decisions in the wireframe document before frontend implementation or related schema changes.
 - Keep Staff Time & Performance untouched.
+
+## Product-owner decisions for CR, Deliverables, Milestones & Notifications — 20 November 2026
+
+- CR approval routing is configurable and must support both sequential and parallel approval stages.
+- Every CR requires an impact assessment outcome for each dimension; a dimension may be marked Not Applicable only with a documented reason.
+- Deliverables remain **Unaccepted** until the Project Manager formally records acceptance. Submission or review activity alone must not mark a deliverable Accepted.
+- Milestone re-baselining supports either an approved CR or a separate approved re-baseline request; reason, prior baseline preservation, approval and audit history are mandatory.
+- Implement in-app notifications first. Email channel activation is conditional on provider integration and delivery testing.
+- Reminder/escalation schedules use global defaults with project-level overrides.
+- One product decision remains open: whether acknowledgement is mandatory for all action-required notifications or configurable by event/severity. Obtain user confirmation before finalizing notification behavior.
+- These are design decisions only. Frontend implementation, schema changes and deployment remain blocked until the user reviews and approves the complete wireframes and interaction approach.
