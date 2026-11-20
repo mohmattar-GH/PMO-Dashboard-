@@ -758,7 +758,7 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - Current database has zero projects and zero Auth users. Therefore positive admin assignment, PM transitions, and actual dashboard read behavior cannot yet be tested.
 - Existing project timeline views and frontend register have not yet been extended to consume phase history. The frontend must continue to show Not configured / Not Reported until lifecycle setup is completed.
 - Design and implementation notes: `docs/database/PROJECT_LIFECYCLE_PHASE_MODEL.md`.
-- Supabase migrations 057/058 are applied. Migration 058 SQL is archived in GitHub; the matching migration 057 SQL source still needs to be archived into `supabase/migrations` before clean-environment replay can be claimed.
+- Supabase migrations 057/058 are applied. The original SQL for migration 057 has now been restored from the exact `statements` array retained in `supabase_migrations.schema_migrations` and committed at `supabase/migrations/20261120225103_migration_057_configurable_project_lifecycle_phases.sql`. Migration 058 source remains archived unchanged. The complete migration sequence still requires clean-environment replay before replay compatibility can be claimed.
 - PR #1 remains draft and unmerged; no deployment or user provisioning was performed.
 
 
@@ -772,7 +772,7 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - Latest frontend commits: phase data integration `5aa5ff6806be1a1a7a1240a4172b4f06bb608018`, configured phase ordering `5621b16458b5440a45e4422275eee0c8c768a418`, styles `4f38344e355cd36a18284fb1dfaa81c54efde10c`.
 - Latest frontend CI status is unverified. The available GitHub workflow-run connector returns only PR-triggered runs and found no run for the latest commits.
 - Security Advisor reports two WARN findings for the authenticated SECURITY DEFINER lifecycle RPCs. They are intentionally used to perform atomic assignment/history writes without direct client table-write grants; both use an empty search_path, explicit auth/profile/role checks, and revoke anon/PUBLIC execution. Real JWT tests remain required.
-- Migration 058 SQL is archived in GitHub; migration 057 source still needs to be archived before clean-environment replay can be claimed.
+- Migrations 057, 059 and 060 source files have now been restored from the exact SQL statements retained in `supabase_migrations.schema_migrations`; migration 058 source remains unchanged. Recovery details are in `docs/database/MIGRATION_SOURCE_RECOVERY.md`. Clean-environment replay remains unverified.
 - PR #1 remains draft and unmerged. No deployment or user provisioning was performed.
 
 
@@ -785,3 +785,14 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - Security Advisor now reports one INFO finding because the table has RLS enabled with no policies; this is intentional for a private server-only table with no client access. Two existing WARN findings remain for the authenticated SECURITY DEFINER lifecycle assignment/transition RPCs and require real JWT tests and security review.
 - Matching SQL source committed at `supabase/migrations/20261120225701_enable_rls_reporting_formula_templates.sql`.
 - No application data, user access, existing Staff Time & Performance assets, PR merge or deployment was changed.
+
+
+## Lifecycle migration source archive reconciled — 21 November 2026
+
+- Confirmed the live Supabase migration history stores the original SQL in `supabase_migrations.schema_migrations.statements`, not only migration version/name metadata.
+- Restored exact original SQL for migrations 057, 059 and 060 from those authoritative applied-migration records into the matching `supabase/migrations` files on `feature/ppm-frontend-foundation`.
+- Migration 059 and 060 files that had previously been reconstructed from catalog state were replaced with the exact recorded statements. Migration 058 was inspected and left unchanged.
+- Added `docs/database/MIGRATION_SOURCE_RECOVERY.md` documenting provenance, verification and remaining replay gate.
+- All four migrations 057–060 are present in live migration history and corresponding SQL files are now archived in GitHub.
+- Clean-environment replay has not yet been run. No claim of replay compatibility or production readiness is made.
+- No live database schema/data changes, user provisioning, merge or deployment occurred. Staff Time & Performance remains untouched.
