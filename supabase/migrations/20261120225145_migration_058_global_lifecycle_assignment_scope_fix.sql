@@ -1,5 +1,3 @@
--- 058: Correct lifecycle scope keys so global templates can be assigned to projects.
--- A template's scope (NULL for global) is distinct from the actual project using it.
 
 alter table public.project_lifecycle_template_versions
  add constraint lifecycle_version_template_scope_fk foreign key(template_id,project_id)
@@ -25,9 +23,6 @@ alter table public.project_phase_history
  add constraint lifecycle_history_previous_phase_scope_fk foreign key(previous_phase_id,version_id,template_scope_project_id)
  references public.project_lifecycle_phases(id,version_id,project_id) on delete restrict;
 
--- The assignment RPC stores the lifecycle template scope separately from the project ID.
--- The phase-history RPC carries that scope into phase foreign keys for both global and
--- project-specific templates. Their authorization checks remain unchanged.
 create or replace function public.assign_project_lifecycle(
  p_project_id uuid,p_version_id uuid,p_initial_phase_id uuid,p_assignment_reason text,
  p_entered_at timestamptz default now(),p_planned_start_date date default null,p_forecast_completion_date date default null
