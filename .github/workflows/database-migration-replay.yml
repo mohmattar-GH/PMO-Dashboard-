@@ -1,0 +1,46 @@
+name: Database migration replay
+
+on:
+  push:
+    branches:
+      - feature/ppm-frontend-foundation
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/config.toml"
+      - ".github/workflows/database-migration-replay.yml"
+  pull_request:
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/config.toml"
+      - ".github/workflows/database-migration-replay.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migration-replay:
+    name: Rebuild database from all migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start isolated local Supabase stack
+        run: supabase start
+
+      - name: Reset and replay every migration from scratch
+        run: supabase db reset --local
+
+      - name: Verify local migration history
+        run: supabase migration list --local
+
+      - name: Stop local Supabase stack
+        if: always()
+        run: supabase stop --no-backup
