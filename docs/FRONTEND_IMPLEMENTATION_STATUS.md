@@ -41,3 +41,8 @@ Updated: 20 November 2026
 
 - Do not modify the separate Staff Time & Performance application or its Supabase project.
 - Do not merge or deploy without explicit user approval.
+
+
+## Authentication implementation note
+
+The browser app now requires a Supabase-authenticated session and an active database profile before showing the workspace. Configure the two variables in `.env.example` for local execution. This gate is a frontend convenience; every data request remains protected by database RLS.
