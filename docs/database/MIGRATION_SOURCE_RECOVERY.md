@@ -38,3 +38,27 @@ For 057–060, the SQL text was copied from each migration's history `statements
 - PR #1 remains draft and unmerged.
 - No deployment was performed.
 - The existing Staff Time & Performance application remains untouched.
+
+
+## Broader applied migration archive reconciliation — 21 November 2026
+
+### Repository coverage
+
+- The live Executive PPM migration ledger contains 61 applied migrations.
+- The feature branch now contains 61 SQL migration files under `supabase/migrations/`.
+- Each applied migration name has a matching repository file. Matching was performed by the migration name suffix because several pre-existing repository filenames use timestamp prefixes that differ from the applied ledger version.
+- Migrations 001–004 were missing and have now been restored from the exact SQL statement retained in the live migration ledger.
+- Migrations 057–060 were also checked against their exact stored SQL during this pass.
+
+### Exact-source verification
+
+- Migrations 001, 002, 003 and 004: all four newly created files were re-fetched from GitHub and compared byte-for-byte as UTF-8 text with the corresponding `statements[1]` value in `supabase_migrations.schema_migrations`. All four matched.
+- Migrations 057, 058, 059 and 060: all four files were re-fetched and compared byte-for-byte with their stored applied SQL. All four matched.
+- The other 53 migration files were confirmed present by matching applied migration names to repository filenames. They have not all been byte-for-byte compared in this pass.
+
+### Validation boundary
+
+- Repository source coverage now matches the 61 migrations recorded as applied in the live project.
+- A clean-environment replay of all 61 migrations has **not** been performed. Archive completeness is not proof of replayability; dependencies, ordering, extensions, roles, storage resources, Edge Functions, and platform-specific state may still affect a clean replay.
+- No new Supabase project or branch was created for testing. No live schema or application data was changed in this reconciliation.
+- PR #1 remains draft and unmerged. No deployment or user provisioning was performed. Staff Time & Performance remains untouched.
