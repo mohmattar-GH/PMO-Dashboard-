@@ -805,3 +805,14 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - Re-fetched each GitHub migration file and compared its full text to the corresponding stored SQL statement. All four comparisons returned exact matches.
 - GitHub Actions Frontend build run `44834250881` completed successfully for checkpoint commit `b01610681755f21730968f552bc62da51508dfc1`. This verifies the frontend build for that commit; subsequent changes in this pass are SQL-source/documentation-only.
 - A clean-environment replay of the full migration chain remains unverified. No merge, deployment, live schema change, or Staff Time & Performance change occurred.
+
+
+## Full applied migration archive reconciliation — 21 November 2026
+
+- Queried the authoritative live PPM migration ledger, `supabase_migrations.schema_migrations`, and enumerated all 61 applied migrations.
+- Found four missing repository sources: migrations 001–004. Restored their exact `statements[1]` SQL from the applied migration ledger into `supabase/migrations/` on `feature/ppm-frontend-foundation`.
+- Re-fetched each of the four new GitHub files and compared the full file text with the stored applied SQL. All four matched exactly.
+- Confirmed that all 61 applied migration names now have a corresponding SQL file in the repository. This check uses migration names because some existing filenames use a timestamp prefix that differs from the applied ledger version; the suffix/name mapping is complete.
+- Previously restored migrations 057–060 were also checked against their stored applied SQL in this pass; all four matched exactly. No SQL content was changed in those four files during this check.
+- This establishes source-archive completeness and exact-source matching for migrations 001–004 and 057–060. It does not establish that the entire chain replays successfully on a fresh database.
+- Clean-environment replay remains an outstanding validation gate. No clean Supabase project/branch was created; no live schema/data changes, user provisioning, merge or deployment occurred. Staff Time & Performance remains untouched.
