@@ -344,3 +344,31 @@ Tabs with no permission are hidden or shown as restricted according to the agree
 - Missing phase data must be displayed as Not Reported / Unassigned, never inferred.
 - Phase status and progress must remain distinct from overall project health and milestone completion.
 - Phase components and fields are subject to the same administrator-only dashboard layout control and viewer data permissions.
+
+
+## Dashboard composition refinements approved — 20 November 2026
+
+### Information density
+- User agreed that the first visual concept was somewhat crowded.
+- Retain the standard dashboard's Detailed information density, but improve hierarchy and progressive disclosure:
+  1. First section: portfolio KPIs, project health and phase distribution.
+  2. Second section: projects requiring attention and upcoming priorities.
+  3. Third section: portfolio risks and management decisions.
+  4. Further down the scrollable dashboard: financial position (only when authorized), milestone/schedule detail, weekly summary and phase history.
+- CEO Presentation Mode remains a separate, simplified executive sequence.
+
+### Financial component configuration
+- Financial dashboard visibility must be configurable by an administrator.
+- Configuration must support whether the component is included in a layout and whether an unauthorized viewer sees a restricted-access panel or no component at all.
+- Layout visibility is not an authorization grant. Backend authorization/RLS and applicable field-level controls must still prevent access to financial values and metadata unless explicitly granted.
+
+### Separate phase components
+- User approved keeping the following as two independent dashboard components:
+  - **Project Phase Distribution:** project counts and percentages by phase, with phase selection/filter drill-down.
+  - **Recent Phase Changes:** project, previous phase, new phase, transition date, and access to full transition history/time-in-phase.
+- Each component can be independently added, hidden, removed from the active layout, reordered, and restored by an administrator.
+- Hiding/removing a component from the dashboard must not delete phase definitions, project phase assignments, or transition history.
+
+### Approval boundary
+- These are approved product/UI design decisions only.
+- No frontend implementation, framework selection, component-library selection, or deployment is authorized by this decision.
