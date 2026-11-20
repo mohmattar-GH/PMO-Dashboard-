@@ -743,3 +743,20 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - The result verifies the frontend build, not live authenticated user behavior or role-specific RLS. The database still has no provisioned application users or project records.
 - The next implementation slice is the configurable lifecycle-template / phase-definition / project-assignment / phase-transition-history model. No phase model has yet been applied; the frontend correctly continues to show Not configured until that governed data model exists.
 - PR #1 remains draft and unmerged. No deployment has been performed.
+
+
+## Configurable project lifecycle backend — 21 November 2026
+
+- Applied Supabase migrations 057 (`migration_057_configurable_project_lifecycle_phases`) and 058 (`migration_058_global_lifecycle_assignment_scope_fix`) to project `oihawkpbtgqxxliaamxs`.
+- New tables: `project_lifecycle_templates`, `project_lifecycle_template_versions`, `project_lifecycle_phases`, `project_lifecycle_transition_rules`, `project_lifecycle_assignments`, and `project_phase_history`. Added `project_current_phase` security-invoker view.
+- Lifecycle templates support global and project-specific scope. Versions are numbered and governed through draft/published/retired states and effective dates. Phase names, order, active state and allowed transitions are configured by administrators; no universal phase names are hardcoded or seeded.
+- Published/retired versions and child definitions are immutable. Project assignments are limited to one active assignment per project. A global template's scope is stored separately from the project using it, so global versions can be assigned to any project without invalid composite foreign keys.
+- Platform Administrators assign a published/effective version and initial phase. Assigned Project Managers or Platform Administrators can update current phase dates/progress and move to an explicitly allowed target phase. Transition reasons follow per-transition configuration.
+- RLS is enabled on all six tables; policies scope project data to active memberships and reserve configuration writes for Platform Administrators. Explicit Data API grants are applied. Lifecycle assignment and phase history writes create private audit events.
+- Verification: all six tables have RLS enabled and scoped policies; global draft template + two phases + starting/forward rules passed a transaction-scoped fixture test and were rolled back; both RPCs rejected unauthenticated calls. No test fixtures were retained.
+- Security Advisor reports two WARN findings for authenticated execution of SECURITY DEFINER RPCs. This is intentional for atomic writes while direct client writes to assignment/history tables remain unavailable. Functions use empty search_path, explicit auth/profile/role checks, and no anon/PUBLIC execution. The warnings remain open for review and real JWT tests.
+- Current database has zero projects and zero Auth users. Therefore positive admin assignment, PM transitions, and actual dashboard read behavior cannot yet be tested.
+- Existing project timeline views and frontend register have not yet been extended to consume phase history. The frontend must continue to show Not configured / Not Reported until lifecycle setup is completed.
+- Design and implementation notes: `docs/database/PROJECT_LIFECYCLE_PHASE_MODEL.md`.
+- Supabase migrations are applied; the exact SQL migration source archive still needs reconciliation into the GitHub `supabase/migrations` folder before clean-environment replay can be claimed.
+- PR #1 remains draft and unmerged; no deployment or user provisioning was performed.
