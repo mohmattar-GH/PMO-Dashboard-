@@ -758,5 +758,5 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - Current database has zero projects and zero Auth users. Therefore positive admin assignment, PM transitions, and actual dashboard read behavior cannot yet be tested.
 - Existing project timeline views and frontend register have not yet been extended to consume phase history. The frontend must continue to show Not configured / Not Reported until lifecycle setup is completed.
 - Design and implementation notes: `docs/database/PROJECT_LIFECYCLE_PHASE_MODEL.md`.
-- Supabase migrations are applied; the exact SQL migration source archive still needs reconciliation into the GitHub `supabase/migrations` folder before clean-environment replay can be claimed.
+- Supabase migrations 057/058 are applied. Migration 058 SQL is archived in GitHub; the matching migration 057 SQL source still needs to be archived into `supabase/migrations` before clean-environment replay can be claimed.
 - PR #1 remains draft and unmerged; no deployment or user provisioning was performed.
