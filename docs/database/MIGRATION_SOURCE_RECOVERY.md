@@ -2,7 +2,6 @@
 
 ## Current result
 
-<badge> </badge>
 The Executive PPM migration archive is now aligned with the applied Supabase migration ledger and has passed a clean, isolated replay using GitHub Actions.
 
 - Supabase migration ledger: 61 applied migrations.
