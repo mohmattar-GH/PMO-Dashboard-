@@ -24,6 +24,7 @@ type CurrentPhaseRecord = {
   project_id: string;
   phase_code: string;
   phase_name: string;
+  display_order: number;
   progress_percent: number | null;
   planned_start_date: string | null;
   forecast_completion_date: string | null;
@@ -98,7 +99,7 @@ export default function LivePortfolioOverview({ search }: { search: string }) {
           return { rows, error: null };
         })(),
         supabase.from("project_current_phase")
-          .select("project_id, phase_code, phase_name, progress_percent, planned_start_date, forecast_completion_date, actual_completion_date, phase_entered_at"),
+          .select("project_id, phase_code, phase_name, display_order, progress_percent, planned_start_date, forecast_completion_date, actual_completion_date, phase_entered_at"),
         supabase.from("project_phase_change_log")
           .select("id, project_id, project_code, project_name, previous_phase_name, phase_name, entered_at, change_reason")
           .order("entered_at", { ascending: false })
@@ -167,11 +168,12 @@ export default function LivePortfolioOverview({ search }: { search: string }) {
     counts[healthFor(project.id)] += 1;
     return counts;
   }, { green: 0, amber: 0, red: 0, not_reported: 0 });
-  const phaseCounts = Object.values(currentPhases).reduce<Record<string, number>>((counts, phase) => {
-    counts[phase.phase_name] = (counts[phase.phase_name] ?? 0) + 1;
+  const phaseCounts = Object.values(currentPhases).reduce<Record<string, { count: number; order: number }>>((counts, phase) => {
+    const existing = counts[phase.phase_name];
+    counts[phase.phase_name] = { count: (existing?.count ?? 0) + 1, order: phase.display_order };
     return counts;
   }, {});
-  const phaseDistribution = Object.entries(phaseCounts).sort((a, b) => a[0].localeCompare(b[0]));
+  const phaseDistribution = Object.entries(phaseCounts).sort((a, b) => a[1].order - b[1].order);
   const projectsWithPhase = Object.keys(currentPhases).length;
   const projectsWithoutPhase = Math.max(0, projects.length - projectsWithPhase);
 
@@ -203,9 +205,9 @@ export default function LivePortfolioOverview({ search }: { search: string }) {
           <div className="live-phase-card-heading"><strong>Project Phase Distribution</strong><span>{phaseLoading || loading ? "—" : projectsWithPhase} assigned</span></div>
           {phaseLoading || loading ? <div className="live-phase-empty">Loading phase distribution…</div> :
             phaseDistribution.length === 0 ? <div className="live-phase-empty">No published lifecycle has been assigned to visible projects.</div> :
-            <div className="live-phase-bars">{phaseDistribution.map(([name, count]) => <div className="live-phase-bar-row" key={name}>
-              <div><span>{name}</span><strong>{count}</strong></div>
-              <div className="live-phase-track"><span style={{ width: `${projects.length ? (count / projects.length) * 100 : 0}%` }} /></div>
+            <div className="live-phase-bars">{phaseDistribution.map(([name, value]) => <div className="live-phase-bar-row" key={name}>
+              <div><span>{name}</span><strong>{value.count}</strong></div>
+              <div className="live-phase-track"><span style={{ width: `${projects.length ? (value.count / projects.length) * 100 : 0}%` }} /></div>
             </div>)}</div>}
           {!phaseLoading && !loading && <div className="live-phase-unassigned">{projectsWithoutPhase} project(s) Not configured / Unassigned</div>}
         </article>
