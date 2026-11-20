@@ -62,7 +62,7 @@ function MetricCard({ label, value, detail, trend, icon: Icon, tone = "blue" }: 
   </article>;
 }
 
-function App() {
+type AppProps = { displayName: string; roles: string[]; onSignOut: () => Promise<void> };\nfunction App({ displayName, roles, onSignOut }: AppProps) {
   const [activeNav, setActiveNav] = useState("Executive Overview");
   const [search, setSearch] = useState("");
   const [phaseFilter, setPhaseFilter] = useState("All phases");
@@ -118,7 +118,7 @@ function App() {
       </nav>
       <div className="sidebar-bottom">
         <div className="help-card"><div className="help-icon"><CircleHelp size={16}/></div><div><strong>Need assistance?</strong><small>Open PMO user guide</small></div><ArrowRight size={14}/></div>
-        <div className="profile-row"><div className="avatar">MM</div><div className="profile-copy"><strong>Workspace Admin</strong><small>Administrator</small></div><MoreHorizontal size={18}/></div>
+        <div className="profile-row"><div className="avatar">MM</div><div className="profile-copy"><strong>{displayName}</strong><small>{roles.includes("platform_admin") ? "Platform Administrator" : roles.length ? roles.join(" · ") : "Authenticated user"}</small></div><button className="icon-button" title="Sign out" onClick={() => void onSignOut()}><MoreHorizontal size={18}/></button></div>
       </div>
     </aside>}
 
@@ -128,7 +128,7 @@ function App() {
         <div className="topbar-actions">
           <div className="global-search"><Search size={15}/><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search projects, records..." /><kbd>⌘ K</kbd></div>
           <button className="icon-button notification-button" aria-label="Notifications" onClick={() => setActiveNav("Notifications")}><Bell size={18}/><i/></button>
-          <div className="top-avatar">MM</div>
+          <button className="top-avatar" title="Sign out" onClick={() => void onSignOut()}>{displayName.split(/\\s+/).map((part) => part[0]).slice(0,2).join("").toUpperCase()}</button>
         </div>
       </header>}
 
