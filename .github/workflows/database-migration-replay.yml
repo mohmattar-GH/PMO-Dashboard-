@@ -36,10 +36,10 @@ jobs:
         run: supabase start
 
       - name: Reset and replay every migration from scratch
-        run: supabase db reset --local
+        run: supabase db reset
 
       - name: Verify local migration history
-        run: supabase migration list --local
+        run: supabase migration list
 
       - name: Stop local Supabase stack
         if: always()
