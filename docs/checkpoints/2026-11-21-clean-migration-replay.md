@@ -12,7 +12,7 @@ The full 61-migration Executive PPM database chain has passed a clean replay in 
 - Updated `docs/database/MIGRATION_SOURCE_RECOVERY.md` with source provenance, test evidence, safety boundaries and remaining checks.
 
 ## Verification evidence
-- GitHub Actions run: https://github.com/mohmattar-GH/PMO-Dashboard-/actions/runs/44835790149
+- GitHub Actions run: https://github.com/mohmattar-GH/PMO-Dashboard-/actions/runs/44836138953
 - Result: success.
 - `supabase start`: passed.
 - `supabase db reset`: passed.
