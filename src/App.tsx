@@ -62,7 +62,8 @@ function MetricCard({ label, value, detail, trend, icon: Icon, tone = "blue" }: 
   </article>;
 }
 
-type AppProps = { displayName: string; roles: string[]; onSignOut: () => Promise<void> };\nfunction App({ displayName, roles, onSignOut }: AppProps) {
+type AppProps = { displayName: string; roles: string[]; onSignOut: () => Promise<void> };
+function App({ displayName, roles, onSignOut }: AppProps) {
   const [activeNav, setActiveNav] = useState("Executive Overview");
   const [search, setSearch] = useState("");
   const [phaseFilter, setPhaseFilter] = useState("All phases");
@@ -128,7 +129,7 @@ type AppProps = { displayName: string; roles: string[]; onSignOut: () => Promise
         <div className="topbar-actions">
           <div className="global-search"><Search size={15}/><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search projects, records..." /><kbd>⌘ K</kbd></div>
           <button className="icon-button notification-button" aria-label="Notifications" onClick={() => setActiveNav("Notifications")}><Bell size={18}/><i/></button>
-          <button className="top-avatar" title="Sign out" onClick={() => void onSignOut()}>{displayName.split(/\\s+/).map((part) => part[0]).slice(0,2).join("").toUpperCase()}</button>
+          <button className="top-avatar" title="Sign out" onClick={() => void onSignOut()}>{displayName.split(/\s+/).map((part) => part[0]).slice(0,2).join("").toUpperCase()}</button>
         </div>
       </header>}
 
