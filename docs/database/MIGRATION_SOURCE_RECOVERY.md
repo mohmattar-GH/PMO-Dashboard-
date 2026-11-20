@@ -1,64 +1,73 @@
-# Migration Source Recovery Record — 21 November 2026
+# Migration Source Recovery and Replay Validation — 21 November 2026
 
-## Result
+## Current result
 
-The original SQL for lifecycle migrations 057–060 has now been recovered directly from the authoritative `supabase_migrations.schema_migrations.statements` records in the live Executive PPM Platform database and restored to GitHub.
+<badge> </badge>
+The Executive PPM migration archive is now aligned with the applied Supabase migration ledger and has passed a clean, isolated replay using GitHub Actions.
 
-This is stronger provenance than reconstruction from current catalog definitions: the database retained the exact migration statements that were originally applied.
+- Supabase migration ledger: 61 applied migrations.
+- Repository: 61 SQL migration files.
+- Each file was restored from the exact SQL text retained in `supabase_migrations.schema_migrations.statements[1]`.
+- Every migration version prefix now matches the applied ledger version.
+- Filenames are ordered chronologically, with no duplicate version prefixes.
+- All migration names and SQL statements are sourced from the applied ledger, not reconstructed from current database objects.
 
-## Restored migration files
+## Source recovery and ordering corrections
 
-| Migration | GitHub source | Recovery source |
-|---|---|---|
-| 057 — Configurable project lifecycle phases | `supabase/migrations/20261120225103_migration_057_configurable_project_lifecycle_phases.sql` | Exact stored statement array for version `20261120225103` |
-| 058 — Global lifecycle assignment scope fix | `supabase/migrations/20261120225145_migration_058_global_lifecycle_assignment_scope_fix.sql` | Exact stored statement array for version `20261120225145` |
-| 059 — Executive lifecycle phase read access | `supabase/migrations/20261120225319_migration_059_executive_lifecycle_phase_read_access.sql` | Exact stored statement array for version `20261120225319` |
-| 060 — Executive phase change read model | `supabase/migrations/20261120225325_migration_060_executive_phase_change_read_model.sql` | Exact stored statement array for version `20261120225325` |
+The initial archive had timestamp-prefix mismatches and source drift. These were corrected by using the live migration ledger as the authoritative source.
 
-For 057–060, the SQL text was copied from each migration's history `statements` array without reconstructing it from the current schema. The 059 and 060 files previously archived as reconstructed versions were replaced with exact recorded SQL. The 058 file was also aligned to the exact stored SQL after a byte-for-byte comparison identified explanatory header comments that were not part of the applied statement.
+- Corrected all migration filename prefixes that differed from the recorded version.
+- Aligned the filenames for migrations 054–056 to the ledger's actual migration names.
+- Replaced all 61 SQL files with the exact stored applied SQL statements.
+- This also corrected source drift detected during replay in migrations 010 and 024.
+- The database ledger reports one stored SQL statement per migration for all 61 migrations.
 
-## Verification
+The SQL restoration and filename changes affect GitHub repository files only. They did not alter the hosted database.
 
-- Confirmed all four versions 057–060 are recorded as applied in Supabase migration history.
-- Queried `supabase_migrations.schema_migrations` and confirmed it retains `statements` and `rollback` arrays in addition to version/name metadata.
-- Retrieved the exact stored statements for migrations 057, 058, 059 and 060.
-- Committed migration 057, replaced migration 059 and migration 060, and aligned migration 058 to the exact stored SQL.
-- Re-fetched all four GitHub files and compared each file's full content to its stored migration-history statement; all four comparisons matched exactly.
+## Clean replay test
 
-## Remaining validation
+A free, isolated local Supabase stack was used on a GitHub Actions runner. No paid Supabase branch or additional hosted project was created.
 
-- All four restored files now have authoritative source provenance and byte-for-byte matches against their stored applied SQL. A clean-environment replay of the complete migration chain has not yet been run.
-- No isolated clean Supabase database/branch was created for replay. Do not claim clean-replay compatibility or production readiness until that test passes.
-- The live project was not modified during this recovery pass.
+Repository files added:
+- `supabase/config.toml` — local-only project configuration using PostgreSQL 17.
+- `.github/workflows/database-migration-replay.yml` — repeatable migration replay workflow.
 
-## Scope safeguards
+Successful GitHub Actions run:
+- Run ID: `44835790149`
+- Result: **success**
+- Workflow: Database migration replay
+- Run URL: https://github.com/mohmattar-GH/PMO-Dashboard-/actions/runs/44835790149
 
-- No Supabase schema or application data changes were made during this recovery pass.
-- No Auth users or project fixtures were created.
-- PR #1 remains draft and unmerged.
+The run completed all steps:
+1. Started the isolated local Supabase stack.
+2. Applied the migration chain.
+3. Ran `supabase db reset` to rebuild the local database and replay all migrations from scratch.
+4. Ran `supabase migration list`.
+5. Confirmed 61 local migration versions, from `20261114093442` through `20261120225701`.
+6. Stopped the local Supabase containers.
+
+The stack start applies migrations once, and the explicit reset applies them again from a clean local database. The final migration history list contained all 61 versions.
+
+## Safety boundary
+
+- No hosted Supabase branch or project was created.
+- No Supabase access token, remote database URL, or project link was used in the CI workflow.
+- No hosted database reset, migration push, schema change, or data change was performed.
+- No production data was copied into the local test environment.
 - No deployment was performed.
-- The existing Staff Time & Performance application remains untouched.
+- PR #1 remains draft and unmerged.
+- The Staff Time & Performance application was not accessed or changed.
 
+## Remaining work — separate from migration replay
 
-## Broader applied migration archive reconciliation — 21 November 2026
+A clean migration replay proves that the checked-in SQL can rebuild a fresh local Supabase database. It does not prove the full application is production-ready.
 
-### Repository coverage
+Still outstanding:
+- Provision test Auth users and project memberships, then run real JWT/RLS permission tests.
+- Review the SECURITY DEFINER lifecycle RPCs and their Security Advisor warnings.
+- Review the Team Lead contract SELECT policy scope.
+- Test invoice cash-allocation reversal under the current RLS policies.
+- Complete the KPI safe-read contract and sensitivity classification.
+- Verify the full frontend-to-database integration and role-specific user journeys.
+- Perform a clean replay again whenever migration files change; the GitHub workflow now runs automatically for migration/config/workflow changes.
 
-- The live Executive PPM migration ledger contains 61 applied migrations.
-- The feature branch now contains 61 SQL migration files under `supabase/migrations/`.
-- Each applied migration name has a matching repository file. Matching was performed by the migration name suffix because several pre-existing repository filenames use timestamp prefixes that differ from the applied ledger version.
-- Migrations 001–004 were missing and have now been restored from the exact SQL statement retained in the live migration ledger.
-- Migrations 057–060 were also checked against their exact stored SQL during this pass.
-
-### Exact-source verification
-
-- Migrations 001, 002, 003 and 004: all four newly created files were re-fetched from GitHub and compared byte-for-byte as UTF-8 text with the corresponding `statements[1]` value in `supabase_migrations.schema_migrations`. All four matched.
-- Migrations 057, 058, 059 and 060: all four files were re-fetched and compared byte-for-byte with their stored applied SQL. All four matched.
-- The other 53 migration files were confirmed present by matching applied migration names to repository filenames. They have not all been byte-for-byte compared in this pass.
-
-### Validation boundary
-
-- Repository source coverage now matches the 61 migrations recorded as applied in the live project.
-- A clean-environment replay of all 61 migrations has **not** been performed. Archive completeness is not proof of replayability; dependencies, ordering, extensions, roles, storage resources, Edge Functions, and platform-specific state may still affect a clean replay.
-- No new Supabase project or branch was created for testing. No live schema or application data was changed in this reconciliation.
-- PR #1 remains draft and unmerged. No deployment or user provisioning was performed. Staff Time & Performance remains untouched.
