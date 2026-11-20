@@ -19,7 +19,7 @@ function formatDate(value: string | null) {
 }
 
 function displayStatus(value: string) {
-  return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+  return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 export default function LivePortfolioOverview({ search }: { search: string }) {
