@@ -281,3 +281,20 @@ Please review and approve or revise:
 7. Should notification acknowledgement be mandatory for all action-required items, or only selected severity/event types? Recommended: configurable by rule.
 
 **Approval boundary:** This is a design proposal only. No frontend implementation, database migration, external notification integration or production deployment has been performed.
+
+## Product-owner decisions — 20 November 2026
+
+The user has confirmed the following design decisions for this release:
+
+1. **CR approval routing:** Configurable. The workflow must support sequential and parallel approval stages, with routes governed by administrator-managed configuration.
+2. **CR impact assessment:** Required for every CR. Each impact dimension must contain an assessment or be explicitly marked Not Applicable with a documented reason.
+3. **Deliverable acceptance:** A deliverable remains **Unaccepted** until the Project Manager formally records acceptance in the system. Submission or review activity alone must not change it to Accepted.
+4. **Milestone re-baselining:** Support both an approved Change Request and a separate approved re-baseline request. Require a reason, preserve prior baseline values and retain approval/audit history.
+5. **Notification channels:** Implement in-app notifications first. Email is enabled only after provider integration and delivery testing.
+6. **Reminder and escalation schedules:** Provide global defaults with project-level overrides.
+
+**Still awaiting product-owner decision:**
+
+7. **Notification acknowledgement:** Whether acknowledgement is required for every action-required notification or is configurable by event type and severity. Do not assume a default until confirmed.
+
+These are approved product decisions for design. They do not authorize frontend implementation, schema changes or deployment. The user must still review and approve the complete wireframes and interaction approach before implementation begins.
