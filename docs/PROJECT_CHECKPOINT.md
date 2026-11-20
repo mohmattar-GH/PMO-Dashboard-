@@ -642,3 +642,13 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - Hiding/removing a dashboard component must not delete its underlying operational data or phase history.
 - This is a UI/product design decision only. No frontend code, framework/component-library choice, database schema change or deployment was performed.
 - Frontend implementation remains blocked pending approval of the complete screen structure and interaction approach.
+
+
+## Executive Dashboard wireframes drafted — 20 November 2026
+
+- User approved proceeding to detailed dashboard wireframes.
+- Created `docs/UI_DASHBOARD_WIREFRAMES.md` in commit `3f22d6c6cfcfe3f8c60d25f756505eea1ee98a25`.
+- The draft covers the revised standard Executive Dashboard hierarchy, separate Project Phase Distribution and Recent Phase Changes components, administrator-only layout editor, financial restricted-panel/hidden behavior, CEO Presentation Mode sequence, empty/permission states, and implementation safeguards.
+- A visual dashboard concept was generated in this conversation to illustrate the overall appearance. It uses illustrative sample content only and is not a functional screen or connected to live data.
+- Product-owner review is still required for the proposed section order, layout editor controls, Presentation Mode sequence, and whether phase-transition reason should be mandatory or optional/configurable.
+- No frontend code, framework/component-library selection, database schema change, or deployment has been performed. Do not begin frontend implementation until the user approves the wireframes and interaction approach.
