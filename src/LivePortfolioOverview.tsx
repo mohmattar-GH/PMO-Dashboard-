@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertCircle, BriefcaseBusiness, CalendarDays, CheckCircle2, CircleHelp, LoaderCircle, Search } from "lucide-react";
+import { AlertCircle, BriefcaseBusiness, CheckCircle2, CircleHelp, LoaderCircle, Search } from "lucide-react";
 import { supabase } from "./lib/supabase";
 
 type SnapshotRecord = {
