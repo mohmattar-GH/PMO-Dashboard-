@@ -760,3 +760,17 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - Design and implementation notes: `docs/database/PROJECT_LIFECYCLE_PHASE_MODEL.md`.
 - Supabase migrations 057/058 are applied. Migration 058 SQL is archived in GitHub; the matching migration 057 SQL source still needs to be archived into `supabase/migrations` before clean-environment replay can be claimed.
 - PR #1 remains draft and unmerged; no deployment or user provisioning was performed.
+
+
+## Executive phase read integration — 21 November 2026
+
+- Applied migration 059, `migration_059_executive_lifecycle_phase_read_access`: active Executive Viewer users can read non-financial lifecycle definitions, assignments and history. This does not grant access to finance data.
+- Applied migration 060, `migration_060_executive_phase_change_read_model`: added `project_phase_change_log` with `security_invoker=true`; the existing `project_current_phase` view is also security-invoker.
+- Connected the Executive Overview to current phase and phase history read models. Added the Project Phase Distribution component, ordered by configured phase order, the Recent Phase Changes component (latest 10), and current phase/progress/forecast date in the project register.
+- Search now includes current phase names. No phase names or sample records are seeded.
+- SQL read checks against both views succeeded and returned empty results as expected; there are currently zero projects, lifecycle templates, versions, phases, assignments, history rows and Auth users.
+- Latest frontend commits: phase data integration `5aa5ff6806be1a1a7a1240a4172b4f06bb608018`, configured phase ordering `5621b16458b5440a45e4422275eee0c8c768a418`, styles `4f38344e355cd36a18284fb1dfaa81c54efde10c`.
+- Latest frontend CI status is unverified. The available GitHub workflow-run connector returns only PR-triggered runs and found no run for the latest commits.
+- Security Advisor reports two WARN findings for the authenticated SECURITY DEFINER lifecycle RPCs. They are intentionally used to perform atomic assignment/history writes without direct client table-write grants; both use an empty search_path, explicit auth/profile/role checks, and revoke anon/PUBLIC execution. Real JWT tests remain required.
+- Migration 058 SQL is archived in GitHub; migration 057 source still needs to be archived before clean-environment replay can be claimed.
+- PR #1 remains draft and unmerged. No deployment or user provisioning was performed.
