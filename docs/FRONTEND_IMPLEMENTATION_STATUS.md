@@ -96,3 +96,18 @@ The browser app now requires a Supabase-authenticated session and an active data
 - GitHub Actions workflow run `44831475659` completed successfully for the latest frontend health-integration commit (`ace40388a4e54ada500e96e6c10d3d5f2733f74d`).
 - Dependency installation and the TypeScript type-check/production build steps both passed.
 - This verifies compilation/build only. It does not replace authenticated-browser, role-specific RLS, or end-to-end workflow testing.
+
+
+## Configurable project lifecycle backend — 21 November 2026
+
+- Applied Supabase migrations 057 and 058 to create the configurable project lifecycle model. No default phase names or templates were seeded.
+- Added global/project-scoped lifecycle templates; numbered draft/published/retired versions; ordered active/inactive phase definitions; explicit transition rules; one active lifecycle assignment per project; and appendable phase history with planned, forecast and actual dates plus progress percentage.
+- Added administrator-only lifecycle assignment RPC and Project Manager / Platform Administrator phase-transition and current-phase update RPC. Transition reasons are controlled by each configured transition rule.
+- Published/retired versions are immutable; phase and transition definitions are editable only in draft versions. Lifecycle assignment/history records are audited.
+- RLS is enabled on all six new tables. Added `project_current_phase` as a security-invoker view. Global template scope is stored separately from the consuming project ID to preserve correct foreign-key integrity for global templates.
+- Verification: RLS and policies confirmed on all six tables; a transaction-scoped fixture created a global draft template, two phases and allowed transition rules, then rolled back; unauthenticated RPC calls were rejected.
+- Positive JWT tests remain outstanding: the database currently has zero projects and zero Auth users. No production project can yet be assigned a lifecycle.
+- Supabase Security Advisor reports two WARN findings because the two authenticated RPC endpoints are SECURITY DEFINER. This is intentional for atomic assignment/history writes without granting direct table writes; both functions use an empty search_path, explicitly validate the active user/profile and role, and revoke execution from anon/PUBLIC. Real role-specific JWT testing is still required.
+- The dashboard and existing timeline read models have not yet been connected to the new phase data. Until a lifecycle is configured and assigned, phase remains Not configured / Not Reported.
+- Design reference: `docs/database/PROJECT_LIFECYCLE_PHASE_MODEL.md`.
+- PR #1 remains draft and unmerged. No deployment or user provisioning was performed.
