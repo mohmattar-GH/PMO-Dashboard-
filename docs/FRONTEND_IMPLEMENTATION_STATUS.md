@@ -109,5 +109,5 @@ The browser app now requires a Supabase-authenticated session and an active data
 - Positive JWT tests remain outstanding: the database currently has zero projects and zero Auth users. No production project can yet be assigned a lifecycle.
 - Supabase Security Advisor reports two WARN findings because the two authenticated RPC endpoints are SECURITY DEFINER. This is intentional for atomic assignment/history writes without granting direct table writes; both functions use an empty search_path, explicitly validate the active user/profile and role, and revoke execution from anon/PUBLIC. Real role-specific JWT testing is still required.
 - The dashboard and existing timeline read models have not yet been connected to the new phase data. Until a lifecycle is configured and assigned, phase remains Not configured / Not Reported.
-- Design reference: `docs/database/PROJECT_LIFECYCLE_PHASE_MODEL.md`.
+- Design reference: `docs/database/PROJECT_LIFECYCLE_PHASE_MODEL.md`. Migration 058 SQL is archived in `supabase/migrations/20261120225145_migration_058_global_lifecycle_assignment_scope_fix.sql`; the matching migration 057 SQL source still needs to be archived before clean-environment replay can be claimed.
 - PR #1 remains draft and unmerged. No deployment or user provisioning was performed.
