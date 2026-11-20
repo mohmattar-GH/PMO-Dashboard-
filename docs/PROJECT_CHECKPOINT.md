@@ -823,3 +823,17 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 The 61-migration source archive was restored from the exact SQL retained in the live Supabase migration ledger, and migration filename versions were aligned to the ledger. A clean local Supabase replay passed in GitHub Actions: `supabase start`, `supabase db reset`, and `supabase migration list` all succeeded; the final local migration history contained all 61 versions. The workflow uses a local PostgreSQL 17 stack and no hosted Supabase credentials. No hosted Supabase project or branch was created, and the live PPM database was not modified. Evidence: https://github.com/mohmattar-GH/PMO-Dashboard-/actions/runs/44836138953. Detailed record: `docs/database/MIGRATION_SOURCE_RECOVERY.md`. Dedicated checkpoint: `docs/checkpoints/2026-11-21-clean-migration-replay.md`.
 
 Remaining backend validation is unchanged: provision test Auth users and memberships for JWT/RLS tests; review lifecycle SECURITY DEFINER RPCs, Team Lead contract access, invoice cash-allocation reversal, and the KPI safe-read contract/sensitivity classification. Clean replay does not establish production readiness.
+
+
+## Backend security and authorization validation — 21 November 2026
+
+- Migration 062 (`20261120232936_security_policy_hardening`) is applied in the Executive PPM Supabase project and committed in `supabase/migrations/20261120232936_security_policy_hardening.sql`.
+- Corrected `project_contracts` SELECT policy: Team Lead and Project Viewer memberships no longer expose full contractual/commercial records. Project Manager and Finance project roles, Platform Administrator and Finance Administrator global roles, and Executive Viewer with an active explicit financial grant are authorized.
+- Rollback-only SQL role tests passed for project scope and Executive Viewer grant scope. Finance allocation reversal passed; Team Lead reversal was denied.
+- All 47 public/private tables have RLS enabled; private formula-template table has no client access; six key read-model views are security_invoker.
+- Clean replay of all 62 migrations passed: https://github.com/mohmattar-GH/PMO-Dashboard-/actions/runs/44837247508
+- Frontend build passed: https://github.com/mohmattar-GH/PMO-Dashboard-/actions/runs/44837247564
+- Current Security Advisor findings: two WARN for authenticated SECURITY DEFINER lifecycle RPCs (intentional, with explicit checks) and one INFO for the server-only private formula-template table.
+- Remaining: real signed JWT tests through Auth/Data API, Storage permission tests, and full frontend role journeys. The current SQL tests use simulated request claims, not cryptographically signed tokens.
+- Detailed report: `docs/database/SECURITY_AUTHORIZATION_TEST_RESULTS.md`; checkpoint: `docs/checkpoints/2026-11-21-security-authorization-tests.md`.
+- No real test users or data were retained. No deployment or merge; PR #1 remains draft. Staff Time & Performance untouched.
