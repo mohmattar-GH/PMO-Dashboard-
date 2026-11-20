@@ -1,12 +1,11 @@
 import { useMemo, useState } from "react";
 import {
-  Activity, AlertCircle, AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight,
-  Bell, CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp,
-  Clock3, Command, Download, FileCheck2, FileClock, FileText, Filter, Flag,
-  Gauge, LayoutDashboard, ListChecks, Menu, MoreHorizontal, PanelLeftClose,
-  Plus, Presentation, Search, Settings2, ShieldAlert, SlidersHorizontal,
-  Target, TrendingUp, Users, Wallet, X, Layers3, BriefcaseBusiness, ClipboardList,
-  CircleDollarSign, CheckCircle2, CalendarClock, Sparkles
+  Activity, AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, Bell,
+  CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
+  CircleDollarSign, CircleHelp, Clock3, Command, FileCheck2, FileClock, FileText,
+  Filter, Flag, Gauge, LayoutDashboard, Layers3, ListChecks, Menu,
+  MoreHorizontal, Presentation, Search, Settings2, ShieldAlert, SlidersHorizontal,
+  Target, Users, Wallet, X, BriefcaseBusiness, ClipboardList
 } from "lucide-react";
 
 type ProjectStatus = "On track" | "At risk" | "Delayed" | "Completed";
@@ -46,7 +45,7 @@ const phaseCounts = [
 ];
 
 function StatusPill({ status }: { status: ProjectStatus }) {
-  return <span className={`status-pill ${status.toLowerCase().replaceAll(" ", "-")}`}><i />{status}</span>;
+  return <span className={`status-pill ${status.toLowerCase().replace(/ /g, "-")}`}><i />{status}</span>;
 }
 
 function ProgressBar({ value }: { value: number }) {
