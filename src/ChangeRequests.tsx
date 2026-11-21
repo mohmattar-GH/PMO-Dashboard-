@@ -16,7 +16,7 @@ type CR = {
   status: string; workflow_version_id: string | null; contract_id: string | null; contract_variation_id: string | null; requested_by: string; assigned_to: string | null;
   submitted_at: string | null; decided_at: string | null; decision_reason: string | null;
   implementation_owner_id: string | null; implementation_due_date: string | null;
-  implementation_status: string | null; verified_at: string | null; closed_at: string | null; created_at: string;
+  implementation_status: string | null; verified_at: string | null; closed_at: string | null; closure_evidence: string | null; created_at: string;
 };
 type ImpactDimension = { id: string; dimension_code: string; dimension_label: string; is_required: boolean };
 type Impact = { id?: string; impact_dimension: string; assessment_status: "not_assessed" | "assessed" | "not_applicable"; impact_summary: string | null; schedule_impact_days: number | null; cost_delta?: number | null; currency_code?: string | null; not_applicable_reason: string | null };
@@ -64,7 +64,7 @@ export default function ChangeRequests({ canManage }: { canManage: boolean }) {
     const [{ data: userData }, projectResult, crResult, memberResult, templateResult, contractResult] = await Promise.all([
       supabase.auth.getUser(),
       supabase.from("projects").select("id,project_code,name").order("project_code"),
-      supabase.from("project_change_requests").select("id,project_id,cr_reference,title,description,justification,request_type,category,priority,status,workflow_version_id,contract_id,contract_variation_id,requested_by,assigned_to,submitted_at,decided_at,decision_reason,implementation_owner_id,implementation_due_date,implementation_status,verified_at,closed_at,created_at").order("created_at", { ascending: false }),
+      supabase.from("project_change_requests").select("id,project_id,cr_reference,title,description,justification,request_type,category,priority,status,workflow_version_id,contract_id,contract_variation_id,requested_by,assigned_to,submitted_at,decided_at,decision_reason,implementation_owner_id,implementation_due_date,implementation_status,verified_at,closed_at,closure_evidence,created_at").order("created_at", { ascending: false }),
       supabase.from("project_memberships").select("project_id,user_id,project_role").eq("status", "active").lte("effective_from", new Date().toISOString()).or(`effective_to.is.null,effective_to.gt.${new Date().toISOString()}`),
       supabase.from("ppm_workflow_templates").select("id,template_name,project_id,is_global").eq("module_code", "change_request").eq("is_active", true),
       supabase.from("project_contracts").select("id,project_id,contract_reference,contract_title,currency_code,status").order("contract_reference")
@@ -328,7 +328,7 @@ export default function ChangeRequests({ canManage }: { canManage: boolean }) {
               </div>}
               {selected.status === "implemented" && canManage && <div className="cr-implementation-form"><label>Verification evidence<textarea value={verificationEvidence} onChange={(e) => setVerificationEvidence(e.target.value)} placeholder="Record test results, acceptance evidence or other verification proof"/></label><button className="button-primary" disabled={busy || verificationEvidence.trim().length < 8} onClick={() => void verifyImplementation()}>{busy ? "Verifying…" : "Verify implementation"}</button></div>}
               {selected.status === "verified" && canManage && <div className="cr-implementation-form"><label>Closure evidence / final note<textarea value={closureEvidence} onChange={(e) => setClosureEvidence(e.target.value)} placeholder="Record final closure evidence and handover reference"/></label><button className="button-primary" disabled={busy || closureEvidence.trim().length < 8} onClick={() => void closeChangeRequest()}>{busy ? "Closing…" : "Close Change Request"}</button></div>}
-              {selected.status === "closed" && <div className="cr-inline-empty">Closed with recorded closure evidence. Review the audit history below for verification and closure details.</div>}
+              {selected.status === "closed" && <div className="cr-closure-evidence"><strong>Closure evidence</strong><p>{selected.closure_evidence || "No closure note recorded."}</p></div>}
             </div>}
 
             {selected.status === "rejected" && <div className="cr-outcome rejected"><AlertCircle size={17}/><div><strong>PM decision: Rejected</strong><p>{selected.decision_reason || "No reason recorded."}</p><small>Decision timestamp: {dateTime(selected.decided_at)}</small></div></div>}
