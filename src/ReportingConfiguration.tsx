@@ -141,6 +141,7 @@ export default function ReportingConfiguration({ globalRoles }: { globalRoles: s
       return;
     }
     if (!useExisting && createForm.scope_type === "project" && !createForm.project_id) { setError("Select a project for project-scoped configuration."); return; }
+    if (!createForm.effective_from) { setError("Effective-from date is required before a reporting version can be published."); return; }
     if (!useExisting && (!createForm.configuration_code.trim() || !createForm.name.trim())) { setError("Configuration code and name are required."); return; }
     const payload = useExisting && selectedSet
       ? { configuration_set_id: selectedSet.id, scope_type: selectedSet.scope_type, project_id: selectedSet.project_id, effective_from: createForm.effective_from ? new Date(createForm.effective_from).toISOString() : null, effective_to: createForm.effective_to ? new Date(createForm.effective_to).toISOString() : null }
@@ -236,6 +237,6 @@ export default function ReportingConfiguration({ globalRoles }: { globalRoles: s
       <label className="wide">Description<textarea value={createForm.description} onChange={(e) => setCreateForm((f) => ({ ...f, description: e.target.value }))}/></label></>}
       <label>Effective from<input type="datetime-local" value={createForm.effective_from} onChange={(e) => setCreateForm((f) => ({ ...f, effective_from: e.target.value }))}/></label>
       <label>Effective to<input type="datetime-local" value={createForm.effective_to} onChange={(e) => setCreateForm((f) => ({ ...f, effective_to: e.target.value }))}/></label>
-    </div><div className="reporting-config-actions"><label>Creation reason<input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Minimum 8 characters"/></label><button className="button-primary small" disabled={busy || detailLoading || reason.trim().length < 8 || (createForm.useExistingSet ? !selectedSet : !createForm.configuration_code.trim() || !createForm.name.trim() || (createForm.scope_type === "project" && !createForm.project_id))} onClick={() => void createDraft()}>{busy ? "Creating…" : "Create draft version"}</button></div></div>}
+    </div><div className="reporting-config-actions"><label>Creation reason<input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Minimum 8 characters"/></label><button className="button-primary small" disabled={busy || detailLoading || reason.trim().length < 8 || !createForm.effective_from || (createForm.useExistingSet ? !selectedSet : !createForm.configuration_code.trim() || !createForm.name.trim() || (createForm.scope_type === "project" && !createForm.project_id))} onClick={() => void createDraft()}>{busy ? "Creating…" : "Create draft version"}</button></div></div>}
   </div>;
 }
