@@ -934,3 +934,22 @@ Remaining backend validation is unchanged: provision test Auth users and members
 - Final Performance Advisor check: 19 unindexed-FK findings remain on pre-existing lifecycle/financial tables; no new unindexed-FK finding on CR/workflow module tables. Unused-index notices are informational while the database has no operational data.
 - Total applied migration count: 79. The last two migration files were compared against their live ledger SQL hashes and matched; all migration sources were archived directly from the live migration ledger.
 - Full clean-environment replay and real signed-JWT/Storage tests remain pending. No merge or deployment. Staff Time & Performance remains untouched.
+
+
+## Atomic CR application to contract variations and schedule — 21 November 2026
+
+- Added migrations 080–084 (20261121100528 through 20261121100846). Exact SQL source for all five new migrations was hash-compared against the live Supabase ledger; all matched.
+- Added configurable workflow decision outcome (approved/rejected) independently of terminal status. This allows the CR to enter an approved decision stage, apply approved changes, and continue through implementation/closure stages.
+- Added CR decision actor and approval decision actor stamps.
+- Financially impactful CRs now require a contract, matching CR-linked draft contract variation, one consistent currency matching contract/project financial terms, and a configured Finance/Finance Admin approval stage.
+- Added public RPC create_change_request_contract_variation (SECURITY INVOKER wrapper over private implementation). It creates a single linked draft variation from the CR's assessed net financial impact.
+- CR-linked variations cannot be independently submitted or approved. They are approved only inside the CR application transaction after all latest approval rounds complete and a Finance approval actor is recorded. Existing standalone variation workflow remains in place.
+- Added typed CR schedule-change records targeting project activities or milestones. Proposed dates and reasons are locked after CR submission. Approved CR application updates only approved_revised_start_date / approved_revised_due_date; original baseline dates remain unchanged.
+- Direct client updates to approved revised schedule dates are blocked. Only approved CR application or the separate milestone re-baseline context can update them.
+- Added one application record per CR with actor/time, variation link, financial amount/currency, schedule count and audit payload. Application of the variation, financial rollup, schedule changes and history event occurs in one transaction; any failure rolls back the whole approval transition. Duplicate application is prevented.
+- Finance can read CR decision history and financial application records. Team Leads can read schedule changes but not financial application records.
+- Rollback-only end-to-end test passed: PM created CR and USD 100 variation, assessed required dimensions, submitted; out-of-order Team Lead approval denied; Finance then Team Lead approvals succeeded; CR entered Approved decision stage; variation became Approved with Finance as decision actor; financial terms reflected USD 100 approved variations; activity due date updated to 2026-12-05; milestone due date updated to 2026-12-15; one application record and two applied schedule records were created. All fixtures were rolled back and post-test counts returned zero temporary Auth users/projects/CRs.
+- Test used simulated claim subjects, not signed-JWT HTTP. Parallel approval, rejection/return, real Auth/API and Storage tests remain outstanding.
+- Total live migrations: 84. Security Advisor still shows only two pre-existing public lifecycle SECURITY DEFINER warnings and the intentional private formula-template INFO. Performance Advisor still shows 19 unindexed-FK notices on pre-existing lifecycle/financial tables; none on the new CR module tables. Clean replay of all 84 migrations remains outstanding.
+- CR screens, schedule impact UI, linked variation UI, approval inbox, SLA/notification wiring, deliverable submission/review actions and milestone re-baseline execution remain outstanding. No merge or deployment. Staff Time & Performance remains untouched.
+- Detailed record: docs/database/CR_DELIVERABLES_MILESTONES_NOTIFICATIONS_BACKEND_FOUNDATION.md.
