@@ -161,3 +161,14 @@ Not yet established as implemented:
 ## 8. Explicit scope correction
 
 Previous checkpoint notes stated that CR Management was deferred to a future release. The user's instruction on 20 November 2026 — “I want to include it all now” — supersedes that deferral. Full CR Management is part of the current release scope.
+
+
+## 9. Final CR decision model clarification — 21 November 2026
+
+This section supersedes any earlier wording in this document about configurable CR approval routes, multi-stage approvals, approval roles, or approval routing:
+- The assigned active Project Manager is the sole decision-maker for each submitted Change Request.
+- The PM records Accept or Reject with a mandatory reason. The database records actor and timestamp.
+- Finance, technical, delivery and other impact assessments remain inputs to the PM's decision only. They are not approvals.
+- There are no Finance/Team Lead approval stages, no sequential/parallel CR approvers, no CR approval inbox, and no approval-needed notification routing.
+- Admin configuration may govern CR fields, impact dimensions, status labels, decision targets, implementation controls and notifications, but cannot introduce additional CR decision-makers or approval stages.
+- Contract variation and schedule application after PM acceptance remains atomic and auditable. The PM-only decision does not remove commercial integrity checks or the separate deliverable acceptance rule.
