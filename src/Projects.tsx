@@ -5,7 +5,7 @@ import { supabase } from "./lib/supabase";
 type Project = {
   id: string; project_code: string; name: string; client_id: string | null; portfolio_id: string | null;
   project_manager_id: string | null; team_lead_id: string | null; lifecycle_status: string;
-  start_date: string | null; target_end_date: string | null; currency_code: string | null;
+  start_date: string | null; target_end_date: string | null; timezone: string; currency_code: string | null;
 };
 type Phase = { project_id: string; phase_name: string; progress_percent: number | null; planned_start_date: string | null; forecast_completion_date: string | null; actual_completion_date: string | null };
 type Snapshot = { project_id: string; calculated_health: string | null; reported_health: string | null; created_at: string };
@@ -24,7 +24,8 @@ const label = (value: string | null | undefined) => value ? value.replace(/_/g, 
 const dateLabel = (value: string | null | undefined) => value ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(value + (value.length === 10 ? "T00:00:00" : ""))) : "Not Reported";
 const amount = (value: number | null | undefined, currency: string | null | undefined) => {
   if (value === null || value === undefined) return "Not Reported";
-  try { return new Intl.NumberFormat(undefined, { style: "currency", currency: (currency || "JOD").trim() }).format(Number(value)); }
+  if (!currency) return Number(value).toLocaleString() + " · Currency not reported";
+  try { return new Intl.NumberFormat(undefined, { style: "currency", currency: currency.trim() }).format(Number(value)); }
   catch { return Number(value).toLocaleString() + " " + (currency || ""); }
 };
 const statusClass = (status: string | null | undefined) => (status || "not-reported").toLowerCase().replace(/[^a-z0-9]+/g, "-");
@@ -57,7 +58,7 @@ export default function Projects({ isPlatformAdmin }: { isPlatformAdmin: boolean
     if (!supabase) { setError("Supabase client is not configured."); setLoading(false); return; }
     setLoading(true); setError("");
     const [projectResult, clientResult, portfolioResult, phaseResult, snapshotResult] = await Promise.all([
-      supabase.from("projects").select("id,project_code,name,client_id,portfolio_id,project_manager_id,team_lead_id,lifecycle_status,start_date,target_end_date,currency_code").order("project_code"),
+      supabase.from("projects").select("id,project_code,name,client_id,portfolio_id,project_manager_id,team_lead_id,lifecycle_status,start_date,target_end_date,timezone,currency_code").order("project_code"),
       supabase.from("clients").select("id,name"),
       supabase.from("portfolios").select("id,name"),
       supabase.from("project_current_phase").select("project_id,phase_name,progress_percent,planned_start_date,forecast_completion_date,actual_completion_date"),
@@ -166,7 +167,7 @@ export default function Projects({ isPlatformAdmin }: { isPlatformAdmin: boolean
       {detailLoading ? <div className="module-loading panel">Loading project profile…</div> : <>
         {activeTab === "overview" && <div className="project-detail-grid">
           <article className="panel project-info-panel"><div className="project-panel-heading"><h3>Project Information</h3><span>Register profile</span></div><dl>
-            <dt>Project code</dt><dd>{selected.project_code}</dd><dt>Client</dt><dd>{selected.client_id ? clients[selected.client_id] ?? "Not reported" : "Not reported"}</dd><dt>Portfolio</dt><dd>{selected.portfolio_id ? portfolios[selected.portfolio_id] ?? "Not reported" : "Not reported"}</dd><dt>Lifecycle status</dt><dd>{label(selected.lifecycle_status)}</dd><dt>Current phase</dt><dd>{label(phase?.phase_name)}</dd><dt>Project Manager</dt><dd>{memberName(selected.id, selected.project_manager_id)}</dd><dt>Team Lead</dt><dd>{memberName(selected.id, selected.team_lead_id)}</dd><dt>Start date</dt><dd>{dateLabel(selected.start_date)}</dd><dt>Target end date</dt><dd>{dateLabel(selected.target_end_date)}</dd><dt>Timezone</dt><dd>Project timezone is recorded in the project profile</dd>
+            <dt>Project code</dt><dd>{selected.project_code}</dd><dt>Client</dt><dd>{selected.client_id ? clients[selected.client_id] ?? "Not reported" : "Not reported"}</dd><dt>Portfolio</dt><dd>{selected.portfolio_id ? portfolios[selected.portfolio_id] ?? "Not reported" : "Not reported"}</dd><dt>Lifecycle status</dt><dd>{label(selected.lifecycle_status)}</dd><dt>Current phase</dt><dd>{label(phase?.phase_name)}</dd><dt>Project Manager</dt><dd>{memberName(selected.id, selected.project_manager_id)}</dd><dt>Team Lead</dt><dd>{memberName(selected.id, selected.team_lead_id)}</dd><dt>Start date</dt><dd>{dateLabel(selected.start_date)}</dd><dt>Target end date</dt><dd>{dateLabel(selected.target_end_date)}</dd><dt>Timezone</dt><dd>{selected.timezone || "Not Reported"}</dd>
           </dl></article>
           <article className="panel project-info-panel"><div className="project-panel-heading"><h3>Performance Position</h3><span>Latest available snapshot</span></div><div className="project-kpi-grid">
             <div><small>PM-reported health</small><strong>{label(snapshot?.reported_health)}</strong></div><div><small>Calculated health</small><strong>{label(snapshot?.calculated_health)}</strong></div><div><small>Current phase progress</small><strong>{phase?.progress_percent == null ? "Not Reported" : Number(phase.progress_percent).toFixed(0) + "%"}</strong></div><div><small>Milestone accomplishment</small><strong>{weightedProgress == null ? "Not Reported" : weightedProgress.toFixed(1) + "%"}</strong></div>
