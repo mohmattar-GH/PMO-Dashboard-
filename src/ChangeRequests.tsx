@@ -98,6 +98,7 @@ export default function ChangeRequests({ canManage }: { canManage: boolean }) {
   const selected = records.find((r) => r.id === selectedId) ?? null;
   const projectName = (id: string) => projects.find((p) => p.id === id)?.name ?? "Project";
   const membersFor = (projectId: string) => members.filter((m) => m.project_id === projectId);
+  const projectManagersFor = (projectId: string) => membersFor(projectId).filter((m) => m.project_role === "project_manager");
   const canDecide = Boolean(selected && selected.status === "submitted" && selected.assigned_to === currentUserId && selected.requested_by !== currentUserId && membersFor(selected.project_id).some((m) => m.user_id === currentUserId && m.project_role === "project_manager"));
   const filtered = useMemo(() => records.filter((r) =>
     (statusFilter === "all" || r.status === statusFilter) &&
@@ -348,9 +349,9 @@ export default function ChangeRequests({ canManage }: { canManage: boolean }) {
       <label>Description<textarea required value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}/></label>
       <label>Business justification<textarea required value={form.justification} onChange={(e) => setForm((f) => ({ ...f, justification: e.target.value }))}/></label>
       <div className="cr-form-two"><label>Priority<select value={form.priority} onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))}><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></label>
-      <label>Assigned Project Manager<select required value={form.assigned_to} onChange={(e) => setForm((f) => ({ ...f, assigned_to: e.target.value }))}><option value="">Select active project PM</option>{membersFor(form.project_id).map((m) => <option key={m.user_id} value={m.user_id}>{m.display_name}</option>)}</select></label></div>
+      <label>Assigned Project Manager<select required value={form.assigned_to} onChange={(e) => setForm((f) => ({ ...f, assigned_to: e.target.value }))}><option value="">Select active project PM</option>{projectManagersFor(form.project_id).map((m) => <option key={m.user_id} value={m.user_id}>{m.display_name}</option>)}</select></label></div>
       <label>Impact-assessment configuration<select required value={form.workflow_version_id} onChange={(e) => setForm((f) => ({ ...f, workflow_version_id: e.target.value }))}><option value="">Select published configuration</option>{versions.filter((v) => v.is_global || v.project_id === form.project_id).map((v) => <option key={v.id} value={v.id}>{v.template_name} · v{v.version_no}</option>)}</select></label>
-      <div className="cr-modal-footer"><button type="button" className="button-secondary" onClick={() => setShowCreate(false)}>Cancel</button><button className="button-primary" disabled={busy || !membersFor(form.project_id).some((m) => m.user_id === form.assigned_to)}>{busy ? <LoaderCircle className="spin" size={15}/> : <FilePlus2 size={15}/>} Create draft</button></div>
+      <div className="cr-modal-footer"><button type="button" className="button-secondary" onClick={() => setShowCreate(false)}>Cancel</button><button className="button-primary" disabled={busy || !projectManagersFor(form.project_id).some((m) => m.user_id === form.assigned_to)}>{busy ? <LoaderCircle className="spin" size={15}/> : <FilePlus2 size={15}/>} Create draft</button></div>
     </form></div>}
   </div>;
 }
