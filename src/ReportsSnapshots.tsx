@@ -16,8 +16,7 @@ const asObject = (value: unknown): Record<string, unknown> => value && typeof va
 
 export default function ReportsSnapshots({ globalRoles }: { globalRoles: string[] }) {
   const isAdmin = globalRoles.includes("platform_admin");
-  const isExecutive = globalRoles.includes("executive_viewer");
-  const canView = isAdmin || isExecutive;
+  const canView = isAdmin || globalRoles.includes("executive_viewer");
   const [cycles, setCycles] = useState<Cycle[]>([]);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -129,13 +128,14 @@ export default function ReportsSnapshots({ globalRoles }: { globalRoles: string[
     {error && <div className="reports-message error"><AlertCircle size={15}/>{error}</div>}
     {notice && <div className="reports-message"><CheckCircle2 size={15}/>{notice}</div>}
     {isAdmin && <section className="panel reports-cycle-panel"><div className="reports-panel-heading"><div><h3>Reporting cycles</h3><span>Close only after the scheduled cutoff. Snapshot creation requires a published global configuration.</span></div><span>{cycles.length} cycles</span></div>
+      {isAdmin && cycles.length > 0 && <div className="reports-cycle-reason"><label>Cycle action reason<input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Minimum 8 characters"/></label></div>}
       {loading ? <div className="reports-empty"><LoaderCircle className="spin" size={17}/> Loading reporting cycles…</div> : cycles.length ? <div className="reports-cycle-list">{cycles.map((cycle) => {
         const snapshot = snapshotByCycle.get(cycle.id);
         const cutoffReached = new Date(cycle.cutoff_at).getTime() <= Date.now();
         const configReady = hasGlobalConfigAt(cycle);
         return <article className="reports-cycle-row" key={cycle.id}><div className="reports-cycle-main"><strong>{cycle.cycle_code}</strong><span>{dateLabel(cycle.period_start)} – {dateLabel(cycle.period_end)} · As of {dateLabel(cycle.as_of_date)}</span><small>Cutoff {dateTime(cycle.cutoff_at)} · {cycle.timezone}</small></div><span className={"project-status-pill " + statusClass(cycle.status)}>{label(cycle.status)}</span><div className="reports-cycle-row-actions">
-          {cycle.status === "open" && <button className="button-secondary small" disabled={busy || !cutoffReached} onClick={() => void closeCycle(cycle)} title={!cutoffReached ? "Scheduled cutoff has not been reached" : "Close reporting cycle"}><Clock3 size={12}/> Close cycle</button>}
-          {cycle.status === "closed" && !snapshot && <button className="button-primary small" disabled={busy || !configReady} onClick={() => void buildSnapshot(cycle)} title={!configReady ? "Publish a global reporting configuration effective at the cutoff first" : "Build immutable portfolio snapshot"}><Archive size={12}/> Build snapshot</button>}
+          {cycle.status === "open" && <button className="button-secondary small" disabled={busy || reason.trim().length < 8 || !cutoffReached} onClick={() => void closeCycle(cycle)} title={!cutoffReached ? "Scheduled cutoff has not been reached" : "Close reporting cycle"}><Clock3 size={12}/> Close cycle</button>}
+          {cycle.status === "closed" && !snapshot && <button className="button-primary small" disabled={busy || reason.trim().length < 8 || !configReady} onClick={() => void buildSnapshot(cycle)} title={!configReady ? "Publish a global reporting configuration effective at the cutoff first" : "Build immutable portfolio snapshot"}><Archive size={12}/> Build snapshot</button>}
           {snapshot && <button className="button-secondary small" onClick={() => setSelectedSnapshotId(snapshot.id)}>View snapshot</button>}
           {cycle.status === "closed" && !configReady && !snapshot && <small className="reports-warning">No effective published global KPI configuration</small>}
         </div></article>;
