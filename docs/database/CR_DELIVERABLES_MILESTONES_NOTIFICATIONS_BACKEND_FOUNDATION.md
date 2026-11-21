@@ -77,7 +77,7 @@ The PM acceptance trigger is SECURITY INVOKER with an empty search_path; direct 
 
 ## Change Request workflow engine — 21 November 2026
 
-Migrations 068–084 implement the executable CR approval and approved-change application workflow. Migrations 085–087 add controlled deliverable submission, review and PM acceptance:
+Migrations 068–084 implement the executable CR approval and approved-change application workflow. Migrations 085–087 add controlled deliverable submission, review and PM acceptance. Migrations 088–090 add event-driven in-app notifications:
 - Administrator publication of a draft workflow version validates the configured stages, transition roles and required impact dimensions. Published workflow versions and their stage/transition/impact-dimension definitions are immutable; changes require a new version.
 - Stage approval mode is configurable as sequential or parallel. Required approver roles are resolved against active, effective project memberships and global role assignments.
 - CR submission is permitted only to an active Project Manager or Platform Administrator. A published/effective CR workflow must be selected.
@@ -167,3 +167,31 @@ A transaction-scoped fixture test verified:
 - The transaction rolled back; no test users or deliverables were retained.
 
 The test used simulated claim subjects, not signed-JWT HTTP/API or actual Storage file upload. Document classification validation is implemented, but end-to-end Storage upload/download and document-linked submission tests remain outstanding.
+
+
+## Event-driven in-app notifications — 21 November 2026
+
+Migrations 088–090 implement immediate in-app event notifications:
+- Platform Administrators configure event rules with severity, recipient project roles/global roles, optional target users, actor exclusion, effective dates and acknowledgement requirement.
+- Notification rule updates increment version_no and archive the previous rule configuration in ppm_notification_rule_history. Rule JSON is validated against the supported immediate-event recipient schema.
+- CR events emit notifications for submission, approval needed, approval and rejection. Sequential workflows notify only the next actionable approver; the next approver is notified after the preceding approver completes their decision. Parallel workflows notify all assigned approvers.
+- Deliverable events emit notifications for submission, review accepted, changes required, rejection and formal PM acceptance.
+- Recipient resolution uses active profiles and effective project memberships/global role assignments. Notification rows are recipient-scoped and deduplicated by rule version, event instance, source record and recipient.
+- Users can mark notifications read; the database stamps read_at. Rules requiring acknowledgement can be acknowledged once; the database stamps acknowledged_at. Notification content and recipient are immutable.
+- In-app notifications only. No email integration or delivery. Scheduled reminders, lead-time triggers, repeats, quiet hours and escalation rules are explicitly rejected by the current rule validator and remain future work.
+
+### Rollback-only notification verification
+
+A transaction-scoped test configured CR submitted and CR approval-needed rules:
+- PM received the CR submitted notification.
+- Finance received the first sequential approval notification.
+- Team Lead was not notified until Finance completed its approval; Team Lead was then notified.
+- Finance marked its notification read and acknowledged it; read_at and acknowledged_at were stamped.
+- Updating a rule incremented its version and archived the prior configuration.
+- The CR reached its Approved stage and the transaction rolled back. No test users, projects, CRs, rules or notifications were retained.
+
+This test used simulated Auth claim subjects, not signed-JWT HTTP/API requests. Deliverable event triggers are installed but require a separate event-specific integration test.
+
+## Current module boundary
+
+The backend now includes CR workflow execution and approved financial/schedule application, deliverable submission/review/PM acceptance, and immediate in-app notification generation. User-facing CR/deliverable/configuration/notification screens, scheduled notification processing, external email, milestone re-baseline approval/application, real signed-JWT/API/Storage tests, and full clean replay of the latest migration chain remain outstanding.
