@@ -533,14 +533,14 @@ for select to authenticated using (
 );
 create policy milestone_rebaseline_pm_admin_write on public.project_milestone_rebaseline_requests
 for all to authenticated using (
-  exists (select 1 from public.project_memberships pm where pm.project_id = project_id
+  exists (select 1 from public.project_memberships pm where pm.project_id = project_milestone_rebaseline_requests.project_id
     and pm.user_id = (select auth.uid()) and pm.project_role = 'project_manager'
     and pm.status = 'active' and pm.effective_from <= now() and (pm.effective_to is null or pm.effective_to > now()))
   or exists (select 1 from public.user_global_role_assignments ura where ura.user_id = (select auth.uid())
     and ura.role_code = 'platform_admin' and ura.status = 'active'
     and ura.effective_from <= now() and (ura.effective_to is null or ura.effective_to > now()))
 ) with check (
-  exists (select 1 from public.project_memberships pm where pm.project_id = project_id
+  exists (select 1 from public.project_memberships pm where pm.project_id = project_milestone_rebaseline_requests.project_id
     and pm.user_id = (select auth.uid()) and pm.project_role = 'project_manager'
     and pm.status = 'active' and pm.effective_from <= now() and (pm.effective_to is null or pm.effective_to > now()))
   or exists (select 1 from public.user_global_role_assignments ura where ura.user_id = (select auth.uid())
@@ -549,7 +549,7 @@ for all to authenticated using (
 );
 create policy milestone_baseline_history_read on public.project_milestone_baseline_history
 for select to authenticated using (
-  exists (select 1 from public.project_memberships pm where pm.project_id = project_id
+  exists (select 1 from public.project_memberships pm where pm.project_id = project_milestone_rebaseline_requests.project_id
     and pm.user_id = (select auth.uid()) and pm.status = 'active'
     and pm.effective_from <= now() and (pm.effective_to is null or pm.effective_to > now()))
   or exists (select 1 from public.user_global_role_assignments ura where ura.user_id = (select auth.uid())
@@ -592,3 +592,20 @@ grant all on
   public.project_milestone_rebaseline_requests, public.project_milestone_baseline_history,
   public.ppm_notification_rules, public.ppm_user_notifications
 to service_role;
+
+-- Preserve immutable history and restrict recipient edits to inbox state only.
+revoke delete on
+  public.ppm_workflow_templates, public.ppm_workflow_template_versions,
+  public.ppm_workflow_stages, public.ppm_workflow_transitions,
+  public.project_change_requests, public.project_change_request_impacts,
+  public.project_change_request_approvals, public.project_change_request_history,
+  public.contract_deliverable_submissions, public.contract_deliverable_reviews,
+  public.project_milestone_rebaseline_requests, public.project_milestone_baseline_history,
+  public.ppm_notification_rules, public.ppm_user_notifications
+from authenticated;
+revoke update on public.ppm_user_notifications from authenticated;
+grant update (is_read, read_at, acknowledged_at)
+  on public.ppm_user_notifications to authenticated;
+revoke update on public.project_change_request_approvals from authenticated;
+grant update (status, decision, decision_reason, decided_at)
+  on public.project_change_request_approvals to authenticated;
