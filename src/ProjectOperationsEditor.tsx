@@ -158,7 +158,7 @@ export default function ProjectOperationsEditor({
       ? await supabase.from("project_risks").update(payload).eq("id",editingRisk.id).select("id").single()
       : await supabase.from("project_risks").insert({ ...payload, created_by: currentUserId }).select("id").single();
     if (result.error) setError(result.error.message);
-    else { setRiskFormOpen(false); setMessage(editingRisk ? "Risk updated and audited." : "Risk registered. Risk score remains Not Reported until the risk-scoring process is connected."); setBusy(false); await onSaved(); return; }
+    else { setRiskFormOpen(false); setMessage(editingRisk ? "Risk updated and audited." : "Risk registered. Score uses the active published risk_scoring parameters; without a valid rule or in-scale levels it remains Not Reported."); setBusy(false); await onSaved(); return; }
     setBusy(false);
   };
 
@@ -213,8 +213,8 @@ export default function ProjectOperationsEditor({
   </article>;
 
   return <div className="project-detail-grid">
-    <article className="panel project-info-panel project-top-risk-panel"><div className="project-panel-heading"><div><h3><ShieldAlert size={13}/> Top 5 Risk Watchlist</h3><span>Displays only system-calculated risk scores; no manual or hardcoded fallback ranking is applied.</span></div><span>{topFiveScoredRisks.length}/5 scored risks</span></div>
-      {topFiveScoredRisks.length ? <div className="project-top-risk-list">{topFiveScoredRisks.map((risk,index)=><div className="project-top-risk-row" key={risk.id}><b>{index+1}</b><div><strong>{risk.risk_reference} · {risk.title}</strong><small>{label(risk.status)} · Owner {memberName(risk.owner_user_id)} · Target {dateLabel(risk.target_resolution_date)}</small></div><span>{risk.risk_score}</span></div>)}</div> : <p className="project-empty-inline">Risk-score calculation is not yet connected to the risk register. The top-five ranking remains Not Reported until a configurable per-risk scoring process is implemented.</p>}
+    <article className="panel project-info-panel project-top-risk-panel"><div className="project-panel-heading"><div><h3><ShieldAlert size={13}/> Top 5 Risk Watchlist</h3><span>Displays only scores calculated from the active published risk_scoring parameters; no manual or hardcoded fallback ranking is applied.</span></div><span>{topFiveScoredRisks.length}/5 scored risks</span></div>
+      {topFiveScoredRisks.length ? <div className="project-top-risk-list">{topFiveScoredRisks.map((risk,index)=><div className="project-top-risk-row" key={risk.id}><b>{index+1}</b><div><strong>{risk.risk_reference} · {risk.title}</strong><small>{label(risk.status)} · Owner {memberName(risk.owner_user_id)} · Target {dateLabel(risk.target_resolution_date)}</small></div><span>{risk.risk_score}</span></div>)}</div> : <p className="project-empty-inline">No risk scores are currently available. Publish one valid risk_scoring rule set (global or project-specific) to populate this ranking; missing, ambiguous or out-of-scale inputs remain Not Reported.</p>}
     </article>
     <article className="panel project-info-panel"><div className="project-panel-heading"><div><h3><ShieldAlert size={13}/> Project Risks</h3><span>Highest recorded scores first · {risks.length} records shown</span></div>{canManageProject && <button className="button-secondary small" onClick={()=>startRisk()}><Plus size={12}/> Add risk</button>}</div>
       {error && <div className="project-create-error">{error}</div>}{message && <div className="project-create-success">{message}</div>}
