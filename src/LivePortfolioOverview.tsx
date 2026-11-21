@@ -56,7 +56,7 @@ function displayStatus(value: string) {
   return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-export default function LivePortfolioOverview({ search }: { search: string }) {
+export default function LivePortfolioOverview({ search, visibleWidgets, widgetOrder }: { search: string; visibleWidgets: string[]; widgetOrder: string[] }) {
   const [projects, setProjects] = useState<ProjectRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -179,14 +179,15 @@ export default function LivePortfolioOverview({ search }: { search: string }) {
 
   return <div className="live-overview">
     <div className="live-source-strip"><span><span className="live-source-dot" /> LIVE DATABASE</span><span>Project register · permission-filtered by Supabase RLS</span><span className="live-source-note">No demo records</span></div>
-    <section className="live-summary-grid">
+    <div className="live-widget-stack" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+    {visibleWidgets.includes("portfolio_summary") && <section className="live-summary-grid" style={{ order: widgetOrder.indexOf("portfolio_summary") }}>
       <article className="live-summary-card"><span>Total projects</span><strong>{loading ? "—" : projects.length}</strong><small>Visible to your account</small></article>
       <article className="live-summary-card"><span>Active</span><strong>{loading ? "—" : activeCount}</strong><small>Lifecycle status = Active</small></article>
       <article className="live-summary-card"><span>Completed</span><strong>{loading ? "—" : completedCount}</strong><small>Lifecycle status = Completed</small></article>
       <article className="live-summary-card"><span>Other statuses</span><strong>{loading ? "—" : otherCount}</strong><small>Draft, on hold, cancelled or archived</small></article>
-    </section>
+    </section>}
 
-    <section className="live-health-section">
+    {visibleWidgets.includes("project_health") && <section className="live-health-section" style={{ order: widgetOrder.indexOf("project_health") }}>
       <div className="live-section-heading"><div><h3>Latest calculated project health</h3><p>Based on each project's most recent snapshot visible to this account</p></div><span>Calculated health only · PM-reported status remains separate</span></div>
       {healthError && <div className="live-message live-error"><AlertCircle size={16}/><span>Health snapshots could not be loaded: {healthError}</span></div>}
       <div className="live-health-grid">
@@ -195,9 +196,9 @@ export default function LivePortfolioOverview({ search }: { search: string }) {
         <article><span className="live-health-indicator red" /> <div><strong>{loading || healthLoading ? "—" : healthCounts.red}</strong><small>Red</small></div></article>
         <article><span className="live-health-indicator neutral" /> <div><strong>{loading || healthLoading ? "—" : healthCounts.not_reported}</strong><small>Not Reported</small></div></article>
       </div>
-    </section>
+    </section>}
 
-    <section className="live-phase-section">
+    {visibleWidgets.includes("project_phase") && <section className="live-phase-section" style={{ order: widgetOrder.indexOf("project_phase") }}>
       <div className="live-section-heading"><div><h3>Project phase overview</h3><p>Current lifecycle phase is separate from project health and milestone progress</p></div><span>Published lifecycle configuration · permission-filtered</span></div>
       {phaseError && <div className="live-message live-error"><AlertCircle size={16}/><span>Phase information could not be loaded: {phaseError}</span></div>}
       <div className="live-phase-grid">
@@ -222,9 +223,9 @@ export default function LivePortfolioOverview({ search }: { search: string }) {
             </div>)}</div>}
         </article>
       </div>
-    </section>
+    </section>}
 
-    <section className="panel live-register-panel">
+    {visibleWidgets.includes("project_register") && <section className="panel live-register-panel" style={{ order: widgetOrder.indexOf("project_register") }}>
       <div className="panel-heading">
         <div><h3>Project register</h3><span className="panel-subtitle">Operational project records from the Executive PPM database</span></div>
         <span className="live-register-count">{loading ? "Loading…" : `${filteredProjects.length} of ${projects.length} projects`}</span>
@@ -253,11 +254,12 @@ export default function LivePortfolioOverview({ search }: { search: string }) {
           </table>
         </div>}
       <div className="live-register-footer"><span><CheckCircle2 size={14}/> Read-only live query · database policies remain authoritative</span><span>Last loaded: {loading ? "—" : new Date().toLocaleTimeString()}</span></div>
-    </section>
+    </section>}
 
-    <section className="live-data-quality">
+    {visibleWidgets.includes("data_quality") && <section className="live-data-quality" style={{ order: widgetOrder.indexOf("data_quality") }}>
       <div><CircleHelp size={17}/><strong>Metrics not yet reportable</strong></div>
       <p>Calculated health is read from the latest safe snapshot index; projects without a snapshot remain Not Reported. Project phase, phase dates, progress and phase changes are read from the governed lifecycle model. Verified delivery progress, milestone achievement, risk exposure and executive decisions remain Not Reported until their governed data paths are connected. No sample values are substituted.</p>
-    </section>
+    </section>}
+    </div>
   </div>;
 }
