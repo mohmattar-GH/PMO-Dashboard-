@@ -858,3 +858,18 @@ Remaining backend validation is unchanged: provision test Auth users and members
 - These tests are not signed-JWT HTTP tests; actual Auth/Data API/RPC testing and Storage tests remain outstanding.
 - The migration source archive now contains 63 files matching all 63 live migration ledger entries, with no missing or extra filenames.
 - Frontend build passed for current branch head `a3289bdda9f28a29abc8cc42d6f3f32dd51a0185`. Migration replay is still running; an earlier PR replay attempt failed before stack startup because GitHub rate-limited the action's lookup of the latest Supabase CLI release. The workflow is now pinned to Supabase CLI 3.2.0 and uses a guarded cleanup step.
+
+
+## CR, Deliverables, Milestones and Notifications backend foundation — 21 November 2026
+
+- Added and applied Supabase migration 064: 20261121110000_project_change_request_workflow_and_notifications.
+- Added configurable workflow template/version/stage/transition schema; CR register, impact assessments, approval records and history; deliverable submission/review history; milestone re-baseline request/history; notification rules and per-user in-app inbox.
+- Extended existing contract_deliverables rather than creating a duplicate deliverable register. New deliverables default to unaccepted; accepted status requires accepted_by and accepted_at and the existing status must be accepted. The existing table's write authorization remains PM / Platform Administrator controlled.
+- Financial CR impact rows have narrower access than the base CR record. Workflow and notification rules are Platform Administrator controlled. Notification inbox rows are recipient-scoped, and client updates are limited to read/acknowledgement fields. Authenticated delete privileges are revoked on the new tables.
+- RLS is enabled on all 14 new tables; catalog verification confirmed policies exist. Supabase migration application returned success.
+- Security Advisor findings remain unchanged: two existing lifecycle SECURITY DEFINER WARNs and one intentional INFO for private server-only formula templates.
+- The live PPM database currently has zero Auth users, projects, CRs, notifications and deliverables. Real signed-JWT tests and positive role-based journeys remain impossible until test accounts and project fixtures exist.
+- Important: this is a backend schema foundation, not a completed module. CR transition/approval execution, separation-of-duties enforcement, impact completeness, atomic contract/schedule application, history population, deliverable submission/review/PM acceptance actions, milestone re-baseline approval/application, notification event evaluation/recipient resolution/retry processing and frontend screens remain outstanding.
+- External email delivery is not enabled. No frontend files were changed in this slice.
+- Detailed record: docs/database/CR_DELIVERABLES_MILESTONES_NOTIFICATIONS_BACKEND_FOUNDATION.md.
+- No merge or deployment. Staff Time & Performance remains untouched.
