@@ -224,7 +224,7 @@ export default function ReportingConfiguration({ globalRoles }: { globalRoles: s
         </>}
       </section>
     </div>
-    {createOpen && <div className="reporting-config-create panel"><div className="reporting-config-panel-title"><div><strong>Create reporting configuration draft</strong><span>Start a new configuration set or create the next version of the selected set.</span></div></div>
+    {createOpen && <div className="reporting-config-create panel"><div className="reporting-config-panel-title"><div><strong>Create reporting configuration draft</strong><span>Start a new set or create the next version; existing rules are copied into successor drafts.</span></div></div>
       {selectedSet && <label className="reporting-config-checkbox"><input type="checkbox" checked={createForm.useExistingSet} onChange={(e) => setCreateForm((f) => ({ ...f, useExistingSet: e.target.checked }))}/> Create the next version of {selectedSet.configuration_code}</label>}
       <div className="reporting-config-create-grid">
       {!createForm.useExistingSet && <><label>Scope<select value={createForm.scope_type} onChange={(e) => setCreateForm((f) => ({ ...f, scope_type: e.target.value as "global" | "project", project_id: "" }))}><option value="global">Global</option><option value="project">Project-specific</option></select></label>
