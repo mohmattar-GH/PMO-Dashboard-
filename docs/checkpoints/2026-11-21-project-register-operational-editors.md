@@ -21,8 +21,8 @@
 - Project-specific PM/Finance checks now govern CR impact assessment, schedule proposal, linked variation, implementation, verification and closure controls.
 
 ## Verification
-- Frontend workflow run 527 passed: TypeScript type-check and Vite production build.
-- Clean migration replay run 246 was in progress at checkpoint time. Await completion before stating full migration replay passed.
+- Frontend workflow run 536 passed: TypeScript type-check and Vite production build.
+- Clean migration replay run 253 was in progress at checkpoint time. Await completion before stating full migration replay passed.
 - Live Supabase currently has no Auth users, projects, milestones, deliverables or notifications. Real authenticated role-journey tests and CRUD browser tests are therefore not yet possible.
 - No deployment or PR merge performed.
 
