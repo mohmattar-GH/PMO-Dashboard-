@@ -13,6 +13,23 @@ const dateTime = (value: string | null) => value ? new Intl.DateTimeFormat(undef
 const label = (value: string) => value.replace(/_/g, " ").replace(/\b\w/g, (s) => s.toUpperCase());
 const statusClass = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 const asObject = (value: unknown): Record<string, unknown> => value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+const dateTimeToUtc = (value: string, timeZone: string) => {
+  const [datePart, timePart] = value.split("T");
+  const [year, month, day] = datePart.split("-").map(Number);
+  const [hour, minute] = timePart.split(":").map(Number);
+  const desired = Date.UTC(year, month - 1, day, hour, minute);
+  let candidate = new Date(desired);
+  for (let i = 0; i < 3; i++) {
+    const parts = new Intl.DateTimeFormat("en-US", { timeZone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(candidate);
+    const part = (type: string) => Number(parts.find((item) => item.type === type)?.value ?? 0);
+    const represented = Date.UTC(part("year"), part("month") - 1, part("day"), part("hour"), part("minute"));
+    const delta = desired - represented;
+    if (delta === 0) break;
+    candidate = new Date(candidate.getTime() + delta);
+  }
+  return candidate.toISOString();
+};
+const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
 export default function ReportsSnapshots({ globalRoles }: { globalRoles: string[] }) {
   const isAdmin = globalRoles.includes("platform_admin");
@@ -30,7 +47,7 @@ export default function ReportsSnapshots({ globalRoles }: { globalRoles: string[
   const [notice, setNotice] = useState("");
   const [reason, setReason] = useState("");
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ cycle_code: "", period_start: "", period_end: "", as_of_date: "", cutoff_at: "", timezone: "UTC" });
+  const [form, setForm] = useState({ cycle_code: "", period_start: "", period_end: "", as_of_date: "", cutoff_at: "", timezone: browserTimeZone });
 
   const selectedSnapshot = useMemo(() => snapshots.find((item) => item.id === selectedSnapshotId) ?? null, [snapshots, selectedSnapshotId]);
   const snapshotByCycle = useMemo(() => new Map(snapshots.map((item) => [item.reporting_cycle_id, item])), [snapshots]);
@@ -91,10 +108,10 @@ export default function ReportsSnapshots({ globalRoles }: { globalRoles: string[
     if (form.period_end < form.period_start || form.as_of_date < form.period_start || form.as_of_date > form.period_end) { setError("The period and as-of date range is invalid."); return; }
     const result = await invokeAction("create_cycle", {
       cycle_code: form.cycle_code.trim(), period_start: form.period_start, period_end: form.period_end,
-      as_of_date: form.as_of_date, cutoff_at: new Date(form.cutoff_at).toISOString(), timezone: form.timezone.trim()
+      as_of_date: form.as_of_date, cutoff_at: dateTimeToUtc(form.cutoff_at, form.timezone.trim()), timezone: form.timezone.trim()
     }, reason);
     if (!result) return;
-    setShowCreate(false); setReason(""); setForm({ cycle_code: "", period_start: "", period_end: "", as_of_date: "", cutoff_at: "", timezone: "UTC" });
+    setShowCreate(false); setReason(""); setForm({ cycle_code: "", period_start: "", period_end: "", as_of_date: "", cutoff_at: "", timezone: browserTimeZone });
     await loadData();
   };
 
