@@ -106,9 +106,17 @@ export default function ReportsSnapshots({ globalRoles }: { globalRoles: string[
   const createCycle = async () => {
     if (!form.cycle_code.trim() || !form.period_start || !form.period_end || !form.as_of_date || !form.cutoff_at || !form.timezone.trim()) { setError("Complete all reporting cycle fields."); return; }
     if (form.period_end < form.period_start || form.as_of_date < form.period_start || form.as_of_date > form.period_end) { setError("The period and as-of date range is invalid."); return; }
+    let cutoffAt: string;
+    try {
+      new Intl.DateTimeFormat("en-US", { timeZone: form.timezone.trim() }).format(new Date());
+      cutoffAt = dateTimeToUtc(form.cutoff_at, form.timezone.trim());
+    } catch {
+      setError("Enter a valid IANA timezone and cutoff date/time.");
+      return;
+    }
     const result = await invokeAction("create_cycle", {
       cycle_code: form.cycle_code.trim(), period_start: form.period_start, period_end: form.period_end,
-      as_of_date: form.as_of_date, cutoff_at: dateTimeToUtc(form.cutoff_at, form.timezone.trim()), timezone: form.timezone.trim()
+      as_of_date: form.as_of_date, cutoff_at: cutoffAt, timezone: form.timezone.trim()
     }, reason);
     if (!result) return;
     setShowCreate(false); setReason(""); setForm({ cycle_code: "", period_start: "", period_end: "", as_of_date: "", cutoff_at: "", timezone: browserTimeZone });
