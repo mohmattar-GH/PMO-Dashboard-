@@ -104,6 +104,7 @@ export default function ProjectOperationsEditor({
       verification_status:activityForm.verification_status,notes:activityForm.notes.trim()||null
     };
     if (!editingActivity) {
+      payload.created_by = currentUserId;
       payload.sequence_no = activityForm.sequence_no ? Number(activityForm.sequence_no) : null;
       payload.weight = activityForm.weight ? Number(activityForm.weight) : null;
       payload.baseline_start_date = activityForm.baseline_start_date||null;
@@ -154,7 +155,7 @@ export default function ProjectOperationsEditor({
     };
     const result = editingRisk
       ? await supabase.from("project_risks").update(payload).eq("id",editingRisk.id).select("id").single()
-      : await supabase.from("project_risks").insert(payload).select("id").single();
+      : await supabase.from("project_risks").insert({ ...payload, created_by: currentUserId }).select("id").single();
     if (result.error) setError(result.error.message);
     else { setRiskFormOpen(false); setMessage(editingRisk ? "Risk updated and audited." : "Risk registered. Risk score is calculated by the configured database rule."); setBusy(false); await onSaved(); return; }
     setBusy(false);
@@ -190,7 +191,7 @@ export default function ProjectOperationsEditor({
     };
     const result = editingLicense
       ? await supabase.from("project_licenses").update(payload).eq("id",editingLicense.id).select("id").single()
-      : await supabase.from("project_licenses").insert(payload).select("id").single();
+      : await supabase.from("project_licenses").insert({ ...payload, created_by: currentUserId }).select("id").single();
     if (result.error) setError(result.error.message);
     else { setLicenseFormOpen(false); setMessage(editingLicense ? "License updated and audited." : "License registered and audited."); setBusy(false); await onSaved(); return; }
     setBusy(false);
