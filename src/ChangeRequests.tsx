@@ -4,12 +4,14 @@ import { AlertCircle, CheckCircle2, FilePlus2, LoaderCircle, Search, ShieldCheck
 import { supabase } from "./lib/supabase";
 
 type Project = { id: string; project_code: string; name: string };
+type Contract = { id: string; project_id: string; contract_reference: string; contract_title: string; currency_code: string | null; status: string };
+type Variation = { id: string; variation_reference: string; title: string; amount_delta: number; currency_code: string; status: string; effective_date: string | null };
 type Member = { project_id: string; user_id: string; display_name: string; project_role: string };
 type WorkflowVersion = { id: string; version_no: number; template_id: string; template_name: string; project_id: string | null; is_global: boolean };
 type CR = {
   id: string; project_id: string; cr_reference: string; title: string; description: string;
   justification: string; request_type: string | null; category: string | null; priority: string | null;
-  status: string; workflow_version_id: string | null; requested_by: string; assigned_to: string | null;
+  status: string; workflow_version_id: string | null; contract_id: string | null; contract_variation_id: string | null; requested_by: string; assigned_to: string | null;
   submitted_at: string | null; decided_at: string | null; decision_reason: string | null;
   implementation_owner_id: string | null; implementation_due_date: string | null;
   implementation_status: string | null; verified_at: string | null; closed_at: string | null; created_at: string;
@@ -24,6 +26,8 @@ const statusTone = (status: string) => ["accepted", "implemented", "verified", "
 
 export default function ChangeRequests({ canManage }: { canManage: boolean }) {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [contracts, setContracts] = useState<Contract[]>([]);
+  const [variation, setVariation] = useState<Variation | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [versions, setVersions] = useState<WorkflowVersion[]>([]);
   const [records, setRecords] = useState<CR[]>([]);
@@ -43,17 +47,18 @@ export default function ChangeRequests({ canManage }: { canManage: boolean }) {
   const [notice, setNotice] = useState("");
   const [decisionReason, setDecisionReason] = useState("");
   const [submitReason, setSubmitReason] = useState("");
-  const [form, setForm] = useState({ project_id: "", title: "", description: "", justification: "", priority: "medium", assigned_to: "", workflow_version_id: "" });
+  const [form, setForm] = useState({ project_id: "", contract_id: "", title: "", description: "", justification: "", priority: "medium", assigned_to: "", workflow_version_id: "" });
 
   const loadRegister = useCallback(async () => {
     if (!supabase) { setError("Supabase is not configured."); setLoading(false); return; }
     setLoading(true); setError("");
-    const [{ data: userData }, projectResult, crResult, memberResult, templateResult] = await Promise.all([
+    const [{ data: userData }, projectResult, crResult, memberResult, templateResult, contractResult] = await Promise.all([
       supabase.auth.getUser(),
       supabase.from("projects").select("id,project_code,name").order("project_code"),
-      supabase.from("project_change_requests").select("id,project_id,cr_reference,title,description,justification,request_type,category,priority,status,workflow_version_id,requested_by,assigned_to,submitted_at,decided_at,decision_reason,implementation_owner_id,implementation_due_date,implementation_status,verified_at,closed_at,created_at").order("created_at", { ascending: false }),
+      supabase.from("project_change_requests").select("id,project_id,cr_reference,title,description,justification,request_type,category,priority,status,workflow_version_id,contract_id,contract_variation_id,requested_by,assigned_to,submitted_at,decided_at,decision_reason,implementation_owner_id,implementation_due_date,implementation_status,verified_at,closed_at,created_at").order("created_at", { ascending: false }),
       supabase.from("project_memberships").select("project_id,user_id,project_role").eq("project_role", "project_manager").eq("status", "active").lte("effective_from", new Date().toISOString()).or(`effective_to.is.null,effective_to.gt.${new Date().toISOString()}`),
-      supabase.from("ppm_workflow_templates").select("id,template_name,project_id,is_global").eq("module_code", "change_request").eq("is_active", true)
+      supabase.from("ppm_workflow_templates").select("id,template_name,project_id,is_global").eq("module_code", "change_request").eq("is_active", true),
+      supabase.from("project_contracts").select("id,project_id,contract_reference,contract_title,currency_code,status").order("contract_reference")
     ]);
     if (projectResult.error || crResult.error) {
       setError(projectResult.error?.message || crResult.error?.message || "Unable to load Change Requests.");
@@ -63,6 +68,7 @@ export default function ChangeRequests({ canManage }: { canManage: boolean }) {
     const projectRows = (projectResult.data ?? []) as Project[];
     setProjects(projectRows);
     setRecords((crResult.data ?? []) as CR[]);
+    setContracts((contractResult.data ?? []) as Contract[]);
     const rawMembers = (memberResult.data ?? []) as Omit<Member, "display_name">[];
     const memberIds = [...new Set(rawMembers.map((m) => m.user_id))];
     const profileResult = memberIds.length ? await supabase.from("user_profiles").select("user_id,display_name").in("user_id", memberIds) : { data: [], error: null };
@@ -93,16 +99,18 @@ export default function ChangeRequests({ canManage }: { canManage: boolean }) {
   const loadDetail = useCallback(async (record: CR) => {
     if (!supabase) return;
     setSelectedId(record.id); setDetailLoading(true); setDecisionReason(""); setSubmitReason("");
-    const [dimensionResult, impactResult, historyResult] = await Promise.all([
+    const [dimensionResult, impactResult, historyResult, variationResult] = await Promise.all([
       record.workflow_version_id ? supabase.from("ppm_workflow_impact_dimensions").select("id,dimension_code,dimension_label,is_required").eq("workflow_version_id", record.workflow_version_id).order("sequence_no") : Promise.resolve({ data: [], error: null }),
       supabase.from("project_change_request_impacts").select("id,impact_dimension,assessment_status,impact_summary,schedule_impact_days,not_applicable_reason,cost_delta,currency_code").eq("change_request_id", record.id),
-      supabase.from("project_change_request_history").select("id,event_code,from_status,to_status,actor_user_id,event_reason,created_at").eq("change_request_id", record.id).order("created_at", { ascending: false })
+      supabase.from("project_change_request_history").select("id,event_code,from_status,to_status,actor_user_id,event_reason,created_at").eq("change_request_id", record.id).order("created_at", { ascending: false }),
+      record.contract_variation_id ? supabase.from("project_contract_variations").select("id,variation_reference,title,amount_delta,currency_code,status,effective_date").eq("id", record.contract_variation_id).maybeSingle() : Promise.resolve({ data: null, error: null })
     ]);
     if (dimensionResult.error) setNotice("Impact configuration could not be loaded: " + dimensionResult.error.message);
     else setDimensions((dimensionResult.data ?? []) as ImpactDimension[]);
     if (impactResult.error) setNotice("Impact details are not available to this role: " + impactResult.error.message);
     else setImpacts((impactResult.data ?? []) as Impact[]);
     setHistory((historyResult.data ?? []) as History[]);
+    setVariation((variationResult.data ?? null) as Variation | null);
     setDetailLoading(false);
   }, []);
 
@@ -114,6 +122,8 @@ export default function ChangeRequests({ canManage }: { canManage: boolean }) {
       assessment_status: patch.assessment_status ?? existing?.assessment_status ?? "not_assessed",
       impact_summary: patch.impact_summary ?? existing?.impact_summary ?? "",
       schedule_impact_days: patch.schedule_impact_days ?? existing?.schedule_impact_days ?? null,
+      cost_delta: patch.cost_delta !== undefined ? patch.cost_delta : existing?.cost_delta ?? null,
+      currency_code: patch.currency_code !== undefined ? patch.currency_code : existing?.currency_code ?? null,
       not_applicable_reason: patch.not_applicable_reason ?? existing?.not_applicable_reason ?? null,
       ...(patch.cost_delta !== undefined ? { cost_delta: patch.cost_delta } : existing?.cost_delta !== undefined ? { cost_delta: existing.cost_delta } : {}),
       ...(patch.currency_code !== undefined ? { currency_code: patch.currency_code } : existing?.currency_code ? { currency_code: existing.currency_code } : {})
@@ -137,11 +147,21 @@ export default function ChangeRequests({ canManage }: { canManage: boolean }) {
     const { data, error: createError } = await supabase.from("project_change_requests").insert({
       project_id: form.project_id, cr_reference: reference, title: form.title.trim(),
       description: form.description.trim(), justification: form.justification.trim(),
-      priority: form.priority, requested_by: user.user?.id, assigned_to: form.assigned_to,
+      priority: form.priority, contract_id: form.contract_id || null, requested_by: user.user?.id, assigned_to: form.assigned_to,
       workflow_version_id: form.workflow_version_id, status: "draft"
     }).select("id").single();
     if (createError) setNotice("Could not create the Change Request: " + createError.message);
-    else { setShowCreate(false); setForm({ project_id: "", title: "", description: "", justification: "", priority: "medium", assigned_to: "", workflow_version_id: "" }); await loadRegister(); setNotice("Draft Change Request created."); if (data?.id) setSelectedId(data.id); }
+    else { setShowCreate(false); setForm({ project_id: "", contract_id: "", title: "", description: "", justification: "", priority: "medium", assigned_to: "", workflow_version_id: "" }); await loadRegister(); setNotice("Draft Change Request created."); if (data?.id) setSelectedId(data.id); }
+    setBusy(false);
+  };
+
+  const createLinkedVariation = async () => {
+    if (!supabase || !selected || selected.status !== "draft") return;
+    if (!selected.contract_id) { setNotice("Select a contract on the draft Change Request first."); return; }
+    setBusy(true); setNotice("");
+    const { data, error: variationError } = await supabase.rpc("create_change_request_contract_variation", { p_change_request_id: selected.id });
+    if (variationError) setNotice("Linked contract variation was not created: " + variationError.message);
+    else { setNotice("Linked contract variation created. Its approval follows the PM-only Change Request decision."); await loadRegister(); await loadDetail({ ...selected, contract_variation_id: (data as { contract_variation_id?: string } | null)?.contract_variation_id ?? selected.contract_variation_id }); }
     setBusy(false);
   };
 
@@ -214,10 +234,13 @@ export default function ChangeRequests({ canManage }: { canManage: boolean }) {
                     <select value={impact?.assessment_status ?? "not_assessed"} onChange={(e) => void saveImpact(dimension, { assessment_status: e.target.value as Impact["assessment_status"] })}><option value="not_assessed">Not assessed</option><option value="assessed">Assessed</option><option value="not_applicable">Not applicable</option></select>
                     <textarea value={impact?.assessment_status === "not_applicable" ? impact?.not_applicable_reason ?? "" : impact?.impact_summary ?? ""} placeholder={impact?.assessment_status === "not_applicable" ? "Reason for not applicable" : "Assessment summary / evidence"} onChange={(e) => setImpacts((current) => [...current.filter((i) => i.impact_dimension !== dimension.dimension_code), { ...(impact ?? { impact_dimension: dimension.dimension_code, assessment_status: "not_assessed" as const, impact_summary: "", schedule_impact_days: null, not_applicable_reason: null }), ...(impact?.assessment_status === "not_applicable" ? { not_applicable_reason: e.target.value } : { impact_summary: e.target.value }) }])} onBlur={(e) => void saveImpact(dimension, impact?.assessment_status === "not_applicable" ? { not_applicable_reason: e.target.value } : { impact_summary: e.target.value })}/>
                     <input type="number" placeholder="Schedule impact (days)" value={impact?.schedule_impact_days ?? ""} onChange={(e) => setImpacts((current) => [...current.filter((i) => i.impact_dimension !== dimension.dimension_code), { ...(impact ?? { impact_dimension: dimension.dimension_code, assessment_status: "not_assessed" as const, impact_summary: "", schedule_impact_days: null, not_applicable_reason: null }), schedule_impact_days: e.target.value === "" ? null : Number(e.target.value) }])} onBlur={(e) => void saveImpact(dimension, { schedule_impact_days: e.target.value === "" ? null : Number(e.target.value) })}/>
+                    <div className="cr-financial-impact"><input type="number" step="0.01" placeholder="Cost impact (+ / −)" value={impact?.cost_delta ?? ""} onChange={(e) => setImpacts((current) => [...current.filter((i) => i.impact_dimension !== dimension.dimension_code), { ...(impact ?? { impact_dimension: dimension.dimension_code, assessment_status: "not_assessed" as const, impact_summary: "", schedule_impact_days: null, not_applicable_reason: null }), cost_delta: e.target.value === "" ? null : Number(e.target.value) }])} onBlur={(e) => void saveImpact(dimension, { cost_delta: e.target.value === "" ? null : Number(e.target.value) })}/><input maxLength={3} placeholder="Currency (e.g. JOD)" value={impact?.currency_code ?? ""} onChange={(e) => setImpacts((current) => [...current.filter((i) => i.impact_dimension !== dimension.dimension_code), { ...(impact ?? { impact_dimension: dimension.dimension_code, assessment_status: "not_assessed" as const, impact_summary: "", schedule_impact_days: null, not_applicable_reason: null }), currency_code: e.target.value.toUpperCase() }])} onBlur={(e) => void saveImpact(dimension, { currency_code: e.target.value.trim().toUpperCase() })}/></div>
                   </div> : <div className="cr-impact-read"><span className={`cr-status ${impact?.assessment_status === "assessed" ? "success" : "neutral"}`}>{label(impact?.assessment_status ?? "not_assessed")}</span><p>{impact?.assessment_status === "not_applicable" ? impact.not_applicable_reason : impact?.impact_summary ?? "No assessment recorded."}</p>{impact?.schedule_impact_days !== null && impact?.schedule_impact_days !== undefined && <small>Schedule impact: {impact.schedule_impact_days} days</small>}{impact?.cost_delta !== null && impact?.cost_delta !== undefined && <small>Financial impact: {impact.cost_delta} {impact.currency_code ?? ""}</small>}</div>}
                 </div>;
               })}</div>}
             </div>
+
+            {selected.status === "draft" && <div className="cr-detail-section cr-variation-section"><div className="cr-section-title"><div><h3>Contract variation</h3><p>Financial impact is converted into one linked draft variation after currency and contract checks.</p></div></div>{variation ? <div className="cr-variation-summary"><strong>{variation.variation_reference} · {variation.title}</strong><span>{Number(variation.amount_delta).toLocaleString()} {variation.currency_code} · {label(variation.status)}</span></div> : <div className="cr-variation-actions"><span>{selected.contract_id ? `Contract: ${contracts.find((item) => item.id === selected.contract_id)?.contract_reference ?? "Selected contract"}` : "No contract linked to this Change Request."}</span><button className="button-secondary" disabled={busy || !selected.contract_id || !impacts.some((i) => i.assessment_status === "assessed" && Number(i.cost_delta ?? 0) !== 0)} onClick={() => void createLinkedVariation()}>{busy ? "Creating…" : "Create linked variation"}</button></div>}</div>}
 
             {selected.status === "draft" && <div className="cr-action-box"><div><strong>Submit for PM decision</strong><p>All required impact dimensions must be assessed or marked not applicable with a reason.</p></div><input value={submitReason} onChange={(e) => setSubmitReason(e.target.value)} placeholder="Optional submission note"/><button className="button-primary" disabled={busy || !selected.assigned_to || dimensions.some((d) => d.is_required && !["assessed","not_applicable"].includes(impacts.find((i) => i.impact_dimension === d.dimension_code)?.assessment_status ?? "not_assessed"))} onClick={() => void submitCR()}>{busy ? "Submitting…" : "Submit to assigned PM"}</button></div>}
 
@@ -235,7 +258,8 @@ export default function ChangeRequests({ canManage }: { canManage: boolean }) {
 
     {showCreate && <div className="cr-modal-backdrop" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) setShowCreate(false); }}><form className="cr-create-modal" onSubmit={createCR}>
       <div className="cr-modal-heading"><div><span>NEW RECORD</span><h2>Create Change Request</h2><p>Assign the single Project Manager who will make the decision.</p></div><button type="button" className="icon-button" onClick={() => setShowCreate(false)}><X size={18}/></button></div>
-      <label>Project<select required value={form.project_id} onChange={(e) => setForm((f) => ({ ...f, project_id: e.target.value, assigned_to: "" }))}><option value="">Select project</option>{projects.map((p) => <option key={p.id} value={p.id}>{p.project_code} · {p.name}</option>)}</select></label>
+      <label>Project<select required value={form.project_id} onChange={(e) => setForm((f) => ({ ...f, project_id: e.target.value, contract_id: "", assigned_to: "" }))}><option value="">Select project</option>{projects.map((p) => <option key={p.id} value={p.id}>{p.project_code} · {p.name}</option>)}</select></label>
+      <label>Contract<select value={form.contract_id} onChange={(e) => setForm((f) => ({ ...f, contract_id: e.target.value }))}><option value="">No contract variation required</option>{contracts.filter((item) => item.project_id === form.project_id && ["active","signed","in_force"].includes(item.status)).map((item) => <option key={item.id} value={item.id}>{item.contract_reference} · {item.contract_title} ({item.currency_code ?? "Currency not set"})</option>)}</select></label>
       <label>Title<input required maxLength={250} value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}/></label>
       <label>Description<textarea required value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}/></label>
       <label>Business justification<textarea required value={form.justification} onChange={(e) => setForm((f) => ({ ...f, justification: e.target.value }))}/></label>
