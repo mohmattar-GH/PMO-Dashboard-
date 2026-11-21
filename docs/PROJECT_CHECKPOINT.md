@@ -1030,7 +1030,7 @@ Remaining backend validation is unchanged: provision test Auth users and members
 
 - Added `src/ChangeRequests.tsx` and wired it to the Change Requests navigation item in `src/App.tsx`.
 - Added a responsive register, project/status/search filters, record workspace, lifecycle indicator, impact-assessment editor for draft CRs, submission action, assigned-PM-only accept/reject actions, mandatory decision reason, decision outcome and audit history.
-- CR approval stages, approver assignments and approval actions are not present in the new frontend. Impact assessments are presented as PM decision inputs.
+- CR approval stages, approver assignments and approval actions are not present in the new frontend. Impact assessments are presented as PM decision inputs; the current draft editor captures assessment status, narrative and schedule impact, but financial amount entry and linked variation creation are not yet implemented.
 - The UI uses the existing Supabase project and public RPCs `submit_project_change_request` and `decide_project_change_request`; authorization remains enforced by database RLS and RPC validation.
 - The UI is connected to real tables, but the project currently has no Auth users/projects/CR fixtures. Real role-journey tests and a production build are not yet verified. No GitHub Actions workflow was triggered for these commits.
 - No Supabase schema changes, merge or deployment were made. Existing Staff Time & Performance project remains untouched.
