@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Pencil, Plus, ShieldAlert } from "lucide-react";
 import { supabase } from "./lib/supabase";
 
+type UserOption = { user_id: string; display_name: string; job_title: string | null };
 type Risk = {
   id: string; risk_reference: string; title: string; description: string;
   probability_level: number; impact_level: number; risk_score: number | null;
@@ -32,9 +33,9 @@ const dateValue = (value?: string | null) => value ?? "";
 const nullable = (value: string) => value.trim() || null;
 const displayDate = (value?: string | null) => value ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(value + "T00:00:00")) : "Not reported";
 
-export default function ProjectDeliveryEditor({ projectId, risks, licenses, activities, canManage, onSaved }: {
+export default function ProjectDeliveryEditor({ projectId, risks, licenses, activities, users, canManage, onSaved }: {
   projectId: string; risks: Risk[]; licenses: License[]; activities: Activity[];
-  canManage: boolean; onSaved: () => Promise<void>;
+  users: UserOption[]; canManage: boolean; onSaved: () => Promise<void>;
 }) {
   const [kind, setKind] = useState<"risk" | "license" | "activity">("risk");
   const [riskId, setRiskId] = useState<string | null>(null);
@@ -191,7 +192,7 @@ export default function ProjectDeliveryEditor({ projectId, risks, licenses, acti
         <label>Response strategy<input value={riskForm.response_strategy} onChange={e => setRiskForm(f => ({...f,response_strategy:e.target.value}))}/></label>
         <label className="wide">Mitigation plan<textarea value={riskForm.mitigation_plan} onChange={e => setRiskForm(f => ({...f,mitigation_plan:e.target.value}))}/></label>
         <label className="wide">Contingency plan<textarea value={riskForm.contingency_plan} onChange={e => setRiskForm(f => ({...f,contingency_plan:e.target.value}))}/></label>
-        <label>Owner user ID<input value={riskForm.owner_user_id} onChange={e => setRiskForm(f => ({...f,owner_user_id:e.target.value}))} placeholder="UUID (optional)"/></label>
+        <label>Risk owner<select value={riskForm.owner_user_id} onChange={e => setRiskForm(f => ({...f,owner_user_id:e.target.value}))}><option value="">Not assigned</option>{users.map(user => <option key={user.user_id} value={user.user_id}>{user.display_name}{user.job_title ? " · " + user.job_title : ""}</option>)}</select></label>
         <label>Status<input value={riskForm.status} onChange={e => setRiskForm(f => ({...f,status:e.target.value}))}/></label>
         <label>Trend<select value={riskForm.trend} onChange={e => setRiskForm(f => ({...f,trend:e.target.value}))}><option value="increasing">Increasing</option><option value="stable">Stable</option><option value="decreasing">Decreasing</option></select></label>
         <label>Identified date<input type="date" value={riskForm.identified_date} onChange={e => setRiskForm(f => ({...f,identified_date:e.target.value}))}/></label>
@@ -211,7 +212,7 @@ export default function ProjectDeliveryEditor({ projectId, risks, licenses, acti
         <label>Renewal notice date<input type="date" value={licenseForm.renewal_notice_date} onChange={e => setLicenseForm(f => ({...f,renewal_notice_date:e.target.value}))}/></label>
         <label>Renewal cost<input type="number" min="0" value={licenseForm.renewal_cost} onChange={e => setLicenseForm(f => ({...f,renewal_cost:e.target.value}))}/></label>
         <label>Currency code<input maxLength={3} value={licenseForm.currency_code} onChange={e => setLicenseForm(f => ({...f,currency_code:e.target.value.toUpperCase()}))}/></label>
-        <label>Owner user ID<input value={licenseForm.owner_user_id} onChange={e => setLicenseForm(f => ({...f,owner_user_id:e.target.value}))} placeholder="UUID (optional)"/></label>
+        <label>License owner<select value={licenseForm.owner_user_id} onChange={e => setLicenseForm(f => ({...f,owner_user_id:e.target.value}))}><option value="">Not assigned</option>{users.map(user => <option key={user.user_id} value={user.user_id}>{user.display_name}{user.job_title ? " · " + user.job_title : ""}</option>)}</select></label>
         <label>Status<input value={licenseForm.status} onChange={e => setLicenseForm(f => ({...f,status:e.target.value}))}/></label>
         <label className="wide">Notes<textarea value={licenseForm.notes} onChange={e => setLicenseForm(f => ({...f,notes:e.target.value}))}/></label>
       </div>}
@@ -230,7 +231,7 @@ export default function ProjectDeliveryEditor({ projectId, risks, licenses, acti
         <label>Weight (0–1)<input type="number" min="0" max="1" step="0.01" value={activityForm.weight} onChange={e => setActivityForm(f => ({...f,weight:e.target.value}))}/></label>
         <label>Progress %<input type="number" min="0" max="100" value={activityForm.progress_percent} onChange={e => setActivityForm(f => ({...f,progress_percent:e.target.value}))}/></label>
         <label>Status<input value={activityForm.status} onChange={e => setActivityForm(f => ({...f,status:e.target.value}))}/></label>
-        <label>Assigned user ID<input value={activityForm.assigned_to_user_id} onChange={e => setActivityForm(f => ({...f,assigned_to_user_id:e.target.value}))} placeholder="UUID (optional)"/></label>
+        <label>Assigned team member<select value={activityForm.assigned_to_user_id} onChange={e => setActivityForm(f => ({...f,assigned_to_user_id:e.target.value}))}><option value="">Not assigned</option>{users.map(user => <option key={user.user_id} value={user.user_id}>{user.display_name}{user.job_title ? " · " + user.job_title : ""}</option>)}</select></label>
         <label className="wide">Notes<textarea value={activityForm.notes} onChange={e => setActivityForm(f => ({...f,notes:e.target.value}))}/></label>
         {activityId && <p className="project-empty-inline wide">Baseline dates are immutable after creation. Use the governed rebaseline workflow for approved baseline changes.</p>}
       </div>}
