@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertCircle, ArrowLeft, CheckCircle2, Clock3, FilePlus2, Filter, LoaderCircle, Search, ShieldCheck, UserRound, X } from "lucide-react";
+import type { FormEvent } from "react";
+import { AlertCircle, CheckCircle2, FilePlus2, LoaderCircle, Search, ShieldCheck, X } from "lucide-react";
 import { supabase } from "./lib/supabase";
 
 type Project = { id: string; project_code: string; name: string };
@@ -128,7 +129,7 @@ export default function ChangeRequests({ canManage }: { canManage: boolean }) {
     else setNotice("Impact assessment saved.");
   };
 
-  const createCR = async (event: React.FormEvent) => {
+  const createCR = async (event: FormEvent) => {
     event.preventDefault(); if (!supabase) return;
     setBusy(true); setNotice("");
     const { data: user } = await supabase.auth.getUser();
