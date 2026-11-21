@@ -318,3 +318,7 @@
 .nt-event-reference strong{font-size:9px;color:#52647c}
 .nt-event-reference p{margin:5px 0 0;font-size:9px;line-height:1.5;color:#7b8799;overflow-wrap:anywhere}
 .nt-event-reference b{color:#5b6d84}
+
+
+/* Shared, versioned dashboard layout editor */
+.layout-option-row{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0;border:1px solid #edf0f4;border-radius:6px;padding:6px 8px;background:#fcfdff}.layout-option-row .layout-option{flex:1;min-width:0;padding:2px 0}.layout-order-actions{display:flex;align-items:center;gap:2px;flex:none}.layout-order-actions .icon-button{width:24px;height:24px;font-size:14px;font-weight:700;color:#64748b}.layout-order-actions .icon-button:disabled{opacity:.3;cursor:not-allowed}.layout-loading,.layout-save-message{padding:8px 0;font-size:9px;color:#6e7d90}.layout-save-message{color:#237b62}
