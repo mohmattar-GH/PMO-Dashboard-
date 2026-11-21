@@ -897,3 +897,11 @@ Remaining backend validation is unchanged: provision test Auth users and members
 - Catalog verification confirms the trigger, invoker mode, denied direct function execution, and strengthened check constraint. Positive signed-JWT acceptance testing remains pending because the PPM database has zero Auth users and zero project fixtures.
 - Matching migration source is archived as supabase/migrations/20261121095042_contract_deliverable_pm_acceptance_guard.sql.
 - Total live migration count is now 67. Clean-environment replay of all 67 migrations remains unverified. No frontend changes, merge or deployment. Staff Time & Performance remains untouched.
+
+
+## Module migration archive final check — 21 November 2026
+
+- Queried the live Supabase migration ledger: 67 migrations are applied.
+- Compared the full SQL source of migrations 064, 065, 066 and 067 in GitHub with the corresponding statements[1] values in supabase_migrations.schema_migrations using PostgreSQL MD5 equality. All four exact-source comparisons returned true.
+- The latest Security Advisor check remains unchanged: two existing lifecycle SECURITY DEFINER WARNs and one intentional INFO for the private server-only formula-template table. The new PM acceptance trigger is SECURITY INVOKER and direct execution is revoked from client roles.
+- The PR description and backend foundation document reflect the current scope and implementation limits. PR #1 remains open, draft, unmerged. No deployment. The separate Staff Time & Performance app remains untouched.
