@@ -23,7 +23,7 @@ type Review = { id: string; submission_id: string; reviewer_user_id: string; out
 const label = (value: string) => value.replace(/_/g, " ").replace(/\b\w/g, (s) => s.toUpperCase());
 const dateTime = (value: string | null) => value ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : "Not recorded";
 
-export default function Deliverables({ canManage }: { canManage: boolean }) {
+export default function Deliverables({ globalRoles }: { globalRoles: string[] }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -85,6 +85,9 @@ export default function Deliverables({ canManage }: { canManage: boolean }) {
   const selected = records.find((r) => r.id === selectedId) ?? null;
   const membersFor = (projectId: string) => members.filter((m) => m.project_id === projectId);
   const isProjectPM = (projectId: string) => membersFor(projectId).some((m) => m.user_id === currentUserId && m.project_role === "project_manager");
+  const isPlatformAdmin = globalRoles.includes("platform_admin");
+  const canCreateAny = isPlatformAdmin || members.some((m) => m.user_id === currentUserId && m.project_role === "project_manager");
+  const canCreateForProject = isPlatformAdmin || isProjectPM(form.project_id);
   const projectName = (projectId: string) => projects.find((p) => p.id === projectId)?.name ?? "Project";
   const ownerName = (id: string | null, projectId: string) => id ? membersFor(projectId).find((m) => m.user_id === id)?.display_name ?? id.slice(0, 8) : "Unassigned";
   const filtered = useMemo(() => records.filter((r) =>
@@ -230,17 +233,17 @@ export default function Deliverables({ canManage }: { canManage: boolean }) {
   const isOwner = Boolean(selected && selected.owner_user_id === currentUserId && membersFor(selected.project_id).some((m) => m.user_id === currentUserId));
   const isReviewer = Boolean(selected && selected.reviewer_user_id === currentUserId && membersFor(selected.project_id).some((m) => m.user_id === currentUserId));
   const canSubmit = Boolean(selected && (isOwner || isProjectPM(selected.project_id)) && ["planned","in_progress","changes_required"].includes(selected.status));
-  const canUploadDocument = Boolean(selected && (canManage || isProjectPM(selected.project_id) || membersFor(selected.project_id).some((m) => m.user_id === currentUserId && m.project_role === "team_lead")));
+  const canUploadDocument = Boolean(selected && (isPlatformAdmin || isProjectPM(selected.project_id) || membersFor(selected.project_id).some((m) => m.user_id === currentUserId && m.project_role === "team_lead")));
   const canReview = Boolean(selected && (isProjectPM(selected.project_id) || isReviewer) && latestSubmission?.status === "submitted" && !latestReview);
   const canAccept = Boolean(selected && isProjectPM(selected.project_id) && selected.status === "reviewed" && latestReview?.outcome === "accepted");
 
   return <div className="dl-module">
     <div className="dl-toolbar">
       <div className="dl-search"><Search size={15}/><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search deliverable, contract or project"/></div>
-      <select value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)}><option value="all">All projects</option>{projects.map((p) => <option key={p.id} value={p.id}>{p.project_code} · {p.name}</option>)}</select>
+      <select value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)}><option value="all">All projects</option>{projects.filter((p) => isPlatformAdmin || isProjectPM(p.id)).map((p) => <option key={p.id} value={p.id}>{p.project_code} · {p.name}</option>)}</select>
       <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}><option value="all">All statuses</option>{["planned","in_progress","submitted","reviewed","changes_required","rejected","accepted","waived"].map((s) => <option key={s} value={s}>{label(s)}</option>)}</select>
       <span className="dl-spacer"/>
-      {canManage && <button className="button-primary" onClick={() => setShowCreate(true)}><FilePlus2 size={15}/> New Deliverable</button>}
+      {canCreateAny && <button className="button-primary" onClick={() => setShowCreate(true)}><FilePlus2 size={15}/> New Deliverable</button>}
     </div>
 
     <div className="dl-summary">
@@ -297,7 +300,7 @@ export default function Deliverables({ canManage }: { canManage: boolean }) {
       <div className="cr-form-two"><label>Due date<input type="date" value={form.due_date} onChange={(e) => setForm((v) => ({ ...v, due_date: e.target.value }))}/></label><label>Accepting authority<input value={form.accepting_authority} onChange={(e) => setForm((v) => ({ ...v, accepting_authority: e.target.value }))} placeholder="Client / committee / role"/></label></div>
       <div className="cr-form-two"><label>Baseline submission date<input type="date" value={form.baseline_submission_date} onChange={(e) => setForm((v) => ({ ...v, baseline_submission_date: e.target.value }))}/></label><label>Baseline acceptance date<input type="date" value={form.baseline_acceptance_date} onChange={(e) => setForm((v) => ({ ...v, baseline_acceptance_date: e.target.value }))}/></label></div>
       <label className="dl-check"><input type="checkbox" checked={form.is_contractual} onChange={(e) => setForm((v) => ({ ...v, is_contractual: e.target.checked }))}/> Contractual deliverable</label>
-      <div className="cr-modal-footer"><button type="button" className="button-secondary" onClick={() => setShowCreate(false)}>Cancel</button><button className="button-primary" disabled={busy || !canManage || !contracts.some((c) => c.id === form.contract_id && c.project_id === form.project_id)}>{busy ? <LoaderCircle className="spin" size={15}/> : <FilePlus2 size={15}/>} Create deliverable</button></div>
+      <div className="cr-modal-footer"><button type="button" className="button-secondary" onClick={() => setShowCreate(false)}>Cancel</button><button className="button-primary" disabled={busy || !canCreateForProject || !contracts.some((c) => c.id === form.contract_id && c.project_id === form.project_id)}>{busy ? <LoaderCircle className="spin" size={15}/> : <FilePlus2 size={15}/>} Create deliverable</button></div>
     </form></div>}
   </div>;
 }
