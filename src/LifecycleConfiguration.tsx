@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowRight, CheckCircle2, Copy, GitBranch, Layers3, Plus, RefreshCw, ShieldCheck } from "lucide-react";
+import { ArrowRight, CheckCircle2, Copy, Layers3, Plus, RefreshCw, ShieldCheck } from "lucide-react";
 import { supabase } from "./lib/supabase";
 
 type Template = { id: string; template_code: string; template_name: string; description: string | null; status: string; project_id: string | null };
