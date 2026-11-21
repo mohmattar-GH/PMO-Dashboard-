@@ -1,0 +1,2 @@
+create index contract_deliverable_reviews_submission_scope_idx
+  on public.contract_deliverable_reviews(submission_id, deliverable_id, project_id);
