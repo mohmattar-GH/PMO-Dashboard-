@@ -182,10 +182,31 @@ export default function ReportingConfiguration({ globalRoles }: { globalRoles: s
       const dimensions = parseArray(dimensionsJson, "Dimensions");
       const kpis = parseArray(kpisJson, "KPIs");
       const parameters = parseArray(parametersJson, "Rule parameters");
+      validateRiskScoringParameters(parameters);
       const result = await invokeGovernance("save_draft_rules", { configuration_version_id: selectedVersion.id, dimensions, kpis, parameters }, reason);
       if (result) { setReason(""); await loadVersionDetails(selectedVersion.id); }
     } catch (parseError) {
       setError(parseError instanceof Error ? parseError.message : "The JSON configuration is invalid.");
+    }
+  };
+
+  const insertRiskScoringStarter = () => {
+    try {
+      const current = parseArray(parametersJson, "Rule parameters") as Record<string, unknown>[];
+      const starter = [
+        { rule_code: "risk_scoring", parameter_code: "probability_scale_max", parameter_value: 5, value_type: "number", description: "Maximum probability level on the approved scale", validation_definition: { min: 1, max: 10 } },
+        { rule_code: "risk_scoring", parameter_code: "impact_scale_max", parameter_value: 5, value_type: "number", description: "Maximum impact level on the approved scale", validation_definition: { min: 1, max: 10 } },
+        { rule_code: "risk_scoring", parameter_code: "probability_weight", parameter_value: 0.5, value_type: "number", description: "Probability contribution to weighted risk score", validation_definition: { min: 0, max: 1 } },
+        { rule_code: "risk_scoring", parameter_code: "impact_weight", parameter_value: 0.5, value_type: "number", description: "Impact contribution to weighted risk score", validation_definition: { min: 0, max: 1 } },
+        { rule_code: "risk_scoring", parameter_code: "score_multiplier", parameter_value: 100, value_type: "number", description: "Multiplier applied to normalized weighted score", validation_definition: { min: 1, max: 1000 } }
+      ];
+      const existing = new Set(current.filter((row) => row.rule_code === "risk_scoring").map((row) => String(row.parameter_code)));
+      const additions = starter.filter((row) => !existing.has(row.parameter_code));
+      setParametersJson(pretty([...current, ...additions]));
+      setNotice(additions.length ? "Starter risk-scoring parameters added to the draft. Review the example scale and weights before saving and publishing." : "Risk-scoring parameters already exist; edit their values in the JSON editor.");
+      setError("");
+    } catch (insertError) {
+      setError(insertError instanceof Error ? insertError.message : "Could not add starter risk-scoring parameters.");
     }
   };
 
@@ -217,6 +238,7 @@ export default function ReportingConfiguration({ globalRoles }: { globalRoles: s
               <label><span>KPI definitions JSON</span><small>Each KPI selects an allowlisted formula template, source mapping and parameters. Active KPI weights within each dimension must total 1.0 when used.</small><textarea spellCheck={false} disabled={!canEditDraft} value={kpisJson} onChange={(e) => setKpisJson(e.target.value)}/></label>
               <label><span>Rule parameters JSON</span><small>Configure thresholds, date basis, weights and other rule values. Validation is enforced by the database.</small><textarea spellCheck={false} disabled={!canEditDraft} value={parametersJson} onChange={(e) => setParametersJson(e.target.value)}/></label>
             </div>
+            <div className="reporting-risk-scoring-guide"><div><strong>Per-risk scoring (optional)</strong><small>To activate the Top 5 Risk Watchlist, add the `risk_scoring` parameters below. The starter values are examples only: probability/impact scales, weights and multiplier must match the approved PMO scoring model. Project-specific scoring overrides the global rule; more than one active rule set at the same scope leaves scores Not Reported.</small></div>{canEditDraft && <button className="button-secondary small" onClick={insertRiskScoringStarter}>Insert starter parameters</button>}</div>
             <div className="reporting-config-templates"><strong>Available formula templates</strong><div>{formulaCatalog.map((template) => <article key={template.code}><span>{template.code}</span><b>{label(template.method)}</b><small>{template.description}</small><small>Required: {template.required.join(", ")}</small></article>)}</div></div>
             {canEditDraft && <div className="reporting-config-actions"><label>Change reason<input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Minimum 8 characters"/></label><button className="button-primary small" disabled={busy || reason.trim().length < 8} onClick={() => void saveDraftRules()}><Save size={13}/> Save draft rules</button><button className="button-secondary small" disabled={busy || reason.trim().length < 8} onClick={() => void transition("submit")}>Submit for approval</button></div>}
             {selectedVersion.status === "submitted" && canApprove && <div className="reporting-config-actions"><label>Approval reason<input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Minimum 8 characters"/></label><button className="button-primary small" disabled={busy || reason.trim().length < 8} onClick={() => void transition("approve")}>Approve version</button></div>}
