@@ -1,8 +1,8 @@
 # Frontend Implementation Status
 
-Updated: 20 November 2026
+Updated: 21 November 2026
 
-## Delivery slice 1 — React application foundation
+## Current verified state — 21 November 2026\n- Frontend build run 642 passed TypeScript and Vite production build.\n- Clean-environment replay run 305 passed all 112 archived migrations; live ledger also contains 112.\n- PR #1 remains draft/unmerged; no deployment.\n- No Auth users/projects/business records exist, so authenticated CRUD and role journeys are not yet tested.\n\n## Delivery slice 1 — React application foundation
 
 - React 18, TypeScript, Vite and lucide-react application shell.
 - Responsive Executive Overview, project register preview, health/phase distribution, management attention, risk exposure, restricted finance panel, layout editor preview and CEO presentation shell.
@@ -134,7 +134,7 @@ The browser app now requires a Supabase-authenticated session and an active data
 - Corrected Deliverables and Milestones create permissions to filter projects and actions by the user's actual project PM membership or Platform Admin role. Document upload access no longer treats a PM role in an unrelated project as sufficient.
 - CR financial impact fields, currency, linked contract variation and structured activity/milestone schedule proposals were already present in the CR workspace; this pass corrected role visibility and save behavior, including clearing optional impact values.
 - Frontend build workflow run 536 passed on commit `e50682cbafab288ca083d9d344a9dcfc860d73ec` (TypeScript type-check and Vite production build).
-- Live Supabase migration ledger currently contains 109 applied migrations. Clean-environment replay run 246 is still in progress; do not claim replay success until its workflow completes.
+- Historical checkpoint note: the ledger was at 109 migrations and replay run 246 was in progress at that time. This is superseded by the current 112-migration ledger and successful clean replay run 305.
 - No Auth users, projects or operational test fixtures currently exist in the live project. Therefore authenticated end-to-end role journeys and real record create/update flows remain unverified. Existing RLS is retained as the enforcement layer; UI gating is not treated as a substitute.
 - PR #1 remains draft and unmerged. No deployment. Staff Time & Performance remains untouched.
 
