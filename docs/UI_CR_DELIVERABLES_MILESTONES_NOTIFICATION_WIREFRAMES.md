@@ -94,12 +94,13 @@ The Notification Centre is available from the global top bar and as a full-page 
 - Assessment owner, evidence, assessment status, assumptions and confidence.
 - Structured before/after comparison; preserve source baseline values.
 
-**C. Approvals**
-- Configurable approval stages and sequence/parallel rules.
-- Approver, role, decision, timestamp, mandatory reason/comment, delegation and due date.
-- Approve / reject / return for clarification / request reassessment actions only when authorized and valid for current state.
-- Separation-of-duties validation; apply configured self-approval restrictions.
-- Complete immutable decision trail.
+**C. PM Decision**
+- One decision-maker: the active Project Manager assigned to the Change Request before submission.
+- Finance and technical impact assessments are decision inputs, not approvals.
+- Only the assigned PM can accept or reject; the requester cannot decide their own CR.
+- A decision reason is mandatory and recorded with the actor and timestamp.
+- No approval stages, approval assignments, sequential/parallel routes, or approval inbox actions exist for CRs.
+- Complete immutable decision and event history.
 
 **D. Implementation**
 - Approved change package and linked operational records to update.
