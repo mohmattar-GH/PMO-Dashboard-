@@ -837,3 +837,14 @@ Remaining backend validation is unchanged: provision test Auth users and members
 - Remaining: real signed JWT tests through Auth/Data API, Storage permission tests, and full frontend role journeys. The current SQL tests use simulated request claims, not cryptographically signed tokens.
 - Detailed report: `docs/database/SECURITY_AUTHORIZATION_TEST_RESULTS.md`; checkpoint: `docs/checkpoints/2026-11-21-security-authorization-tests.md`.
 - No real test users or data were retained. No deployment or merge; PR #1 remains draft. Staff Time & Performance untouched.
+
+
+## Lifecycle transition authorization correction — 21 November 2026
+
+- Deeper review found that `transition_project_phase` was missing effective-date checks for the Platform Administrator global assignment and Project Manager project membership, despite requiring each row's status to be active.
+- Applied live migration `20261121082534_lifecycle_transition_effective_date_authorization`; replacement function now checks active profile, effective-from and effective-to dates for both authorization paths.
+- Re-read the live function definition and verified the two effective-date predicates. Existing execution ACLs were preserved.
+- Migration SQL committed to GitHub: `supabase/migrations/20261121082534_lifecycle_transition_effective_date_authorization.sql`.
+- This is static source verification only. Fresh rollback-only tests for future-dated/expired assignments and real signed-JWT HTTP tests remain outstanding. Do not treat the earlier simulated negative-test note as proof that this missing check was previously enforced.
+- Security Advisor remains at two intentional authenticated SECURITY DEFINER WARN findings plus one INFO for the server-only private formula-template table.
+- No Auth users or persistent test fixtures created. No merge or deployment; PR #1 remains draft. Staff Time & Performance untouched.
