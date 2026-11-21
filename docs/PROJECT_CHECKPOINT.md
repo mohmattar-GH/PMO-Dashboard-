@@ -970,3 +970,20 @@ Remaining backend validation is unchanged: provision test Auth users and members
 - Total live migration count: 87. Clean-environment replay of 84 migrations passed before migrations 085–087 were added; full replay of all 87 migrations must be rerun. Frontend build also passed at the earlier commit; rerun both pipelines at the latest branch head.
 - Deliverable screens/actions, CR screens, approval inbox, workflow configuration UI and notification event processing remain outstanding. No merge or deployment. Staff Time & Performance remains untouched.
 - Detailed implementation: docs/database/CR_DELIVERABLES_MILESTONES_NOTIFICATIONS_BACKEND_FOUNDATION.md.
+
+
+## Event-driven in-app notifications — 21 November 2026
+
+- Added migrations 088–090 (20261121101519, 20261121101556, 20261121101623) and archived the exact applied SQL sources.
+- Added Platform Administrator-managed notification rules with supported recipient roles, target users, actor exclusion, severity, effective dates and acknowledgement requirement. Rule changes increment version_no and archive the prior configuration in ppm_notification_rule_history.
+- Added private event delivery helper and database triggers for CR submitted, approval-needed, approved/rejected, deliverable submitted, review accepted/changes-required/rejected and formal PM acceptance events.
+- Sequential CR approval notifications route only to the next actionable approver; the next person is notified after the prior approver completes. Parallel stages notify all pending approvers.
+- Recipient resolution requires active profiles and effective project/global role assignments. Inbox rows are recipient-scoped and deduplicated by rule version, event instance, source and recipient.
+- Read and acknowledgement actions stamp timestamps in the database; acknowledgement is permitted only where the rule requires it and is immutable once recorded.
+- Rule configuration is validated for the supported immediate-event schema. Scheduled reminders, lead-time processing, repeats, quiet hours and escalations are explicitly not enabled; no email integration.
+- Rollback-only notification test passed: PM received CR submitted notification; Finance received first sequential approval notification; Team Lead received it only after Finance approval; Finance marked read and acknowledged with timestamps stamped; updating a rule incremented its version and archived the previous snapshot. CR reached Approved stage; transaction rolled back.
+- No test users/projects/CRs/rules/notifications persisted. Deliverable notification triggers are installed but require a separate event-specific integration test. Test used simulated claims, not signed-JWT HTTP.
+- Security Advisor remains at two pre-existing public lifecycle SECURITY DEFINER warnings and one intentional private formula-template INFO. Performance Advisor returned to 19 unindexed-FK notices, all on pre-existing lifecycle/financial tables; no duplicate index warning remains. Unused-index notices are expected on the empty application database.
+- Total live migration count: 90. The clean replay of 87 migrations and frontend build passed before migrations 088–090. Full replay and build must be rerun at the latest branch head.
+- Notification inbox/rule screens, CR/deliverable screens, scheduled reminders/escalations, email, milestone re-baseline approval/application and real signed-JWT/API/Storage tests remain outstanding. No merge or deployment. Staff Time & Performance remains untouched.
+- Detailed implementation: docs/database/CR_DELIVERABLES_MILESTONES_NOTIFICATIONS_BACKEND_FOUNDATION.md.
