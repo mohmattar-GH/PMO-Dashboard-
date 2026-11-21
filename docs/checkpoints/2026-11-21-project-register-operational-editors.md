@@ -5,7 +5,7 @@
 - Branch: `feature/ppm-frontend-foundation`
 - Pull request: #1 — draft, unmerged
 - Supabase: `Executive PPM Platform` (`oihawkpbtgqxxliaamxs`), eu-central-1
-- Live migration ledger: 109 applied migrations
+- Live migration ledger: 112 applied migrations (clean replay run 305 passed all 112)
 - Separate Staff Time & Performance repository/project: untouched
 
 ## Completed in this slice
@@ -13,7 +13,7 @@
 - PM/Platform Admin can create and manage project schedule activities, risks and licenses.
 - Team Leads can update only activities assigned to their own user ID; they cannot change activity baselines.
 - Activity baseline dates are write-once from the frontend; approved revised dates remain governed.
-- Risk score is reporting-engine calculated; risk probability/impact levels are positive numeric values without a hardcoded scale.
+- Risk score is calculated by the private scoring engine from versioned `risk_scoring` parameters using allowlisted `weighted_sum_v1`; scales, weights and multiplier are configurable. Out-of-scale or missing/ambiguous configuration returns Not Reported.
 - Risk and license status values are editable rather than fixed UI enums.
 - Contract and financial editors remain connected to the Project Profile and rely on existing RLS and database integrity guards.
 - CR impact assessment, financial amount/currency, linked variation and schedule-change UI are present. This pass corrected project-scoped authorization and schedule proposal creator attribution.
@@ -22,7 +22,7 @@
 
 ## Verification
 - Frontend workflow run 536 passed: TypeScript type-check and Vite production build.
-- Clean migration replay run 253 was in progress at checkpoint time. Await completion before stating full migration replay passed.
+- Historical note: replay run 253 was in progress at the earlier checkpoint. It is superseded by successful replay run 305, which applied all 112 archived migrations.
 - Live Supabase currently has no Auth users, projects, milestones, deliverables or notifications. Real authenticated role-journey tests and CRUD browser tests are therefore not yet possible.
 - No deployment or PR merge performed.
 
