@@ -221,14 +221,16 @@ export default function ReportingConfiguration({ globalRoles }: { globalRoles: s
         </>}
       </section>
     </div>
-    {createOpen && <div className="reporting-config-create panel"><div className="reporting-config-panel-title"><div><strong>Create a reporting configuration</strong><span>This creates a new version 1 draft; rules are saved separately.</span></div></div><div className="reporting-config-create-grid">
-      <label>Scope<select value={createForm.scope_type} onChange={(e) => setCreateForm((f) => ({ ...f, scope_type: e.target.value as "global" | "project", project_id: "" }))}><option value="global">Global</option><option value="project">Project-specific</option></select></label>
+    {createOpen && <div className="reporting-config-create panel"><div className="reporting-config-panel-title"><div><strong>Create reporting configuration draft</strong><span>Start a new configuration set or create the next version of the selected set.</span></div></div>
+      {selectedSet && <label className="reporting-config-checkbox"><input type="checkbox" checked={createForm.useExistingSet} onChange={(e) => setCreateForm((f) => ({ ...f, useExistingSet: e.target.checked }))}/> Create the next version of {selectedSet.configuration_code}</label>}
+      <div className="reporting-config-create-grid">
+      {!createForm.useExistingSet && <><label>Scope<select value={createForm.scope_type} onChange={(e) => setCreateForm((f) => ({ ...f, scope_type: e.target.value as "global" | "project", project_id: "" }))}><option value="global">Global</option><option value="project">Project-specific</option></select></label>
       {createForm.scope_type === "project" && <label>Project<select value={createForm.project_id} onChange={(e) => setCreateForm((f) => ({ ...f, project_id: e.target.value }))}><option value="">Select project</option>{allowedProjects.map((project) => <option key={project.id} value={project.id}>{project.project_code} · {project.name}</option>)}</select></label>}
       <label>Configuration code<input value={createForm.configuration_code} onChange={(e) => setCreateForm((f) => ({ ...f, configuration_code: e.target.value.toUpperCase() }))}/></label>
       <label>Name<input value={createForm.name} onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}/></label>
-      <label className="wide">Description<textarea value={createForm.description} onChange={(e) => setCreateForm((f) => ({ ...f, description: e.target.value }))}/></label>
+      <label className="wide">Description<textarea value={createForm.description} onChange={(e) => setCreateForm((f) => ({ ...f, description: e.target.value }))}/></label></>}
       <label>Effective from<input type="datetime-local" value={createForm.effective_from} onChange={(e) => setCreateForm((f) => ({ ...f, effective_from: e.target.value }))}/></label>
       <label>Effective to<input type="datetime-local" value={createForm.effective_to} onChange={(e) => setCreateForm((f) => ({ ...f, effective_to: e.target.value }))}/></label>
-    </div><div className="reporting-config-actions"><label>Creation reason<input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Minimum 8 characters"/></label><button className="button-primary small" disabled={busy || reason.trim().length < 8 || !createForm.configuration_code.trim() || !createForm.name.trim() || (createForm.scope_type === "project" && !createForm.project_id)} onClick={() => void createDraft()}>{busy ? "Creating…" : "Create draft version"}</button></div></div>}
+    </div><div className="reporting-config-actions"><label>Creation reason<input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Minimum 8 characters"/></label><button className="button-primary small" disabled={busy || reason.trim().length < 8 || (createForm.useExistingSet ? !selectedSet : !createForm.configuration_code.trim() || !createForm.name.trim() || (createForm.scope_type === "project" && !createForm.project_id))} onClick={() => void createDraft()}>{busy ? "Creating…" : "Create draft version"}</button></div></div>}
   </div>;
 }
