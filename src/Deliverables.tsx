@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { AlertCircle, CheckCircle2, ChevronRight, FileCheck2, FilePlus2, LoaderCircle, Search, ShieldCheck, X } from "lucide-react";
+import { AlertCircle, CheckCircle2, FileCheck2, FilePlus2, LoaderCircle, Search, ShieldCheck, X } from "lucide-react";
 import { supabase } from "./lib/supabase";
 
 type Project = { id: string; project_code: string; name: string };
@@ -20,7 +20,7 @@ type Deliverable = {
 type Submission = { id: string; deliverable_id: string; submission_no: number; submitted_by: string; submitted_at: string; document_id: string | null; document_version_id: string | null; submission_notes: string | null; status: string };
 type Review = { id: string; submission_id: string; reviewer_user_id: string; outcome: string; comments: string | null; rejection_reason: string | null; reviewed_at: string };
 
-const label = (value: string) => value.replace(/_/g, " ").replace(/\\b\\w/g, (s) => s.toUpperCase());
+const label = (value: string) => value.replace(/_/g, " ").replace(/\b\w/g, (s) => s.toUpperCase());
 const dateTime = (value: string | null) => value ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : "Not recorded";
 
 export default function Deliverables({ canManage }: { canManage: boolean }) {
@@ -130,7 +130,10 @@ export default function Deliverables({ canManage }: { canManage: boolean }) {
       setShowCreate(false);
       setForm({ project_id: "", contract_id: "", deliverable_code: "", name: "", description: "", due_date: "", acceptance_criteria: "", deliverable_type: "document", owner_user_id: "", reviewer_user_id: "", accepting_authority: "", baseline_submission_date: "", baseline_acceptance_date: "", is_contractual: true });
       await loadRegister(); setNotice("Deliverable created.");
-      if (data?.id) setSelectedId(data.id);
+      if (data?.id) {
+        const { data: createdRecord } = await supabase.from("contract_deliverables").select("id,project_id,contract_id,deliverable_code,name,description,due_date,acceptance_criteria,status,deliverable_type,is_contractual,contract_reference,owner_user_id,reviewer_user_id,accepting_authority,baseline_submission_date,approved_revised_submission_date,forecast_submission_date,actual_submission_date,baseline_acceptance_date,approved_revised_acceptance_date,forecast_acceptance_date,acceptance_status,accepted_by,accepted_at").eq("id", data.id).single();
+        if (createdRecord) await loadDetail(createdRecord as Deliverable);
+      }
     }
     setBusy(false);
   };
