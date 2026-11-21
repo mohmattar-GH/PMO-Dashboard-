@@ -105,13 +105,13 @@ export default function ProjectCommercialEditor({
       ? await supabase.from("project_contracts").update(payload).eq("id", editingContractId).select("id").single()
       : await supabase.from("project_contracts").insert(payload).select("id").single();
     if (result.error) setError(result.error.message);
-    else { setShowContractForm(false); setMessage(editingContractId ? "Contract record updated and audited." : "Contract record created and audited."); await onSaved(); }
+    else { setShowContractForm(false); setMessage(editingContractId ? "Contract record updated and audited." : "Contract record created and audited."); setBusy(false); await onSaved(); return; }
     setBusy(false);
   };
 
   const startFinanceEdit = () => {
     setFinanceForm({
-      currency_code: finance?.currency_code ?? "", original_contract_value: finance ? String(finance.original_contract_value) : "",
+      currency_code: finance?.currency_code ?? contracts[0]?.currency_code ?? "", original_contract_value: finance ? String(finance.original_contract_value) : contracts[0]?.original_contract_value == null ? "" : String(contracts[0].original_contract_value),
       tax_rate: finance?.tax_rate == null ? "" : String(finance.tax_rate),
       retention_rate: finance?.retention_rate == null ? "" : String(finance.retention_rate),
       payment_terms: finance?.payment_terms ?? "", billing_notes: finance?.billing_notes ?? ""
@@ -133,14 +133,22 @@ export default function ProjectCommercialEditor({
       retention_rate: financeForm.retention_rate ? Number(financeForm.retention_rate) : null,
       payment_terms: financeForm.payment_terms.trim() || null, billing_notes: financeForm.billing_notes.trim() || null
     };
-    const result = finance
-      ? await supabase.from("project_financial_terms").update(editable).eq("project_id", projectId).select("id").single()
-      : await supabase.from("project_financial_terms").insert({
-          project_id: projectId, currency_code: currency, original_contract_value: originalValue,
-          approved_variations: 0, revised_contract_value: originalValue, ...editable
-        }).select("id").single();
+    let result;
+    if (finance) {
+      result = await supabase.from("project_financial_terms").update(editable).eq("project_id", projectId).select("id").single();
+    } else {
+      const { data: approvedVariationRows, error: variationError } = await supabase.from("project_contract_variations").select("amount_delta,currency_code").eq("project_id", projectId).eq("status", "approved");
+      if (variationError) { setError("Approved variation totals could not be verified: " + variationError.message); setBusy(false); return; }
+      const currencyMismatch = (approvedVariationRows ?? []).some((row: { amount_delta: number; currency_code: string }) => row.currency_code.trim().toUpperCase() !== currency);
+      if (currencyMismatch) { setError("Approved variation currency does not match the financial terms currency."); setBusy(false); return; }
+      const approvedTotal = (approvedVariationRows ?? []).reduce((sum: number, row: { amount_delta: number }) => sum + Number(row.amount_delta), 0);
+      result = await supabase.from("project_financial_terms").insert({
+        project_id: projectId, currency_code: currency, original_contract_value: originalValue,
+        approved_variations: approvedTotal, revised_contract_value: originalValue + approvedTotal, ...editable
+      }).select("id").single();
+    }
     if (result.error) setError(result.error.message);
-    else { setShowFinanceForm(false); setMessage(finance ? "Financial terms updated and audited." : "Financial terms created. Approved variations remain system-calculated."); await onSaved(); }
+    else { setShowFinanceForm(false); setMessage(finance ? "Financial terms updated and audited." : "Financial terms created. Approved variations remain system-calculated."); setBusy(false); await onSaved(); return; }
     setBusy(false);
   };
 
@@ -150,10 +158,10 @@ export default function ProjectCommercialEditor({
       <article className="panel project-info-panel"><div className="project-panel-heading"><div><h3><FileText size={13}/> Contractual Terms</h3><span>{contracts.length} records</span></div>{canManageContract && <button className="button-secondary small" onClick={startNewContract}><Plus size={12}/> Add contract</button>}</div>
         {contracts.length ? contracts.map((contract) => <div className="project-contract-record" key={contract.id}><div className="project-contract-top"><strong>{contract.contract_reference} · {contract.contract_title}</strong><div><span className={"project-status-pill " + contract.status.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}>{contract.status.replace(/_/g, " ")}</span>{canManageContract && <button className="icon-button" title="Edit contract" onClick={() => startEditContract(contract)}><Pencil size={12}/></button>}</div></div><div className="project-kpi-grid"><div><small>Contract type</small><strong>{contract.contract_type}</strong></div><div><small>Original value</small><strong>{amount(contract.original_contract_value, contract.currency_code)}</strong></div><div><small>Signed</small><strong>{dateLabel(contract.signed_date)}</strong></div><div><small>Contractual end</small><strong>{dateLabel(contract.contractual_end_date)}</strong></div></div><p><b>Scope:</b> {contract.scope_summary || "Not Reported"}</p><p><b>Obligations:</b> {contract.obligations || "Not Reported"}</p><p><b>Acceptance:</b> {contract.acceptance_criteria || "Not Reported"}</p><p><b>Payment terms:</b> {contract.payment_terms || "Not Reported"}</p><p><b>Change control:</b> {contract.change_control_terms || "Not Reported"}</p><p><b>Penalties:</b> {contract.penalties_terms || "Not Reported"}</p></div>) : <p className="project-empty-inline">No accessible contract record. It may not have been reported or the current role may not have contract access.</p>}
         {showContractForm && <div className="commercial-form"><div className="commercial-form-heading"><strong>{editingContractId ? "Edit Contract" : "Add Contract"}</strong><button className="icon-button" onClick={() => setShowContractForm(false)}>×</button></div><div className="commercial-form-grid">
-          <label>Contract reference<input value={contractForm.contract_reference} onChange={(e) => setContractForm((f) => ({ ...f, contract_reference: e.target.value }))}/></label><label>Contract title<input value={contractForm.contract_title} onChange={(e) => setContractForm((f) => ({ ...f, contract_title: e.target.value }))}/></label>
+          <label>Contract reference<input disabled={Boolean(editingContractId)} value={contractForm.contract_reference} onChange={(e) => setContractForm((f) => ({ ...f, contract_reference: e.target.value }))}/></label><label>Contract title<input value={contractForm.contract_title} onChange={(e) => setContractForm((f) => ({ ...f, contract_title: e.target.value }))}/></label>
           <label>Type<select value={contractForm.contract_type} onChange={(e) => setContractForm((f) => ({ ...f, contract_type: e.target.value }))}>{["services","subscription","license","support","maintenance","other"].map((value) => <option key={value} value={value}>{value}</option>)}</select></label><label>Status<select value={contractForm.status} onChange={(e) => setContractForm((f) => ({ ...f, status: e.target.value }))}>{["draft","active","expired","terminated"].map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
           <label>Signed date<input type="date" value={contractForm.signed_date} onChange={(e) => setContractForm((f) => ({ ...f, signed_date: e.target.value }))}/></label><label>Commencement<input type="date" value={contractForm.commencement_date} onChange={(e) => setContractForm((f) => ({ ...f, commencement_date: e.target.value }))}/></label><label>Contractual end<input type="date" value={contractForm.contractual_end_date} onChange={(e) => setContractForm((f) => ({ ...f, contractual_end_date: e.target.value }))}/></label><label>Duration (months)<input type="number" min="1" value={contractForm.duration_months} onChange={(e) => setContractForm((f) => ({ ...f, duration_months: e.target.value }))}/></label>
-          <label>Currency<input maxLength={3} value={contractForm.currency_code} onChange={(e) => setContractForm((f) => ({ ...f, currency_code: e.target.value.toUpperCase() }))}/></label><label>Original contract value<input type="number" min="0" value={contractForm.original_contract_value} onChange={(e) => setContractForm((f) => ({ ...f, original_contract_value: e.target.value }))}/></label><label>Tax rate %<input type="number" min="0" max="100" value={contractForm.tax_rate} onChange={(e) => setContractForm((f) => ({ ...f, tax_rate: e.target.value }))}/></label><label>Retention %<input type="number" min="0" max="100" value={contractForm.retention_rate} onChange={(e) => setContractForm((f) => ({ ...f, retention_rate: e.target.value }))}/></label>
+          <label>Currency<input maxLength={3} disabled={Boolean(editingContractId && contracts.find((contract) => contract.id === editingContractId)?.status !== "draft")} value={contractForm.currency_code} onChange={(e) => setContractForm((f) => ({ ...f, currency_code: e.target.value.toUpperCase() }))}/></label><label>Original contract value<input type="number" min="0" disabled={Boolean(editingContractId && contracts.find((contract) => contract.id === editingContractId)?.status !== "draft")} value={contractForm.original_contract_value} onChange={(e) => setContractForm((f) => ({ ...f, original_contract_value: e.target.value }))}/></label><label>Tax rate %<input type="number" min="0" max="100" value={contractForm.tax_rate} onChange={(e) => setContractForm((f) => ({ ...f, tax_rate: e.target.value }))}/></label><label>Retention %<input type="number" min="0" max="100" value={contractForm.retention_rate} onChange={(e) => setContractForm((f) => ({ ...f, retention_rate: e.target.value }))}/></label>
           <label className="wide">Scope summary<textarea value={contractForm.scope_summary} onChange={(e) => setContractForm((f) => ({ ...f, scope_summary: e.target.value }))}/></label><label className="wide">Obligations<textarea value={contractForm.obligations} onChange={(e) => setContractForm((f) => ({ ...f, obligations: e.target.value }))}/></label><label className="wide">Acceptance criteria<textarea value={contractForm.acceptance_criteria} onChange={(e) => setContractForm((f) => ({ ...f, acceptance_criteria: e.target.value }))}/></label><label className="wide">Payment terms<textarea value={contractForm.payment_terms} onChange={(e) => setContractForm((f) => ({ ...f, payment_terms: e.target.value }))}/></label><label className="wide">Change control terms<textarea value={contractForm.change_control_terms} onChange={(e) => setContractForm((f) => ({ ...f, change_control_terms: e.target.value }))}/></label><label className="wide">Penalties / service credits<textarea value={contractForm.penalties_terms} onChange={(e) => setContractForm((f) => ({ ...f, penalties_terms: e.target.value }))}/></label>
         </div><div className="commercial-form-actions"><button className="button-secondary small" onClick={() => setShowContractForm(false)}>Cancel</button><button className="button-primary small" disabled={busy} onClick={() => void saveContract()}>{busy ? "Saving…" : "Save contract"}</button></div></div>}
       </article>
