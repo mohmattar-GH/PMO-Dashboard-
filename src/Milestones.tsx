@@ -26,7 +26,7 @@ type BaselineHistory = { id: string; previous_start_date: string | null; previou
 const label = (value: string) => value.replace(/_/g, " ").replace(/\b\w/g, (s) => s.toUpperCase());
 const dateTime = (value: string | null) => value ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : "Not recorded";
 
-export default function Milestones({ canManage, isPlatformAdmin }: { canManage: boolean; isPlatformAdmin: boolean }) {
+export default function Milestones({ isPlatformAdmin }: { isPlatformAdmin: boolean }) {
   const [projects,setProjects]=useState<Project[]>([]);
   const [members,setMembers]=useState<Member[]>([]);
   const [records,setRecords]=useState<Milestone[]>([]);
@@ -72,6 +72,7 @@ export default function Milestones({ canManage, isPlatformAdmin }: { canManage: 
   const membersFor=(projectId:string)=>members.filter((m)=>m.project_id===projectId);
   const isPM=(projectId:string)=>membersFor(projectId).some((m)=>m.user_id===currentUserId&&m.project_role==="project_manager");
   const canManageProject=(projectId:string)=>isPlatformAdmin||isPM(projectId);
+  const canCreateAny=isPlatformAdmin||members.some((m)=>m.user_id===currentUserId&&m.project_role==="project_manager");
   const projectName=(id:string)=>projects.find((p)=>p.id===id)?.name??"Project";
   const memberName=(id:string|null,projectId:string)=>id?membersFor(projectId).find((m)=>m.user_id===id)?.display_name??id.slice(0,8):"Unassigned";
   const filtered=useMemo(()=>records.filter((m)=>(projectFilter==="all"||m.project_id===projectFilter)&&(statusFilter==="all"||m.status===statusFilter)&&[m.milestone_code,m.name,projectName(m.project_id)].join(" ").toLowerCase().includes(query.trim().toLowerCase())),[records,projects,projectFilter,statusFilter,query]);
@@ -146,9 +147,9 @@ export default function Milestones({ canManage, isPlatformAdmin }: { canManage: 
   return <div className="ms-module">
     <div className="ms-toolbar">
       <div className="ms-search"><Search size={15}/><input value={query} onChange={(e)=>setQuery(e.target.value)} placeholder="Search milestone or project"/></div>
-      <select value={projectFilter} onChange={(e)=>setProjectFilter(e.target.value)}><option value="all">All projects</option>{projects.map((p)=><option key={p.id} value={p.id}>{p.project_code} · {p.name}</option>)}</select>
+      <select value={projectFilter} onChange={(e)=>setProjectFilter(e.target.value)}><option value="all">All projects</option>{projects.filter((p)=>canManageProject(p.id)).map((p)=><option key={p.id} value={p.id}>{p.project_code} · {p.name}</option>)}</select>
       <select value={statusFilter} onChange={(e)=>setStatusFilter(e.target.value)}><option value="all">All statuses</option>{["planned","in_progress","at_risk","delayed","blocked","completed"].map((s)=><option key={s} value={s}>{label(s)}</option>)}</select>
-      <span className="ms-spacer"/>{canManage&&<button className="button-primary" onClick={()=>setShowCreate(true)}><FilePlus2 size={15}/> New Milestone</button>}
+      <span className="ms-spacer"/>{canCreateAny&&<button className="button-primary" onClick={()=>setShowCreate(true)}><FilePlus2 size={15}/> New Milestone</button>}
     </div>
     <div className="ms-summary">{[["Total milestones",records.length],["Completed",records.filter((m)=>m.status==="completed").length],["Critical open",records.filter((m)=>m.is_critical&&m.status!=="completed").length],["Re-baseline pending",pendingCount]].map(([name,count])=><article key={String(name)}><span>{name}</span><strong>{loading?"—":count}</strong></article>)}</div>
     {error&&<div className="cr-message error"><AlertCircle size={16}/>{error}</div>}
@@ -205,7 +206,7 @@ export default function Milestones({ canManage, isPlatformAdmin }: { canManage: 
       <div className="cr-form-two"><label>Sequence<input type="number" min="1" value={form.sequence} onChange={(e)=>setForm((v)=>({...v,sequence:e.target.value}))}/></label><label>Weight (0–1)<input type="number" min="0" max="1" step="0.01" value={form.weight} onChange={(e)=>setForm((v)=>({...v,weight:e.target.value}))}/></label></div>
       <label>Owner<select value={form.owner} onChange={(e)=>setForm((v)=>({...v,owner:e.target.value}))}><option value="">Unassigned</option>{membersFor(form.project).map((m)=><option key={m.user_id} value={m.user_id}>{m.display_name} · {label(m.project_role)}</option>)}</select></label>
       <label className="ms-check"><input type="checkbox" checked={form.critical} onChange={(e)=>setForm((v)=>({...v,critical:e.target.checked}))}/> Critical milestone</label>
-      <div className="cr-modal-footer"><button type="button" className="button-secondary" onClick={()=>setShowCreate(false)}>Cancel</button><button className="button-primary" disabled={busy||!canManage||!form.project}>{busy?<LoaderCircle className="spin" size={15}/>:<FilePlus2 size={15}/>} Create milestone</button></div>
+      <div className="cr-modal-footer"><button type="button" className="button-secondary" onClick={()=>setShowCreate(false)}>Cancel</button><button className="button-primary" disabled={busy||!canManageProject(form.project)||!form.project}>{busy?<LoaderCircle className="spin" size={15}/>:<FilePlus2 size={15}/>} Create milestone</button></div>
     </form></div>}
   </div>;
 }
