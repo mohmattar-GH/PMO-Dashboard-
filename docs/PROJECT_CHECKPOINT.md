@@ -905,3 +905,20 @@ Remaining backend validation is unchanged: provision test Auth users and members
 - Compared the full SQL source of migrations 064, 065, 066 and 067 in GitHub with the corresponding statements[1] values in supabase_migrations.schema_migrations using PostgreSQL MD5 equality. All four exact-source comparisons returned true.
 - The latest Security Advisor check remains unchanged: two existing lifecycle SECURITY DEFINER WARNs and one intentional INFO for the private server-only formula-template table. The new PM acceptance trigger is SECURITY INVOKER and direct execution is revoked from client roles.
 - The PR description and backend foundation document reflect the current scope and implementation limits. PR #1 remains open, draft, unmerged. No deployment. The separate Staff Time & Performance app remains untouched.
+
+
+## CR workflow engine implementation — 21 November 2026
+
+- Added migrations 068–077 (versions 20261121095515 through 20261121100005) and archived the exact applied SQL sources under supabase/migrations.
+- Added configurable sequential/parallel approval mode per workflow stage, ordered role-based approval assignments, approval rounds for stage re-entry, required impact-dimension definitions and metadata validation.
+- Added Platform Administrator-only workflow publication RPC. Published workflow versions and their child stage/transition/impact-dimension configuration are immutable; new configuration requires a new draft version and publication.
+- Added CR transition RPC for draft submission and configured stage actions. It validates active application profile and effective role assignments, checks the selected published/effective workflow, enforces completion of every required impact dimension, routes role-based approvals, blocks out-of-order sequential approvals, and records approval/history events atomically.
+- Self-approval is rejected by both the transition path and approval trigger. Approval decisions and CR history are not writable directly by authenticated clients. Approver-role members can read their pending approval rows.
+- CR creation is restricted to active PM / Platform Administrator and always starts as draft with requester stamped from auth.uid(). Direct lifecycle-field updates are blocked. Submitted identity/content is immutable. Workflow version can be selected while still draft and is locked after submission.
+- Impact assessment rows can only be edited by active PM/Finance or authorized global administrators while the CR is draft; assessed_by/assessed_at are database-stamped. Impact row identity cannot be reassigned and rows cannot be deleted.
+- Privileged implementations were moved to the non-exposed private schema behind public SECURITY INVOKER RPC wrappers. Security Advisor now reports only the two previously existing public lifecycle SECURITY DEFINER warnings and the intentional private formula-template INFO; no new warning was introduced by the CR engine.
+- Rollback-only integration test passed with simulated Auth claim subjects and temporary fixtures: PM submitted; a later sequential approver was denied out of order; Finance approved; Team Lead approved; CR reached the configured terminal Approved stage; two approvals and three history events were recorded. The test transaction rolled back, and a follow-up query confirmed zero temporary Auth users, projects or CRs remained.
+- This is not a signed-JWT HTTP test. Real Auth/JWT/API/Storage testing remains outstanding. The parallel path and self-approval denial need dedicated tests.
+- Remaining CR work: atomic application to contract variations and schedule/milestone records, admin workflow authoring UI, CR screens/actions, SLA/escalation and notification event wiring.
+- Total live migration count: 77. Clean-environment replay of all 77 migrations remains unverified. No merge or deployment. Staff Time & Performance remains untouched.
+- Detailed implementation and test record: docs/database/CR_DELIVERABLES_MILESTONES_NOTIFICATIONS_BACKEND_FOUNDATION.md.
