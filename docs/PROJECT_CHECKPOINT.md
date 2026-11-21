@@ -1001,3 +1001,10 @@ Remaining backend validation is unchanged: provision test Auth users and members
 - No Auth users, projects or CRs exist in the database, so signed-JWT role journey tests and real fixture-based positive/negative tests remain outstanding. Do not claim end-to-end verification.
 - Full clean replay of all 93 migrations and latest frontend build remain outstanding. No merge, no deployment. Staff Time & Performance remains untouched.
 - Detailed implementation: docs/database/CR_DELIVERABLES_MILESTONES_NOTIFICATIONS_BACKEND_FOUNDATION.md.
+
+
+### Migration ledger correction — 21 November 2026
+
+- A subsequent live-ledger count confirmed 95 applied migrations (including the already-applied milestone re-baseline migration and the four PM-only CR refactor migrations). This count supersedes earlier 93/94 references in this checkpoint sequence.
+- Added migration 20261121123531_revoke_legacy_cr_approval_helpers to revoke authenticated/service-role execution of obsolete approval and Finance trigger helpers. Its SQL source matches the live migration ledger exactly.
+- Catalog verification confirms the legacy CR transition RPC and obsolete approval helper functions are not executable by authenticated users. The only active CR submission/decision API wrappers are the new PM-only SECURITY INVOKER RPCs.
