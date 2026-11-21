@@ -114,3 +114,19 @@ A deeper source review found that the live `transition_project_phase` function c
 This is a source-level verification of the correction, **not** a new real-JWT or role-fixture test. The earlier simulated negative-test note must not be treated as proof that the omitted date predicates were enforced before this migration. Fresh rollback-only effective-date tests and signed-JWT HTTP tests remain required.
 
 The migration source is committed at `supabase/migrations/20261121082534_lifecycle_transition_effective_date_authorization.sql`. Migration replay CI for the 63-migration chain is the next verification gate. No user data or Auth accounts were created; no merge or deployment was performed.
+
+
+### Post-fix effective-date tests
+
+After migration 063, four rollback-only SQL tests were run with temporary Auth/profile/project fixtures and simulated `request.jwt.claim.sub` values:
+
+| Authorization path | Test assignment | Result |
+|---|---|---|
+| Project Manager membership | Future effective date | Denied as expected |
+| Project Manager membership | Expired effective date | Denied as expected |
+| Platform Administrator global role | Future effective date | Denied as expected |
+| Platform Administrator global role | Expired effective date | Denied as expected |
+
+All four tests returned the expected authorization error. The transaction was rolled back; a follow-up query confirmed zero test Auth users, profiles or projects remained. These are simulated-claim database tests, not signed-JWT HTTP tests.
+
+Privilege verification after migration 063: `anon` cannot execute `transition_project_phase`; `authenticated` retains the intended RPC execution grant. The live function definition contains both effective-date checks for both authorization paths.
