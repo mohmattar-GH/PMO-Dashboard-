@@ -999,13 +999,13 @@ Remaining backend validation is unchanged: provision test Auth users and members
 - Assigned PM is immutable after submission. PM acceptance applies linked variation and schedule changes atomically; original baseline remains preserved.
 - Exact SQL source matched live ledger for migrations 091–093. Security Advisor introduced no new CR-related warnings; two pre-existing public lifecycle SECURITY DEFINER warnings and one intentional private formula-template INFO remain. Performance Advisor retains 19 pre-existing lifecycle/financial unindexed-FK notices.
 - No Auth users, projects or CRs exist in the database, so signed-JWT role journey tests and real fixture-based positive/negative tests remain outstanding. Do not claim end-to-end verification.
-- Full clean replay of all 93 migrations and latest frontend build remain outstanding. No merge, no deployment. Staff Time & Performance remains untouched.
+- Full clean replay of all 96 migrations and latest frontend build remain outstanding. No merge, no deployment. Staff Time & Performance remains untouched.
 - Detailed implementation: docs/database/CR_DELIVERABLES_MILESTONES_NOTIFICATIONS_BACKEND_FOUNDATION.md.
 
 
 ### Migration ledger correction — 21 November 2026
 
-- A subsequent live-ledger count confirmed 95 applied migrations (including the already-applied milestone re-baseline migration and the four PM-only CR refactor migrations). This count supersedes earlier 93/94 references in this checkpoint sequence.
+- A subsequent live-ledger count confirmed 96 applied migrations (including the already-applied milestone re-baseline migration and the four PM-only CR refactor migrations). This count supersedes earlier migration-count references in this checkpoint sequence.
 - Added migration 20261121123531_revoke_legacy_cr_approval_helpers to revoke authenticated/service-role execution of obsolete approval and Finance trigger helpers. Its SQL source matches the live migration ledger exactly.
 - Catalog verification confirms the legacy CR transition RPC and obsolete approval helper functions are not executable by authenticated users. The only active CR submission/decision API wrappers are the new PM-only SECURITY INVOKER RPCs.
 
@@ -1016,3 +1016,11 @@ Remaining backend validation is unchanged: provision test Auth users and members
 - Privilege verification returned false for service_role and authenticated INSERT/UPDATE/DELETE. Approval rows remain zero; no historical records were removed.
 - Live Supabase migration ledger count is now 96. Exact migration SQL archive for 20261121123623 matches the applied ledger statement.
 - Security Advisor remains unchanged: no new CR-related findings; two existing public lifecycle SECURITY DEFINER warnings and one private formula-template INFO remain.
+
+
+### Final migration count and CR variation dependency check — 21 November 2026
+
+- The live migration ledger now contains 96 applied migrations. This is the authoritative current count; earlier checkpoint counts were superseded as the milestone re-baseline and CR refactor migrations were added.
+- Added 20261121123623_lock_legacy_cr_approval_register_read_only. The approval table remains for historical traceability only and is read-only for anon, authenticated and service_role.
+- PostgreSQL catalog verification confirms CR-linked contract variation enforcement no longer references CR approval rows or workflow stages. The separate standalone contract-variation workflow retains its own Finance decision rule; this is not a CR approval gate.
+- The latest Security Advisor still reports only the two pre-existing public lifecycle SECURITY DEFINER warnings and the private formula-template INFO; no new CR-related warning was introduced.
