@@ -1,7 +1,7 @@
 # CR, Deliverables, Milestones and Notifications — Backend Foundation
 
 **Date:** 21 November 2026  
-**Status:** First backend schema slice applied; operational workflows remain incomplete  
+**Status:** CR approval engine implemented in the backend; CR-to-contract/schedule execution and other module workflows remain incomplete  
 **Supabase project:** Executive PPM Platform (oihawkpbtgqxxliaamxs)  
 **Repository branch:** feature/ppm-frontend-foundation
 
@@ -73,3 +73,37 @@ The four migration source files are named to match the versions recorded in the 
 The 14 new tables all have RLS enabled. The seven new multiple-permissive SELECT policy warnings were eliminated by splitting write policies from read policies. Remaining Performance Advisor unindexed-FK findings are on pre-existing tables, not the new module tables. All four migration files were compared byte-for-byte against the SQL statements recorded in the live Supabase migration ledger; all matched. The clean-environment replay of the complete 67-migration chain has not yet been run.
 
 The PM acceptance trigger is SECURITY INVOKER with an empty search_path; direct EXECUTE is revoked from client roles. Catalog verification confirms the trigger is installed and the strengthened status/acceptance constraint is active. A positive signed-JWT acceptance test remains pending because no Auth users or project fixtures exist.
+
+
+## Change Request workflow engine — 21 November 2026
+
+Migrations 068–077 implement the first executable CR approval workflow:
+- Administrator publication of a draft workflow version validates the configured stages, transition roles and required impact dimensions. Published workflow versions and their stage/transition/impact-dimension definitions are immutable; changes require a new version.
+- Stage approval mode is configurable as sequential or parallel. Required approver roles are resolved against active, effective project memberships and global role assignments.
+- CR submission is permitted only to an active Project Manager or Platform Administrator. A published/effective CR workflow must be selected.
+- Every required impact dimension in the selected workflow version must have a recorded assessment or a not-applicable reason before submission. Assessment actors and timestamps are stamped by the database; impact rows are locked after submission.
+- Approval decisions are processed atomically. Sequential stages block later approvers until earlier approval steps complete; parallel stages accept decisions in any order. The requester cannot approve their own CR.
+- CR lifecycle fields cannot be changed directly by client updates. New CRs must start as drafts, requester identity is stamped from Auth, and submitted CR identity/content cannot be rewritten.
+- Approval decision and history tables are not writable by authenticated clients. Approver-role members can read their role's pending approval rows. Public RPC endpoints are SECURITY INVOKER wrappers; narrowly scoped SECURITY DEFINER implementations are located in the non-exposed private schema. Anonymous execution is denied.
+- Workflow transitions and decisions are written to append-only CR history in the same transaction.
+
+### Rollback-only verification
+
+A transaction-scoped fixture test used simulated Auth claim subjects and temporary test identities/project/workflow/CR records, then rolled the entire transaction back. The verified result:
+- PM submission entered the configured review stage.
+- A later sequential approver was denied while the earlier Finance approval remained pending.
+- Finance approval was recorded and the workflow remained in review awaiting the next approval.
+- Team Lead approval completed the sequence and moved the CR to the configured terminal Approved stage.
+- Two approvals and three history events were present in the transaction result.
+- A post-test query confirmed zero temporary Auth users, projects or CR records remain.
+
+This is SQL-level simulation, not a real signed-JWT HTTP/API test. Real Supabase Auth/JWT and Storage authorization testing remains outstanding.
+
+### Still incomplete
+
+- Approved CRs are not yet atomically applied to contract variations, contract values, schedule activities or milestone dates. This integration must avoid duplicate commercial adjustments and preserve approved variation history.
+- No CR frontend screens/actions have been implemented; the approved wireframes remain the UI gate.
+- SLA processing, due-date escalation and CR notification event generation are not yet connected to the notification rules/inbox.
+- Admin UI for workflow template/version/stage/transition/impact-dimension authoring is not yet implemented.
+- Parallel approval logic is implemented but the rollback-only integration fixture exercised the sequential path; parallel and self-approval denial still require dedicated test cases.
+- Clean-environment replay of the complete 77-migration chain remains outstanding.
