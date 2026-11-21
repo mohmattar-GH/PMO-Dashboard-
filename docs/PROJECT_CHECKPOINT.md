@@ -1034,3 +1034,14 @@ Remaining backend validation is unchanged: provision test Auth users and members
 - The UI uses the existing Supabase project and public RPCs `submit_project_change_request` and `decide_project_change_request`; authorization remains enforced by database RLS and RPC validation.
 - The UI is connected to real tables, but the project currently has no Auth users/projects/CR fixtures. Real role-journey tests and a production build are not yet verified. No GitHub Actions workflow was triggered for these commits.
 - No Supabase schema changes, merge or deployment were made. Existing Staff Time & Performance project remains untouched.
+
+
+## CR financial impact and linked variation UI — 21 November 2026
+
+- Extended `src/ChangeRequests.tsx` with draft financial impact amount and ISO currency code fields inside impact dimensions. Financial inputs remain disabled until the dimension is marked assessed, matching database constraints; the contract currency is prefilled when available.
+- Added contract selection to the new Change Request form and included the contract/linked-variation references in the register query.
+- Added linked variation creation through the existing `public.create_change_request_contract_variation(uuid)` RPC. The database function computes the net assessed cost impact, requires one consistent currency, and checks it against project financial terms and the selected contract before creating a linked draft variation.
+- Added a linked variation summary and responsive styles. No database schema change was made.
+- Verified in the live database that the authenticated role has EXECUTE on the public variation RPC, and reviewed its implementation and relevant RLS policies. The contract/variation tables currently contain no project fixtures, and there are no Auth users or CR fixtures, so the UI flow cannot yet be exercised end-to-end with real user sessions.
+- Frontend build and browser interaction tests have not yet been run/verified. The feature branch PR remains draft/unmerged; no deployment. Staff Time & Performance remains untouched.
+- Next: add structured schedule-change editor, then CR implementation/verification/closure actions. Follow with deliverables, milestone and notification screens, then signed-JWT role tests and build verification.
