@@ -514,7 +514,7 @@ for select to authenticated using (
 create policy deliverable_reviews_read on public.contract_deliverable_reviews
 for select to authenticated using (
   reviewer_user_id = (select auth.uid())
-  or exists (select 1 from public.project_memberships pm where pm.project_id = project_milestone_baseline_history.project_id
+  or exists (select 1 from public.project_memberships pm where pm.project_id = contract_deliverable_reviews.project_id
     and pm.user_id = (select auth.uid()) and pm.project_role = 'project_manager'
     and pm.status = 'active' and pm.effective_from <= now() and (pm.effective_to is null or pm.effective_to > now()))
   or exists (select 1 from public.user_global_role_assignments ura where ura.user_id = (select auth.uid())
@@ -549,7 +549,7 @@ for all to authenticated using (
 );
 create policy milestone_baseline_history_read on public.project_milestone_baseline_history
 for select to authenticated using (
-  exists (select 1 from public.project_memberships pm where pm.project_id = project_milestone_rebaseline_requests.project_id
+  exists (select 1 from public.project_memberships pm where pm.project_id = project_milestone_baseline_history.project_id
     and pm.user_id = (select auth.uid()) and pm.status = 'active'
     and pm.effective_from <= now() and (pm.effective_to is null or pm.effective_to > now()))
   or exists (select 1 from public.user_global_role_assignments ura where ura.user_id = (select auth.uid())
