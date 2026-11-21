@@ -21,7 +21,7 @@ const formulaCatalog = [
 const validateRiskScoringParameters = (parameters: unknown[]) => {
   const rows = parameters.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && (item as Record<string, unknown>).rule_code === "risk_scoring");
   if (!rows.length) return;
-  const values = new Map(rows.map((row) => [String(row.parameter_code), row]));
+  const values = new Map<string, Record<string, unknown>>(rows.map((row) => [String(row.parameter_code), row] as const));
   const readNumber = (key: string) => {
     const row = values.get(key);
     if (!row || row.value_type !== "number" || typeof row.parameter_value !== "number" || !Number.isFinite(row.parameter_value)) {
