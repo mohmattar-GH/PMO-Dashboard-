@@ -5,7 +5,7 @@ import { supabase } from "./lib/supabase";
 
 type Project = { id: string; project_code: string; name: string };
 type Member = { project_id: string; user_id: string; display_name: string; project_role: string };
-type WorkflowVersion = { id: string; version_no: number; template_id: string; template_name: string };
+type WorkflowVersion = { id: string; version_no: number; template_id: string; template_name: string; project_id: string | null; is_global: boolean };
 type CR = {
   id: string; project_id: string; cr_reference: string; title: string; description: string;
   justification: string; request_type: string | null; category: string | null; priority: string | null;
@@ -14,7 +14,7 @@ type CR = {
   implementation_owner_id: string | null; implementation_due_date: string | null;
   implementation_status: string | null; verified_at: string | null; closed_at: string | null; created_at: string;
 };
-type ImpactDimension = { id: string; dimension_code: string; dimension_name: string; is_required: boolean };
+type ImpactDimension = { id: string; dimension_code: string; dimension_label: string; is_required: boolean };
 type Impact = { id?: string; impact_dimension: string; assessment_status: "not_assessed" | "assessed" | "not_applicable"; impact_summary: string | null; schedule_impact_days: number | null; cost_delta?: number | null; currency_code?: string | null; not_applicable_reason: string | null };
 type History = { id: string; event_code: string; from_status: string | null; to_status: string | null; actor_user_id: string | null; event_reason: string | null; created_at: string };
 
@@ -52,7 +52,7 @@ export default function ChangeRequests({ canManage }: { canManage: boolean }) {
       supabase.auth.getUser(),
       supabase.from("projects").select("id,project_code,name").order("project_code"),
       supabase.from("project_change_requests").select("id,project_id,cr_reference,title,description,justification,request_type,category,priority,status,workflow_version_id,requested_by,assigned_to,submitted_at,decided_at,decision_reason,implementation_owner_id,implementation_due_date,implementation_status,verified_at,closed_at,created_at").order("created_at", { ascending: false }),
-      supabase.from("project_memberships").select("project_id,user_id,project_role").eq("project_role", "project_manager").eq("status", "active"),
+      supabase.from("project_memberships").select("project_id,user_id,project_role").eq("project_role", "project_manager").eq("status", "active").lte("effective_from", new Date().toISOString()).or(`effective_to.is.null,effective_to.gt.${new Date().toISOString()}`),
       supabase.from("ppm_workflow_templates").select("id,template_name,project_id,is_global").eq("module_code", "change_request").eq("is_active", true)
     ]);
     if (projectResult.error || crResult.error) {
@@ -71,9 +71,9 @@ export default function ChangeRequests({ canManage }: { canManage: boolean }) {
     const templateRows = templateResult.data ?? [];
     const templateIds = templateRows.map((t: { id: string }) => t.id);
     if (templateIds.length) {
-      const versionResult = await supabase.from("ppm_workflow_template_versions").select("id,version_no,template_id").in("template_id", templateIds).eq("status", "published").order("version_no", { ascending: false });
+      const versionResult = await supabase.from("ppm_workflow_template_versions").select("id,version_no,template_id").in("template_id", templateIds).eq("status", "published").lte("effective_from", new Date().toISOString()).or(`effective_to.is.null,effective_to.gt.${new Date().toISOString()}`).order("version_no", { ascending: false });
       const templateNames = new Map(templateRows.map((t: { id: string; template_name: string }) => [t.id, t.template_name]));
-      setVersions((versionResult.data ?? []).map((v: { id: string; version_no: number; template_id: string }) => ({ ...v, template_name: templateNames.get(v.template_id) ?? "Impact configuration" })));
+      setVersions((versionResult.data ?? []).map((v: { id: string; version_no: number; template_id: string }) => { const t = templateRows.find((item: { id: string }) => item.id === v.template_id) as { project_id: string | null; is_global: boolean } | undefined; return { ...v, template_name: templateNames.get(v.template_id) ?? "Impact configuration", project_id: t?.project_id ?? null, is_global: t?.is_global ?? false }; }));
     } else setVersions([]);
     setLoading(false);
   }, []);
@@ -94,7 +94,7 @@ export default function ChangeRequests({ canManage }: { canManage: boolean }) {
     if (!supabase) return;
     setSelectedId(record.id); setDetailLoading(true); setDecisionReason(""); setSubmitReason("");
     const [dimensionResult, impactResult, historyResult] = await Promise.all([
-      record.workflow_version_id ? supabase.from("ppm_workflow_impact_dimensions").select("id,dimension_code,dimension_name,is_required").eq("workflow_version_id", record.workflow_version_id).order("display_order") : Promise.resolve({ data: [], error: null }),
+      record.workflow_version_id ? supabase.from("ppm_workflow_impact_dimensions").select("id,dimension_code,dimension_label,is_required").eq("workflow_version_id", record.workflow_version_id).order("sequence_no") : Promise.resolve({ data: [], error: null }),
       supabase.from("project_change_request_impacts").select("id,impact_dimension,assessment_status,impact_summary,schedule_impact_days,not_applicable_reason,cost_delta,currency_code").eq("change_request_id", record.id),
       supabase.from("project_change_request_history").select("id,event_code,from_status,to_status,actor_user_id,event_reason,created_at").eq("change_request_id", record.id).order("created_at", { ascending: false })
     ]);
@@ -209,7 +209,7 @@ export default function ChangeRequests({ canManage }: { canManage: boolean }) {
             <div className="cr-detail-section"><div className="cr-section-title"><div><h3>Impact assessment</h3><p>Assessment inputs for the Project Manager's decision — not approval steps.</p></div>{selected.status === "draft" && <span className="cr-edit-hint">Editable before submission</span>}</div>
               {dimensions.length === 0 ? <div className="cr-inline-empty">No published impact-assessment dimensions are linked to this record.</div> : <div className="cr-impact-list">{dimensions.map((dimension) => {
                 const impact = impacts.find((i) => i.impact_dimension === dimension.dimension_code);
-                return <div className="cr-impact-card" key={dimension.id}><div className="cr-impact-heading"><strong>{dimension.dimension_name}</strong>{dimension.is_required && <span>Required</span>}</div>
+                return <div className="cr-impact-card" key={dimension.id}><div className="cr-impact-heading"><strong>{dimension.dimension_label}</strong>{dimension.is_required && <span>Required</span>}</div>
                   {selected.status === "draft" ? <div className="cr-impact-fields">
                     <select value={impact?.assessment_status ?? "not_assessed"} onChange={(e) => void saveImpact(dimension, { assessment_status: e.target.value as Impact["assessment_status"] })}><option value="not_assessed">Not assessed</option><option value="assessed">Assessed</option><option value="not_applicable">Not applicable</option></select>
                     <textarea value={impact?.assessment_status === "not_applicable" ? impact?.not_applicable_reason ?? "" : impact?.impact_summary ?? ""} placeholder={impact?.assessment_status === "not_applicable" ? "Reason for not applicable" : "Assessment summary / evidence"} onChange={(e) => setImpacts((current) => [...current.filter((i) => i.impact_dimension !== dimension.dimension_code), { ...(impact ?? { impact_dimension: dimension.dimension_code, assessment_status: "not_assessed" as const, impact_summary: "", schedule_impact_days: null, not_applicable_reason: null }), ...(impact?.assessment_status === "not_applicable" ? { not_applicable_reason: e.target.value } : { impact_summary: e.target.value }) }])} onBlur={(e) => void saveImpact(dimension, impact?.assessment_status === "not_applicable" ? { not_applicable_reason: e.target.value } : { impact_summary: e.target.value })}/>
@@ -241,7 +241,7 @@ export default function ChangeRequests({ canManage }: { canManage: boolean }) {
       <label>Business justification<textarea required value={form.justification} onChange={(e) => setForm((f) => ({ ...f, justification: e.target.value }))}/></label>
       <div className="cr-form-two"><label>Priority<select value={form.priority} onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))}><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></label>
       <label>Assigned Project Manager<select required value={form.assigned_to} onChange={(e) => setForm((f) => ({ ...f, assigned_to: e.target.value }))}><option value="">Select active project PM</option>{membersFor(form.project_id).map((m) => <option key={m.user_id} value={m.user_id}>{m.display_name}</option>)}</select></label></div>
-      <label>Impact-assessment configuration<select required value={form.workflow_version_id} onChange={(e) => setForm((f) => ({ ...f, workflow_version_id: e.target.value }))}><option value="">Select published configuration</option>{versions.filter((v) => { const template = v.template_name; return Boolean(template); }).map((v) => <option key={v.id} value={v.id}>{v.template_name} · v{v.version_no}</option>)}</select></label>
+      <label>Impact-assessment configuration<select required value={form.workflow_version_id} onChange={(e) => setForm((f) => ({ ...f, workflow_version_id: e.target.value }))}><option value="">Select published configuration</option>{versions.filter((v) => v.is_global || v.project_id === form.project_id).map((v) => <option key={v.id} value={v.id}>{v.template_name} · v{v.version_no}</option>)}</select></label>
       <div className="cr-modal-footer"><button type="button" className="button-secondary" onClick={() => setShowCreate(false)}>Cancel</button><button className="button-primary" disabled={busy || !membersFor(form.project_id).some((m) => m.user_id === form.assigned_to)}>{busy ? <LoaderCircle className="spin" size={15}/> : <FilePlus2 size={15}/>} Create draft</button></div>
     </form></div>}
   </div>;
