@@ -99,3 +99,18 @@ The SQL-level role tests use simulated request claims and do not prove the full 
 5. Verify frontend role gating and RLS results together for each role.
 
 No real Auth users were provisioned as part of this pass. No production data was created or changed by the test fixtures. No deployment or PR merge was performed.
+
+
+## Lifecycle transition authorization correction — 21 November 2026
+
+A deeper source review found that the live `transition_project_phase` function checked membership/role status but omitted effective-date predicates in its authorization branch. This was inconsistent with the intended policy and with the earlier summary of the control.
+
+- Applied migration `20261121082534_lifecycle_transition_effective_date_authorization`.
+- The replacement function now requires an active application profile and checks `effective_from <= now()` plus `effective_to IS NULL OR effective_to > now()` for both the Platform Administrator assignment and the Project Manager membership.
+- Re-read the live function definition after migration and confirmed both date predicates are present.
+- Existing function execution ACLs were preserved; `anon` remains denied and `authenticated` retains the intended RPC access.
+- Security Advisor still reports the two intentional lifecycle SECURITY DEFINER warnings and the private formula-template INFO finding.
+
+This is a source-level verification of the correction, **not** a new real-JWT or role-fixture test. The earlier simulated negative-test note must not be treated as proof that the omitted date predicates were enforced before this migration. Fresh rollback-only effective-date tests and signed-JWT HTTP tests remain required.
+
+The migration source is committed at `supabase/migrations/20261121082534_lifecycle_transition_effective_date_authorization.sql`. Migration replay CI for the 63-migration chain is the next verification gate. No user data or Auth accounts were created; no merge or deployment was performed.
