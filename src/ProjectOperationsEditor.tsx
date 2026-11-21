@@ -90,7 +90,8 @@ export default function ProjectOperationsEditor({
     if (!activityForm.activity_code.trim() || !activityForm.name.trim()) { setError("Activity code and name are required."); return; }
     const pct = Number(activityForm.progress_percent);
     if (!Number.isFinite(pct) || pct < 0 || pct > 100) { setError("Progress must be between 0 and 100."); return; }
-    if (activityForm.weight && (Number(activityForm.weight) < 0 || Number(activityForm.weight) > 1)) { setError("Activity weight must be between 0 and 1."); return; }
+    if (activityForm.sequence_no && (!Number.isInteger(Number(activityForm.sequence_no)) || Number(activityForm.sequence_no) <= 0)) { setError("Activity sequence must be a positive whole number."); return; }
+    if (activityForm.weight && (!Number.isFinite(Number(activityForm.weight)) || Number(activityForm.weight) < 0 || Number(activityForm.weight) > 1)) { setError("Activity weight must be between 0 and 1."); return; }
     for (const [start,end,name] of [["baseline_start_date","baseline_due_date","Baseline"],["forecast_start_date","forecast_due_date","Forecast"],["actual_start_date","actual_due_date","Actual"]] as const) {
       if (activityForm[start] && activityForm[end] && activityForm[start] > activityForm[end]) { setError(name + " start date cannot be later than its due date."); return; }
     }
@@ -140,7 +141,7 @@ export default function ProjectOperationsEditor({
   const saveRisk = async () => {
     if (!supabase) return;
     if (!riskForm.risk_reference.trim() || !riskForm.title.trim() || !riskForm.description.trim()) { setError("Risk reference, title and description are required."); return; }
-    if (Number(riskForm.probability_level) <= 0 || Number(riskForm.impact_level) <= 0) { setError("Probability and impact must be positive integers."); return; }
+    if (!Number.isInteger(Number(riskForm.probability_level)) || !Number.isInteger(Number(riskForm.impact_level)) || Number(riskForm.probability_level) <= 0 || Number(riskForm.impact_level) <= 0) { setError("Probability and impact must be positive whole numbers."); return; }
     if (riskForm.resolved_date && riskForm.resolved_date < riskForm.identified_date) { setError("Resolved date cannot precede the identified date."); return; }
     setBusy(true); setError(""); setMessage("");
     const payload = {
