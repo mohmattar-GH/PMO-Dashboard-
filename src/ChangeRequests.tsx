@@ -52,6 +52,9 @@ export default function ChangeRequests({ canManage }: { canManage: boolean }) {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [decisionReason, setDecisionReason] = useState("");
+  const [implementationForm, setImplementationForm] = useState({ owner_id: "", due_date: "", status: "not_started", reason: "" });
+  const [verificationEvidence, setVerificationEvidence] = useState("");
+  const [closureEvidence, setClosureEvidence] = useState("");
   const [submitReason, setSubmitReason] = useState("");
   const [form, setForm] = useState({ project_id: "", contract_id: "", title: "", description: "", justification: "", priority: "medium", assigned_to: "", workflow_version_id: "" });
 
@@ -62,7 +65,7 @@ export default function ChangeRequests({ canManage }: { canManage: boolean }) {
       supabase.auth.getUser(),
       supabase.from("projects").select("id,project_code,name").order("project_code"),
       supabase.from("project_change_requests").select("id,project_id,cr_reference,title,description,justification,request_type,category,priority,status,workflow_version_id,contract_id,contract_variation_id,requested_by,assigned_to,submitted_at,decided_at,decision_reason,implementation_owner_id,implementation_due_date,implementation_status,verified_at,closed_at,created_at").order("created_at", { ascending: false }),
-      supabase.from("project_memberships").select("project_id,user_id,project_role").eq("project_role", "project_manager").eq("status", "active").lte("effective_from", new Date().toISOString()).or(`effective_to.is.null,effective_to.gt.${new Date().toISOString()}`),
+      supabase.from("project_memberships").select("project_id,user_id,project_role").eq("status", "active").lte("effective_from", new Date().toISOString()).or(`effective_to.is.null,effective_to.gt.${new Date().toISOString()}`),
       supabase.from("ppm_workflow_templates").select("id,template_name,project_id,is_global").eq("module_code", "change_request").eq("is_active", true),
       supabase.from("project_contracts").select("id,project_id,contract_reference,contract_title,currency_code,status").order("contract_reference")
     ]);
@@ -95,7 +98,7 @@ export default function ChangeRequests({ canManage }: { canManage: boolean }) {
   const selected = records.find((r) => r.id === selectedId) ?? null;
   const projectName = (id: string) => projects.find((p) => p.id === id)?.name ?? "Project";
   const membersFor = (projectId: string) => members.filter((m) => m.project_id === projectId);
-  const canDecide = Boolean(selected && selected.status === "submitted" && selected.assigned_to === currentUserId && selected.requested_by !== currentUserId && membersFor(selected.project_id).some((m) => m.user_id === currentUserId));
+  const canDecide = Boolean(selected && selected.status === "submitted" && selected.assigned_to === currentUserId && selected.requested_by !== currentUserId && membersFor(selected.project_id).some((m) => m.user_id === currentUserId && m.project_role === "project_manager"));
   const filtered = useMemo(() => records.filter((r) =>
     (statusFilter === "all" || r.status === statusFilter) &&
     (projectFilter === "all" || r.project_id === projectFilter) &&
@@ -119,6 +122,8 @@ export default function ChangeRequests({ canManage }: { canManage: boolean }) {
     if (impactResult.error) setNotice("Impact details are not available to this role: " + impactResult.error.message);
     else setImpacts((impactResult.data ?? []) as Impact[]);
     setHistory((historyResult.data ?? []) as History[]);
+    setImplementationForm({ owner_id: record.implementation_owner_id ?? "", due_date: record.implementation_due_date ?? "", status: record.implementation_status ?? "not_started", reason: "" });
+    setVerificationEvidence(""); setClosureEvidence("");
     setVariation((variationResult.data ?? null) as Variation | null);
     setActivities((activityResult.data ?? []).map((a: any) => ({ id: a.id, code: a.activity_code, name: a.name, baseline_start_date: a.baseline_start_date, baseline_due_date: a.baseline_due_date, approved_revised_start_date: a.approved_revised_start_date, approved_revised_due_date: a.approved_revised_due_date })) as ScheduleTarget[]);
     setMilestones((milestoneResult.data ?? []).map((m: any) => ({ id: m.id, code: m.milestone_code, name: m.name, baseline_start_date: m.baseline_start_date, baseline_due_date: m.baseline_due_date, approved_revised_start_date: m.approved_revised_start_date, approved_revised_due_date: m.approved_revised_due_date })) as ScheduleTarget[]);
@@ -213,6 +218,42 @@ export default function ChangeRequests({ canManage }: { canManage: boolean }) {
     setBusy(false);
   };
 
+  const updateImplementation = async () => {
+    if (!supabase || !selected) return;
+    if (implementationForm.reason.trim().length < 8) { setNotice("Enter an implementation update reason of at least 8 characters."); return; }
+    setBusy(true); setNotice("");
+    const { error: updateError } = await supabase.rpc("update_project_change_request_implementation", {
+      p_change_request_id: selected.id,
+      p_implementation_owner_id: implementationForm.owner_id || null,
+      p_implementation_due_date: implementationForm.due_date || null,
+      p_implementation_status: implementationForm.status,
+      p_reason: implementationForm.reason.trim()
+    });
+    if (updateError) setNotice("Implementation update failed: " + updateError.message);
+    else { setNotice("Implementation update recorded."); await loadRegister(); await loadDetail({ ...selected, status: implementationForm.status === "completed" ? "implemented" : implementationForm.status === "in_progress" || implementationForm.status === "blocked" ? "in_implementation" : selected.status, implementation_owner_id: implementationForm.owner_id || null, implementation_due_date: implementationForm.due_date || null, implementation_status: implementationForm.status }); }
+    setBusy(false);
+  };
+
+  const verifyImplementation = async () => {
+    if (!supabase || !selected) return;
+    if (verificationEvidence.trim().length < 8) { setNotice("Enter verification evidence of at least 8 characters."); return; }
+    setBusy(true); setNotice("");
+    const { error: verifyError } = await supabase.rpc("verify_project_change_request", { p_change_request_id: selected.id, p_verification_evidence: verificationEvidence.trim() });
+    if (verifyError) setNotice("Verification failed: " + verifyError.message);
+    else { setNotice("Implementation verified."); await loadRegister(); await loadDetail({ ...selected, status: "verified" }); }
+    setBusy(false);
+  };
+
+  const closeChangeRequest = async () => {
+    if (!supabase || !selected) return;
+    if (closureEvidence.trim().length < 8) { setNotice("Enter closure evidence of at least 8 characters."); return; }
+    setBusy(true); setNotice("");
+    const { error: closeError } = await supabase.rpc("close_project_change_request", { p_change_request_id: selected.id, p_closure_evidence: closureEvidence.trim() });
+    if (closeError) setNotice("Closure failed: " + closeError.message);
+    else { setNotice("Change Request closed."); await loadRegister(); await loadDetail({ ...selected, status: "closed" }); }
+    setBusy(false);
+  };
+
   const refreshSelected = () => { if (selected) void loadDetail(selected); };
   const assignedPM = selected?.assigned_to ? members.find((m) => m.user_id === selected.assigned_to && m.project_id === selected.project_id)?.display_name ?? selected.assigned_to.slice(0, 8) : "Not assigned";
 
@@ -278,6 +319,18 @@ export default function ChangeRequests({ canManage }: { canManage: boolean }) {
             {canDecide && <div className="cr-action-box decision"><div><strong>Project Manager decision</strong><p>You are the assigned PM. Review the impact assessments, then accept or reject with a mandatory reason.</p></div><textarea value={decisionReason} onChange={(e) => setDecisionReason(e.target.value)} placeholder="Decision reason (minimum 8 characters)"/><div className="cr-decision-actions"><button className="button-secondary" disabled={busy || decisionReason.trim().length < 8} onClick={() => void decideCR("reject")}>Reject request</button><button className="button-primary" disabled={busy || decisionReason.trim().length < 8} onClick={() => void decideCR("accept")}>Accept request</button></div></div>}
 
             {["accepted","in_implementation","implemented","verified","closed"].includes(selected.status) && <div className="cr-outcome"><CheckCircle2 size={17}/><div><strong>PM decision: {label(selected.status)}</strong><p>{selected.decision_reason || "Decision recorded."}</p><small>Decision timestamp: {dateTime(selected.decided_at)}</small></div></div>}
+            {["accepted","in_implementation","implemented","verified","closed"].includes(selected.status) && <div className="cr-detail-section cr-implementation-section"><div className="cr-section-title"><div><h3>Implementation tracking</h3><p>Track accountable ownership, target completion and delivery progress. Completion does not equal verification or closure.</p></div><span className="cr-status">{label(selected.implementation_status ?? "not_started")}</span></div>
+              <div className="cr-meta-grid"><div><small>Implementation owner</small><strong>{members.find((m) => m.user_id === selected.implementation_owner_id && m.project_id === selected.project_id)?.display_name ?? "Not assigned"}</strong></div><div><small>Target completion</small><strong>{selected.implementation_due_date ?? "Not set"}</strong></div><div><small>Verified at</small><strong>{dateTime(selected.verified_at)}</strong></div><div><small>Closed at</small><strong>{dateTime(selected.closed_at)}</strong></div></div>
+              {["accepted","in_implementation"].includes(selected.status) && (canManage || selected.implementation_owner_id === currentUserId) && <div className="cr-implementation-form">
+                <div className="cr-form-two"><label>Implementation owner<select disabled={!canManage} value={implementationForm.owner_id} onChange={(e) => setImplementationForm((v) => ({ ...v, owner_id: e.target.value }))}><option value="">Select owner</option>{membersFor(selected.project_id).map((m) => <option key={m.user_id} value={m.user_id}>{m.display_name} · {label(m.project_role)}</option>)}</select></label><label>Target completion date<input disabled={!canManage} type="date" value={implementationForm.due_date} onChange={(e) => setImplementationForm((v) => ({ ...v, due_date: e.target.value }))}/></label></div>
+                <div className="cr-form-two"><label>Implementation status<select value={implementationForm.status} onChange={(e) => setImplementationForm((v) => ({ ...v, status: e.target.value }))}><option value="not_started">Not started</option><option value="in_progress">In progress</option><option value="blocked">Blocked</option><option value="completed">Completed</option></select></label><label>Update reason<input value={implementationForm.reason} onChange={(e) => setImplementationForm((v) => ({ ...v, reason: e.target.value }))} placeholder="Minimum 8 characters"/></label></div>
+                <button className="button-primary" disabled={busy || implementationForm.reason.trim().length < 8 || (canManage && ["in_progress","blocked","completed"].includes(implementationForm.status) && !implementationForm.owner_id)} onClick={() => void updateImplementation()}>{busy ? "Saving…" : "Save implementation update"}</button>
+              </div>}
+              {selected.status === "implemented" && canManage && <div className="cr-implementation-form"><label>Verification evidence<textarea value={verificationEvidence} onChange={(e) => setVerificationEvidence(e.target.value)} placeholder="Record test results, acceptance evidence or other verification proof"/></label><button className="button-primary" disabled={busy || verificationEvidence.trim().length < 8} onClick={() => void verifyImplementation()}>{busy ? "Verifying…" : "Verify implementation"}</button></div>}
+              {selected.status === "verified" && canManage && <div className="cr-implementation-form"><label>Closure evidence / final note<textarea value={closureEvidence} onChange={(e) => setClosureEvidence(e.target.value)} placeholder="Record final closure evidence and handover reference"/></label><button className="button-primary" disabled={busy || closureEvidence.trim().length < 8} onClick={() => void closeChangeRequest()}>{busy ? "Closing…" : "Close Change Request"}</button></div>}
+              {selected.status === "closed" && <div className="cr-inline-empty">Closed with recorded closure evidence. Review the audit history below for verification and closure details.</div>}
+            </div>}
+
             {selected.status === "rejected" && <div className="cr-outcome rejected"><AlertCircle size={17}/><div><strong>PM decision: Rejected</strong><p>{selected.decision_reason || "No reason recorded."}</p><small>Decision timestamp: {dateTime(selected.decided_at)}</small></div></div>}
 
             <div className="cr-detail-section"><div className="cr-section-title"><div><h3>Decision and audit history</h3><p>Recorded events and accountable actors.</p></div><button className="text-action" onClick={refreshSelected}>Refresh</button></div>
