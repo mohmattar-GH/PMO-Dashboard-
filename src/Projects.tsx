@@ -97,7 +97,7 @@ export default function Projects() {
   const loadDetail = useCallback(async (project: Project) => {
     if (!supabase) return;
     setSelectedId(project.id); setActiveTab("overview"); setDetailLoading(true); setDetailNotice("");
-    const [contractResult, financeResult, milestoneResult, activityResult, riskResult, licenseResult, invoiceResult, balanceResult, cashResult] = await Promise.all([
+    const [contractResult, financeResult, milestoneResult, activityResult, riskResult, licenseResult, invoiceResult, balanceResult, cashResult, teamResult] = await Promise.all([
       supabase.from("project_contracts").select("id,contract_reference,contract_title,contract_type,status,signed_date,commencement_date,contractual_end_date,duration_months,scope_summary,obligations,acceptance_criteria,penalties_terms,change_control_terms,payment_terms,currency_code,original_contract_value").eq("project_id", project.id).order("created_at", { ascending: false }),
       supabase.from("project_financial_terms").select("currency_code,original_contract_value,approved_variations,revised_contract_value,tax_rate,retention_rate,payment_terms,billing_notes").eq("project_id", project.id).order("created_at", { ascending: false }).limit(1),
       supabase.from("project_milestones").select("id,milestone_code,name,milestone_type,baseline_due_date,approved_revised_due_date,forecast_due_date,actual_due_date,progress_percent,status,weight,is_critical").eq("project_id", project.id).order("sequence_no"),
@@ -109,7 +109,6 @@ export default function Projects() {
       supabase.from("project_cash_transactions").select("id,transaction_reference,transaction_type,status,transaction_date,currency_code,amount,payer_payee").eq("project_id", project.id).order("transaction_date", { ascending: false }),
       supabase.rpc("get_project_team_directory", { p_project_id: project.id })
     ]);
-    const teamResult = arguments[0] as never;
     const errors = [contractResult.error, financeResult.error, milestoneResult.error, activityResult.error, riskResult.error, licenseResult.error, invoiceResult.error, balanceResult.error, cashResult.error].filter(Boolean);
     setDetailNotice(errors.length ? "Some sections could not be loaded because of data permissions or a service error. Restricted financial sections are not treated as zero." : "");
     setContracts((contractResult.data ?? []) as Contract[]);
