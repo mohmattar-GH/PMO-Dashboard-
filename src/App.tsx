@@ -137,10 +137,6 @@ function App({ displayName, roles, onSignOut }: AppProps) {
     window.setTimeout(() => setToast(""), 2600);
   };
 
-  const toggleWidget = (name: string) => setHiddenWidgets((current) =>
-    current.includes(name) ? current.filter((item) => item !== name) : [...current, name]
-  );
-
   const isHidden = (name: string) => hiddenWidgets.includes(name);
 
   const toggleDashboardWidget = (code: string) => setVisibleWidgets((current) => {
@@ -170,6 +166,7 @@ function App({ displayName, roles, onSignOut }: AppProps) {
 
   const saveDashboardLayout = () => void persistDashboardLayout(visibleWidgets, widgetOrder);
   const resetDashboardLayout = () => {
+    setHiddenWidgets([]);
     setVisibleWidgets(defaultDashboardWidgetOrder);
     setWidgetOrder(defaultDashboardWidgetOrder);
     void persistDashboardLayout(defaultDashboardWidgetOrder, defaultDashboardWidgetOrder);
