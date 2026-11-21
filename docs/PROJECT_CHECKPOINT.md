@@ -1020,7 +1020,7 @@ Remaining backend validation is unchanged: provision test Auth users and members
 
 ### Final migration count and CR variation dependency check — 21 November 2026
 
-- The live migration ledger now contains 96 applied migrations. This is the authoritative current count; earlier checkpoint counts were superseded as the milestone re-baseline and CR refactor migrations were added.
+- The live migration ledger now contains 98 applied migrations. The latest live ledger is authoritative; earlier checkpoint counts are superseded.
 - Added 20261121123623_lock_legacy_cr_approval_register_read_only. The approval table remains for historical traceability only and is read-only for anon, authenticated and service_role.
 - PostgreSQL catalog verification confirms CR-linked contract variation enforcement no longer references CR approval rows or workflow stages. The separate standalone contract-variation workflow retains its own Finance decision rule; this is not a CR approval gate.
 - The latest Security Advisor still reports only the two pre-existing public lifecycle SECURITY DEFINER warnings and the private formula-template INFO; no new CR-related warning was introduced.
@@ -1115,3 +1115,17 @@ Remaining backend validation is unchanged: provision test Auth users and members
 - Next: scheduled SLA/reminder/escalation processing requires a separate supported backend design; then perform signed-JWT role tests, clean migration replay and frontend build verification.
 
 - Rule editor includes the supported event codes confirmed from the live database trigger functions for Change Requests, Deliverables and Milestone re-baselining, reducing the risk of configuring a rule against a non-emitted event.
+
+
+## Delegated execution update — 21 November 2026 (current status supersedes earlier verification notes)
+
+- Current GitHub head: `5746677e9c43d2694533a4c11dd8ce7d17854b79` on `feature/ppm-frontend-foundation`. PR #1 remains open, draft and unmerged.
+- Live Supabase project `oihawkpbtgqxxliaamxs` is `ACTIVE_HEALTHY`; its migration ledger contains 98 applied migrations.
+- Frontend build workflow run 395 passed on the current head. The earlier failure was caused by four TypeScript issues in navigation, Deliverables and Notifications; all four were corrected.
+- Full clean migration replay run 172 passed on commit `9f0e7852442e9df86aa2d7d70e5e86d77e528f39`. Run 174 is re-running the same migration chain for the current head; no database migration files changed after the successful replay.
+- Deliverables now supports optional versioned document attachments. The UI creates a project document and pending version, uploads to the existing private `project-documents` bucket, finalizes the version as uploaded, and links both document IDs to the submission RPC. It enforces the existing 50 MB limit and approved MIME types. The attachment is displayed in submission history and opened through a 60-second signed URL.
+- Attachment authorization deliberately reuses the existing document classification and Storage RLS policies. Project-classified uploads require an authorized Project Manager, Team Lead or Platform Administrator; document reads/downloads remain subject to the existing project membership and classification rules. No new bucket, public URL or service-role client exposure was introduced.
+- Live database inspection confirmed the private bucket, file-size/MIME constraints, version state guard, storage-object insert/read policies and authenticated table/column grants. Actual upload/download execution is not yet verified because the project has no Auth users or project/deliverable fixtures.
+- Security Advisor findings remain limited to the two previously known public lifecycle SECURITY DEFINER RPC warnings and the private formula-template RLS INFO. The two RPC definitions were reviewed: both require an authenticated user and active authorized application role/membership; anon execution is denied. The private formula registry is in a non-exposed schema. Performance Advisor still reports 19 unindexed foreign-key INFO notices.
+- Remaining release gates: create a separate controlled test environment or otherwise provision approved test identities, run positive/negative signed-JWT role journeys, exercise browser flows including attachment upload/download, and complete the latest clean migration replay.
+- No merge, deployment or change to the separate Staff Time & Performance repository/project has been made.
