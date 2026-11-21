@@ -489,3 +489,6 @@
 .reporting-risk-scoring-guide strong{font-size:10px;color:#40566c}
 .reporting-risk-scoring-guide small{font-size:8px;line-height:1.5;color:#8392a3}
 @media(max-width:650px){.reporting-risk-scoring-guide{align-items:stretch;flex-direction:column}}
+
+
+.project-detail-grid label small{font-size:8px;line-height:1.4;color:#8796a7;font-weight:400}
