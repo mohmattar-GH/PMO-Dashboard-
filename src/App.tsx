@@ -107,7 +107,7 @@ function App({ displayName, roles, onSignOut }: AppProps) {
       <div className="workspace-label">WORKSPACE <ChevronDown size={13}/></div>
       <nav className="main-nav">
         <div className="nav-group-label">PORTFOLIO</div>
-        {navItems.slice(0, 5).map(({ label, icon: Icon, count }) =>
+        {navItems.slice(0, 5).map(({ label, icon: Icon }) =>
           <button key={label} className={activeNav === label ? "nav-item active" : "nav-item"} onClick={() => { setActiveNav(label); setSidebarOpen(false); }}>
             <Icon size={17}/><span>{label}</span>{label === "Notifications" && unreadNotifications > 0 && <b>{unreadNotifications}</b>}
           </button>
