@@ -77,7 +77,7 @@ The PM acceptance trigger is SECURITY INVOKER with an empty search_path; direct 
 
 ## Change Request workflow engine — 21 November 2026
 
-Migrations 068–084 implement the executable CR approval and approved-change application workflow:
+Migrations 068–084 implement the executable CR approval and approved-change application workflow. Migrations 085–087 add controlled deliverable submission, review and PM acceptance:
 - Administrator publication of a draft workflow version validates the configured stages, transition roles and required impact dimensions. Published workflow versions and their stage/transition/impact-dimension definitions are immutable; changes require a new version.
 - Stage approval mode is configurable as sequential or parallel. Required approver roles are resolved against active, effective project memberships and global role assignments.
 - CR submission is permitted only to an active Project Manager or Platform Administrator. A published/effective CR workflow must be selected.
@@ -143,3 +143,27 @@ This remains SQL-level simulation using temporary claim subjects, not real signe
 - Deliverable submission/review actions and PM-facing acceptance UI remain outstanding.
 - Milestone re-baseline request approval/application is separate from CR schedule changes and remains outstanding; baseline date protection is already in place.
 - Clean-environment replay of the complete 84-migration chain remains outstanding.
+
+
+## Deliverable submission, review and PM acceptance — 21 November 2026
+
+Migrations 085–087 implement the deliverable action layer:
+- The assigned deliverable owner or an active Project Manager can submit a deliverable. A submission receives a sequential version number, submitted-by actor, timestamp, notes and optional project document/version reference.
+- Document references are checked against the project and the user's document-classification read permission. Only uploaded document versions can be attached.
+- The assigned reviewer or an active Project Manager can record one review decision per submission: accepted, changes_required or rejected. Rejection requires a reason.
+- A reviewer decision of accepted does not accept the deliverable. The deliverable remains acceptance_status='unaccepted' and status='reviewed' until a separate PM acceptance action is performed.
+- Only an active Project Manager assigned to the project can call the acceptance action. It requires the latest submission to have an accepted review outcome, then records accepted_by and accepted_at. Direct client acceptance/status updates are blocked.
+- Submission and review tables are read-only to authenticated clients; writes occur through controlled RPC actions. Submission/review records are immutable except for the submission status update performed by the review action.
+- Operational audit events are recorded for submissions and reviews. The deliverable operational history captures lifecycle state changes.
+
+### Rollback-only verification
+
+A transaction-scoped fixture test verified:
+- Assigned Team Lead submitted a deliverable; submission number 1 and actual submission date were stamped.
+- Assigned reviewer recorded an accepted review.
+- Deliverable remained unaccepted after the review; the review outcome alone did not set acceptance fields.
+- Direct PM table update attempting to mark it accepted was rejected.
+- PM acceptance action succeeded and stamped the PM actor/time, changing status and acceptance_status to accepted.
+- The transaction rolled back; no test users or deliverables were retained.
+
+The test used simulated claim subjects, not signed-JWT HTTP/API or actual Storage file upload. Document classification validation is implemented, but end-to-end Storage upload/download and document-linked submission tests remain outstanding.
