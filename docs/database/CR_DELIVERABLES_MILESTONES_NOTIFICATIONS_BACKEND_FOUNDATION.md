@@ -199,7 +199,7 @@ The backend now includes CR workflow execution and approved financial/schedule a
 
 ## PM-only Change Request decision model — 21 November 2026
 
-Migrations 091–093 (20261121123154, 20261121123213, 20261121123320) replace the previous CR approval route with a single assigned-Project-Manager decision:
+Four migrations (20261121123154, 20261121123213, 20261121123320, 20261121123531) replace the previous CR approval route with a single assigned-Project-Manager decision:
 - `submit_project_change_request` submits a draft after validating the selected published impact-dimension configuration, completion of every required assessment (assessed or N/A with a reason), and an active assigned Project Manager.
 - `decide_project_change_request` permits only the assigned active Project Manager to accept or reject a submitted CR. The requester cannot decide their own CR. A reason is mandatory; actor and timestamp are database-recorded.
 - There are no Finance, Team Lead or other approval stages, no sequential/parallel CR approval assignments, and no approval-needed notifications. The legacy transition RPC is disabled; approval rows are retained as historical data but client writes and approval triggers are disabled.
@@ -210,9 +210,16 @@ Migrations 091–093 (20261121123154, 20261121123213, 20261121123320) replace th
 
 ### Verification and limitations
 
-- Supabase applied all three migrations; the live migration ledger count is 93.
+- Supabase applied all three migrations; the live migration ledger count is 95.
 - Exact SQL source hash comparison passed for migrations 091 and 093. Migration 092 source was reconciled to the exact live ledger statement and exact comparison passed.
 - Catalog checks confirm the new public RPCs are SECURITY INVOKER wrappers, callable by authenticated users; their private SECURITY DEFINER implementations are not executable by client roles. The old transition wrapper is not executable by authenticated users. Approval-assignment triggers and the legacy Finance submission guard are absent.
 - Security Advisor shows no new CR-related warning. The two existing public lifecycle SECURITY DEFINER warnings remain; the private formula-template INFO remains. Performance Advisor still reports 19 unindexed-FK notices on existing lifecycle/financial tables; no new CR-module FK notice was reported.
 - The database has no Auth users, projects or CR records, so positive/negative role-journey tests with real fixtures and signed JWTs could not be performed. The new RPC paths have been catalog-verified, not claimed as end-to-end tested.
 - Full clean-environment replay of all 93 migrations and latest frontend build remain outstanding. No merge or deployment occurred.
+
+
+### Migration ledger correction — 21 November 2026
+
+- A subsequent live-ledger count confirmed 95 applied migrations (including the already-applied milestone re-baseline migration and the four PM-only CR refactor migrations). This count supersedes earlier 93/94 references in this checkpoint sequence.
+- Added migration 20261121123531_revoke_legacy_cr_approval_helpers to revoke authenticated/service-role execution of obsolete approval and Finance trigger helpers. Its SQL source matches the live migration ledger exactly.
+- Catalog verification confirms the legacy CR transition RPC and obsolete approval helper functions are not executable by authenticated users. The only active CR submission/decision API wrappers are the new PM-only SECURITY INVOKER RPCs.
