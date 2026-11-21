@@ -49,6 +49,7 @@ export default function ReportsSnapshots({ globalRoles }: { globalRoles: string[
   const [form, setForm] = useState({ cycle_code: "", period_start: "", period_end: "", as_of_date: "", cutoff_at: "", timezone: browserTimeZone });
 
   const selectedSnapshot = useMemo(() => snapshots.find((item) => item.id === selectedSnapshotId) ?? null, [snapshots, selectedSnapshotId]);
+  const selectedCycle = useMemo(() => selectedSnapshot ? cycles.find((item) => item.id === selectedSnapshot.reporting_cycle_id) ?? null : null, [cycles, selectedSnapshot]);
   const snapshotByCycle = useMemo(() => new Map(snapshots.map((item) => [item.reporting_cycle_id, item])), [snapshots]);
 
   const loadData = useCallback(async () => {
@@ -174,7 +175,7 @@ export default function ReportsSnapshots({ globalRoles }: { globalRoles: string[
       </aside>
       <section className="panel reports-snapshot-detail">
         {!selectedSnapshot ? <div className="reports-empty large">Select a snapshot to review its portfolio summary and captured project health.</div> : <>
-          <div className="reports-panel-heading"><div><h3>{cycles.find((item) => item.id === selectedSnapshot.reporting_cycle_id)?.cycle_code ?? "Portfolio Snapshot"}</h3><span>Generated {dateTime(selectedSnapshot.generated_at)} · Source watermark {dateTime(selectedSnapshot.source_watermark)}</span></div><span className={"project-status-pill " + statusClass(selectedSnapshot.snapshot_status)}>{label(selectedSnapshot.snapshot_status)}</span></div>
+          <div className="reports-panel-heading"><div><h3>{selectedCycle?.cycle_code ?? "Portfolio Snapshot"}</h3><span>Period {dateLabel(selectedCycle?.period_start ?? null)} – {dateLabel(selectedCycle?.period_end ?? null)} · As of {dateLabel(selectedCycle?.as_of_date ?? null)}</span><span>Generated {dateTime(selectedSnapshot.generated_at)} · Source watermark {dateTime(selectedSnapshot.source_watermark)}</span></div><span className={"project-status-pill " + statusClass(selectedSnapshot.snapshot_status)}>{label(selectedSnapshot.snapshot_status)}</span></div>
           {isAdmin && selectedSnapshot.snapshot_status === "building" && <div className="reports-finalize-bar"><label>Finalization reason<input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Minimum 8 characters"/></label><button className="button-primary small" disabled={busy || reason.trim().length < 8} onClick={() => void finalizeSnapshot(selectedSnapshot)}>Finalize immutable snapshot</button></div>}
           <div className="reports-summary-grid">
             <article><span>Captured project records</span><strong>{projectSnapshots.length}</strong></article>
