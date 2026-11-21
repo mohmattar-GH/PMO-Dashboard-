@@ -43,7 +43,6 @@ export default function ReportingConfiguration({ globalRoles }: { globalRoles: s
   const [reason, setReason] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState({ scope_type: "global" as "global" | "project", project_id: "", configuration_code: "", name: "", description: "", effective_from: "", effective_to: "" });
-  const [currentUserId, setCurrentUserId] = useState("");
   const [projectIds, setProjectIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -67,7 +66,6 @@ export default function ReportingConfiguration({ globalRoles }: { globalRoles: s
     if (setResult.error) setError(setResult.error.message);
     if (projectResult.error) setError(projectResult.error.message);
     const userId = user.user?.id ?? "";
-    setCurrentUserId(userId);
     setSets((setResult.data ?? []) as ConfigSet[]);
     setProjects((projectResult.data ?? []) as Project[]);
     if (userId) {
@@ -139,8 +137,8 @@ export default function ReportingConfiguration({ globalRoles }: { globalRoles: s
     const result = await invokeGovernance("create_draft", {
       scope_type: createForm.scope_type, project_id: createForm.scope_type === "project" ? createForm.project_id : null,
       configuration_code: createForm.configuration_code.trim(), name: createForm.name.trim(),
-      description: createForm.description.trim() || null, effective_from: createForm.effective_from || null,
-      effective_to: createForm.effective_to || null
+      description: createForm.description.trim() || null, effective_from: createForm.effective_from ? new Date(createForm.effective_from).toISOString() : null,
+      effective_to: createForm.effective_to ? new Date(createForm.effective_to).toISOString() : null
     }, reason);
     if (!result) return;
     const setId = String(result.configuration_set_id ?? "");
@@ -170,7 +168,6 @@ export default function ReportingConfiguration({ globalRoles }: { globalRoles: s
     if (result) { setReason(""); await loadVersions(selectedSetId, selectedVersion.id); }
   };
 
-  const activeTemplate = (code: string) => formulaCatalog.find((item) => item.code === code);
   const selectedSetTitle = selectedSet ? `${selectedSet.configuration_code} · ${selectedSet.name}` : "Select a configuration set";
 
   if (!canAccess) return <div className="reporting-config-denied"><ShieldCheck size={24}/><strong>Reporting configuration access is restricted</strong><span>Requires Platform Administrator, Configuration Steward or Configuration Approver role.</span></div>;
