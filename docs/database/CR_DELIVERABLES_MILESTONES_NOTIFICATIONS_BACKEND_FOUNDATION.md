@@ -77,7 +77,7 @@ The PM acceptance trigger is SECURITY INVOKER with an empty search_path; direct 
 
 ## Change Request workflow engine — 21 November 2026
 
-Migrations 068–077 implement the first executable CR approval workflow:
+Migrations 068–079 implement the first executable CR approval workflow:
 - Administrator publication of a draft workflow version validates the configured stages, transition roles and required impact dimensions. Published workflow versions and their stage/transition/impact-dimension definitions are immutable; changes require a new version.
 - Stage approval mode is configurable as sequential or parallel. Required approver roles are resolved against active, effective project memberships and global role assignments.
 - CR submission is permitted only to an active Project Manager or Platform Administrator. A published/effective CR workflow must be selected.
@@ -96,6 +96,7 @@ A transaction-scoped fixture test used simulated Auth claim subjects and tempora
 - Team Lead approval completed the sequence and moved the CR to the configured terminal Approved stage.
 - Two approvals and three history events were present in the transaction result.
 - A post-test query confirmed zero temporary Auth users, projects or CR records remain.
+- Separate rollback-only guard tests confirmed direct client updates cannot set a CR status to an approved state and cannot directly publish a draft workflow version. Both attempts were rejected by the intended database guards.
 
 This is SQL-level simulation, not a real signed-JWT HTTP/API test. Real Supabase Auth/JWT and Storage authorization testing remains outstanding.
 
@@ -106,4 +107,4 @@ This is SQL-level simulation, not a real signed-JWT HTTP/API test. Real Supabase
 - SLA processing, due-date escalation and CR notification event generation are not yet connected to the notification rules/inbox.
 - Admin UI for workflow template/version/stage/transition/impact-dimension authoring is not yet implemented.
 - Parallel approval logic is implemented but the rollback-only integration fixture exercised the sequential path; parallel and self-approval denial still require dedicated test cases.
-- Clean-environment replay of the complete 77-migration chain remains outstanding.
+- Clean-environment replay of the complete 79-migration chain remains outstanding.
