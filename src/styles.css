@@ -119,3 +119,11 @@
 .cr-schedule-list small,.cr-schedule-list span,.cr-schedule-list em{font-size:9px;color:#78869a}
 .cr-schedule-list em{font-style:normal;white-space:nowrap}
 @media(max-width:700px){.cr-schedule-list>div{grid-template-columns:1fr;gap:5px}}
+
+/* Change Request implementation, verification and closure */
+.cr-implementation-form{display:flex;flex-direction:column;gap:10px;padding:13px;border:1px solid #e8edf3;border-radius:8px;background:#fafbfd;margin-top:12px}
+.cr-implementation-form label{display:flex;flex-direction:column;gap:5px;font-size:10px;color:#66758a;font-weight:600}
+.cr-implementation-form textarea{min-height:72px;resize:vertical;padding:9px}
+.cr-implementation-section>.cr-meta-grid{margin-top:12px}
+.cr-implementation-form button{align-self:flex-start}
+@media(max-width:700px){.cr-implementation-form button{width:100%}}
