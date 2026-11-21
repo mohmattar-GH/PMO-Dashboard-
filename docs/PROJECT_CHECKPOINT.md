@@ -1085,3 +1085,17 @@ Remaining backend validation is unchanged: provision test Auth users and members
 - Verified live database grants: authenticated users have SELECT/INSERT on deliverables, SELECT on submissions, and EXECUTE on submit/review/accept RPCs; RLS and workflow guards remain responsible for row/role enforcement. No database schema changes were made in this frontend slice.
 - End-to-end tests remain blocked by no Auth users or project/deliverable fixtures. Frontend build/browser tests are not yet verified. PR remains draft/unmerged; no deployment. Staff Time & Performance remains untouched.
 - Next: milestone tracker and re-baseline action UI, followed by Notifications inbox/rule management and remaining verification.
+
+
+## Milestone register and re-baseline UI — 21 November 2026
+
+- Added `src/Milestones.tsx` and routed the Milestones navigation item to the live Supabase module.
+- Register supports project/status/search filters and portfolio counts for total, completed, critical-open and pending re-baseline milestones.
+- PM/Platform Admin create form captures milestone code/name/type, description, sequence, weight, initial baseline dates, owner and criticality. Initial baseline is set at creation; later baseline changes cannot be edited directly.
+- Detail workspace displays baseline, approved revised, forecast and actual date pairs, owner, weight, progress and completion evidence.
+- PM/Platform Admin can update progress/status, owner, forecast and actual dates. Completed milestones require 100% progress and completion evidence. Baseline fields are intentionally excluded from the direct update payload.
+- Controlled re-baseline requests use `request_milestone_rebaseline`; the request records the current baseline snapshot and proposed dates. A different active PM or Platform Admin must approve/reject with a reason through `decide_milestone_rebaseline`. Approval applies the new baseline and writes immutable baseline history; the existing backend checks that the baseline has not changed since request submission.
+- Request status, request reason, decision reason, proposed/current baseline dates and immutable baseline history are displayed in the workspace.
+- Verified live grants: authenticated role has SELECT/INSERT on milestones, SELECT on re-baseline requests and EXECUTE on both re-baseline RPCs. Existing RLS and baseline immutability triggers remain in force. No Supabase schema changes were made in this UI slice.
+- Live database currently has zero milestone records; there are no Auth users or project fixtures, so real user journeys cannot yet be exercised. Frontend production build/browser tests remain unverified. PR #1 remains draft/unmerged; no deployment. Staff Time & Performance remains untouched.
+- Next: Notifications inbox and rule-management UI, then finish role-based testing and build verification.
