@@ -137,3 +137,17 @@ The browser app now requires a Supabase-authenticated session and an active data
 - Live Supabase migration ledger currently contains 109 applied migrations. Clean-environment replay run 246 is still in progress; do not claim replay success until its workflow completes.
 - No Auth users, projects or operational test fixtures currently exist in the live project. Therefore authenticated end-to-end role journeys and real record create/update flows remain unverified. Existing RLS is retained as the enforcement layer; UI gating is not treated as a substitute.
 - PR #1 remains draft and unmerged. No deployment. Staff Time & Performance remains untouched.
+
+
+## Reporting configuration and weekly snapshot archive — 21 November 2026
+
+- Added a Configuration Center with separate Lifecycle and Reporting Rules/KPIs workspaces. Platform Administrators can access both; Configuration Stewards can create/edit/submit drafts; Configuration Approvers can approve, publish and supersede.
+- Reporting Configuration UI uses the existing `reporting-config-governance` Edge Function and the governed database RPC. It supports global and project-scoped configuration sets, draft versions, dimensions, KPI definitions, allowlisted formula templates, source mappings, parameters, weights, thresholds, date basis and missing-data status.
+- Draft rule arrays are editable through structured JSON editors because the backend validates the full versioned rule schema. Published versions are read-only. Creating a successor version from the latest published/superseded version copies the prior dimensions, KPI definitions and rule parameters into the new draft.
+- Added version metadata in the UI: change summary, creator, submitter, approver, publisher and their timestamps. Every create/save/submit/approve/publish/supersede action goes through the existing audited governance function.
+- Added Reports & Snapshots workspace. Platform Administrators can create reporting cycles, close cycles after cutoff, build snapshots only when an effective published global reporting configuration exists, and finalize building snapshots. Executive Viewers receive read-only access to available snapshot history.
+- Snapshot UI reads only the existing restricted `portfolio_snapshot_index` and `project_snapshot_index` security-invoker views. It does not query protected raw portfolio/project snapshot payloads or expose restricted metric-value tables. Summary counts are derived from the authorized index rows.
+- Added migration `20261121205801_reporting_cycles_platform_admin_read_access.sql` so Platform Administrators can read open reporting cycles before a snapshot exists. No direct cycle write permissions were granted; create/close/build/finalize remain guarded Edge Function/RPC actions.
+- Live Supabase migration ledger now contains 110 applied migrations. Clean-environment replay run 281 is in progress.
+- Frontend build workflow run 589 passed on commit `15479162ed932bef35331a4fe696b1795a6d754e` (TypeScript check and Vite production build).
+- Authenticated reporting configuration and snapshot workflows remain unverified because the live project has no Auth users, projects or published reporting configuration. Do not create a real weekly cycle or publish default KPI assumptions without explicit business decisions.
