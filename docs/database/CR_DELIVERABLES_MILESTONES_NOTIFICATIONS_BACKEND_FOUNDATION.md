@@ -32,7 +32,7 @@ The migration adds:
 
 ## Verification performed
 
-- Supabase migrations 064–066 were applied successfully: 20261121094748 (module schema), 20261121094854 (RLS policy overlap hardening and FK indexes), and 20261121094908 (composite deliverable-review FK index).
+- Supabase migrations 064–066 were applied successfully: 20261121094748 (module schema), 20261121094854 (RLS policy overlap hardening and FK indexes), and 20261121094908 (composite deliverable-review FK index), and 20261121095042 (PM-only immutable deliverable acceptance guard).
 - Catalog verification confirms RLS enabled on all 14 new tables and policies present.
 - Deliverable acceptance default and required acceptance metadata constraint are present.
 - Security Advisor: no new security findings; the two existing lifecycle SECURITY DEFINER WARNs and one intentional INFO for the server-only private formula-template table remain. The multiple-permissive-policy warnings introduced by the first policy layout were removed by migration 065. Performance Advisor now reports no unindexed foreign keys on the new module tables; 19 remaining unindexed-FK notices relate to pre-existing financial/lifecycle tables.
@@ -64,9 +64,12 @@ No merge or deployment was performed. The Staff Time & Performance application w
 
 ## Migration source reconciliation
 
-The three migration source files are named to match the versions recorded in the live Supabase migration ledger:
+The four migration source files are named to match the versions recorded in the live Supabase migration ledger:
 - 20261121094748_project_change_request_workflow_and_notifications.sql
 - 20261121094854_cr_workflow_policy_and_index_hardening.sql
 - 20261121094908_contract_deliverable_review_fk_index.sql
+- 20261121095042_contract_deliverable_pm_acceptance_guard.sql
 
 The 14 new tables all have RLS enabled. The seven new multiple-permissive SELECT policy warnings were eliminated by splitting write policies from read policies. Remaining Performance Advisor unindexed-FK findings are on pre-existing tables, not the new module tables. The clean-environment replay of the complete 66-migration chain has not yet been run.
+
+The PM acceptance trigger is SECURITY INVOKER with an empty search_path; direct EXECUTE is revoked from client roles. Catalog verification confirms the trigger is installed and the strengthened status/acceptance constraint is active. A positive signed-JWT acceptance test remains pending because no Auth users or project fixtures exist.
