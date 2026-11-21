@@ -1008,3 +1008,11 @@ Remaining backend validation is unchanged: provision test Auth users and members
 - A subsequent live-ledger count confirmed 95 applied migrations (including the already-applied milestone re-baseline migration and the four PM-only CR refactor migrations). This count supersedes earlier 93/94 references in this checkpoint sequence.
 - Added migration 20261121123531_revoke_legacy_cr_approval_helpers to revoke authenticated/service-role execution of obsolete approval and Finance trigger helpers. Its SQL source matches the live migration ledger exactly.
 - Catalog verification confirms the legacy CR transition RPC and obsolete approval helper functions are not executable by authenticated users. The only active CR submission/decision API wrappers are the new PM-only SECURITY INVOKER RPCs.
+
+
+### Final approval-register lock — 21 November 2026
+
+- Added migration 20261121123623_lock_legacy_cr_approval_register_read_only. The historical CR approval register remains available for audit/history but INSERT, UPDATE and DELETE are revoked from anon, authenticated and service_role.
+- Privilege verification returned false for service_role and authenticated INSERT/UPDATE/DELETE. Approval rows remain zero; no historical records were removed.
+- Live Supabase migration ledger count is now 96. Exact migration SQL archive for 20261121123623 matches the applied ledger statement.
+- Security Advisor remains unchanged: no new CR-related findings; two existing public lifecycle SECURITY DEFINER warnings and one private formula-template INFO remain.
