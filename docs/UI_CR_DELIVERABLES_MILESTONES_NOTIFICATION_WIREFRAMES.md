@@ -11,7 +11,7 @@
 - Full Change Request Management is included in the current release. This supersedes older screen-specification statements that CR Management was deferred.
 - Portfolio registers provide cross-project oversight; project workspace trackers provide operational detail. Both use the same underlying records.
 - Existing contract variations, contract deliverables, project milestones, activities, documents, audit and financial records must be assessed and reused or extended. Do not create duplicate financial variation records or duplicate milestone/deliverable sources.
-- All workflow stages, statuses, approval routes, thresholds, SLAs, reminders, recipients and escalation rules are configurable and versioned.
+- CR decision authority is fixed to the assigned active Project Manager; there are no CR approval routes or approver stages. Impact dimensions, assessment requirements, statuses, SLA/reminder settings and notification rules remain configurable and versioned.
 - Every write is permission-checked by trusted backend/RLS, audited and traceable. UI visibility is not authorization.
 - Historical snapshots remain immutable and retain the source/configuration context used at generation.
 - The wireframes are conceptual. Example labels and values are illustrative, not live records.
@@ -39,9 +39,9 @@ The Notification Centre is available from the global top bar and as a full-page 
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ Change Requests                              [Create CR] [Export ▼]         │
 │ Search [________________]  Project [All ▼] Status [All ▼] Priority [All ▼] │
-│ Owner [All ▼] Approver [All ▼] Submitted [Date range]   [More filters]     │
+│ Requester [All ▼] Assigned PM [All ▼] Submitted [Date range]   [More filters]     │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ OPEN ##   AWAITING APPROVAL ##   OVERDUE SLA ##   APPROVED THIS PERIOD ##   │
+│ OPEN ##   AWAITING PM DECISION ##   OVERDUE SLA ##   ACCEPTED THIS PERIOD ##   │
 │ PENDING COST IMPACT [permission-gated]   SCHEDULE IMPACT ##                 │
 ├──────┬───────────┬─────────┬──────────┬──────────┬──────────┬───────────────┤
 │ CR # │ Title     │ Project │ Status   │ Priority │ Owner    │ Age / Due     │
@@ -66,7 +66,7 @@ The Notification Centre is available from the global top bar and as a full-page 
 │ CR-2026-###  [Status badge]  [Priority]  Project: [Project name]             │
 │ [Edit] [Submit] [Withdraw] [More actions ▼]  (actions permission/state based)│
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ Summary | Impact Assessment | Approvals | Implementation | History | Files  │
+│ Summary | Impact Assessment | PM Decision | Implementation | History | Files  │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │ Title / description / justification                                         │
 │ Requester / submitted date / origin / category / affected contract          │
@@ -115,9 +115,9 @@ The Notification Centre is available from the global top bar and as a full-page 
 ### Configurable workflow proposal
 
 Initial suggested stages (administrator-configurable):
-Draft → Submitted → Impact Assessment → Pending Approval → Approved / Rejected / Withdrawn → In Implementation → Implemented → Verified → Closed.
+Draft → Submitted → PM Decision (Accepted / Rejected) → In Implementation → Implemented → Verified → Closed.
 
-The configuration must support return-for-clarification, reassessment, multiple approval stages, conditional routing, thresholds, delegated approvers, due dates, SLA pause/resume rules and escalation. These are proposals, not fixed rules.
+The impact-assessment configuration supports configurable dimensions, required fields, assessment states, due dates and notification/SLA rules. CR decision authority remains the assigned active Project Manager and is not configurable into an approval route.
 
 ## 5. Screen DL01 — Portfolio Deliverables Register
 
