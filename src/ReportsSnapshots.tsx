@@ -3,8 +3,8 @@ import { AlertCircle, Archive, CheckCircle2, Clock3, FilePlus2, LoaderCircle, Re
 import { supabase } from "./lib/supabase";
 
 type Cycle = { id: string; cycle_code: string; period_start: string; period_end: string; cutoff_at: string; as_of_date: string; timezone: string; status: string; created_at: string; closed_at: string | null };
-type Snapshot = { id: string; reporting_cycle_id: string; generated_at: string; generated_by: string | null; snapshot_status: string; source_watermark: string | null; portfolio_summary: Record<string, unknown> };
-type ProjectSnapshot = { id: string; project_id: string; source_updated_at: string | null; calculated_health: string | null; reported_health: string | null; snapshot_payload: Record<string, unknown> };
+type Snapshot = { id: string; reporting_cycle_id: string; generated_at: string; generated_by: string | null; snapshot_status: string; source_watermark: string | null };
+type ProjectSnapshot = { id: string; project_id: string; source_updated_at: string | null; calculated_health: string | null; reported_health: string | null };
 type Project = { id: string; project_code: string; name: string };
 type ConfigVersion = { configuration_set_id: string; status: string; effective_from: string | null; effective_to: string | null; published_at: string | null };
 
@@ -57,7 +57,7 @@ export default function ReportsSnapshots({ globalRoles }: { globalRoles: string[
     setLoading(true); setError("");
     const [cycleResult, snapshotResult, projectResult, configSetResult] = await Promise.all([
       supabase.from("reporting_cycles").select("id,cycle_code,period_start,period_end,cutoff_at,as_of_date,timezone,status,created_at,closed_at").order("period_start", { ascending: false }),
-      supabase.from("portfolio_snapshots").select("id,reporting_cycle_id,generated_at,generated_by,snapshot_status,source_watermark,portfolio_summary").order("generated_at", { ascending: false }),
+      supabase.from("portfolio_snapshot_index").select("id,reporting_cycle_id,generated_at,generated_by,snapshot_status,source_watermark").order("generated_at", { ascending: false }),
       supabase.from("projects").select("id,project_code,name").order("project_code"),
       supabase.from("reporting_configuration_sets").select("id").eq("scope_type", "global")
     ]);
@@ -79,8 +79,8 @@ export default function ReportsSnapshots({ globalRoles }: { globalRoles: string[
   const loadSnapshotDetails = useCallback(async (snapshotId: string) => {
     if (!supabase || !snapshotId) { setProjectSnapshots([]); return; }
     setDetailLoading(true);
-    const { data, error: detailError } = await supabase.from("project_snapshots")
-      .select("id,project_id,source_updated_at,calculated_health,reported_health,snapshot_payload")
+    const { data, error: detailError } = await supabase.from("project_snapshot_index")
+      .select("id,project_id,source_updated_at,calculated_health,reported_health")
       .eq("portfolio_snapshot_id", snapshotId).order("project_id");
     if (detailError) setError(detailError.message);
     setProjectSnapshots((data ?? []) as ProjectSnapshot[]);
@@ -170,20 +170,23 @@ export default function ReportsSnapshots({ globalRoles }: { globalRoles: string[
       <aside className="panel reports-snapshot-list"><div className="reports-panel-heading"><div><h3>Snapshot archive</h3><span>Finalized and in-progress snapshot records</span></div><span>{snapshots.length}</span></div>
         {loading ? <div className="reports-empty"><LoaderCircle className="spin" size={17}/> Loading snapshots…</div> : snapshots.length ? snapshots.map((snapshot) => {
           const cycle = cycles.find((item) => item.id === snapshot.reporting_cycle_id);
-          return <button className={selectedSnapshotId === snapshot.id ? "reports-snapshot-item selected" : "reports-snapshot-item"} key={snapshot.id} onClick={() => setSelectedSnapshotId(snapshot.id)}><strong>{cycle?.cycle_code ?? "Weekly snapshot"}</strong><span>{dateTime(snapshot.generated_at)}</span><small>{snapshot.portfolio_summary?.project_count ?? "—"} projects · {label(snapshot.snapshot_status)}</small></button>;
+          return <button className={selectedSnapshotId === snapshot.id ? "reports-snapshot-item selected" : "reports-snapshot-item"} key={snapshot.id} onClick={() => setSelectedSnapshotId(snapshot.id)}><strong>{cycle?.cycle_code ?? "Weekly snapshot"}</strong><span>{dateTime(snapshot.generated_at)}</span><small>{snapshot.id.slice(0,8)} · {label(snapshot.snapshot_status)}</small></button>;
         }) : <div className="reports-empty">No portfolio snapshots have been generated.</div>}
       </aside>
       <section className="panel reports-snapshot-detail">
         {!selectedSnapshot ? <div className="reports-empty large">Select a snapshot to review its portfolio summary and captured project health.</div> : <>
           <div className="reports-panel-heading"><div><h3>{cycles.find((item) => item.id === selectedSnapshot.reporting_cycle_id)?.cycle_code ?? "Portfolio Snapshot"}</h3><span>Generated {dateTime(selectedSnapshot.generated_at)} · Source watermark {dateTime(selectedSnapshot.source_watermark)}</span></div><span className={"project-status-pill " + statusClass(selectedSnapshot.snapshot_status)}>{label(selectedSnapshot.snapshot_status)}</span></div>
           {isAdmin && selectedSnapshot.snapshot_status === "building" && <div className="reports-finalize-bar"><label>Finalization reason<input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Minimum 8 characters"/></label><button className="button-primary small" disabled={busy || reason.trim().length < 8} onClick={() => void finalizeSnapshot(selectedSnapshot)}>Finalize immutable snapshot</button></div>}
-          <div className="reports-summary-grid">{Object.entries(selectedSnapshot.portfolio_summary).map(([key, value]) => <article key={key}><span>{label(key)}</span><strong>{typeof value === "object" ? JSON.stringify(value) : String(value ?? "Not reported")}</strong></article>)}</div>
+          <div className="reports-summary-grid">
+            <article><span>Captured project records</span><strong>{projectSnapshots.length}</strong></article>
+            <article><span>Calculated health reported</span><strong>{projectSnapshots.filter((item) => Boolean(item.calculated_health)).length}</strong></article>
+            <article><span>PM-reported health</span><strong>{projectSnapshots.filter((item) => Boolean(item.reported_health)).length}</strong></article>
+            <article><span>Calculated health not reported</span><strong>{projectSnapshots.filter((item) => !item.calculated_health).length}</strong></article>
+          </div>
           <div className="reports-project-snapshots"><div className="reports-panel-heading"><div><h3>Captured project records</h3><span>{projectSnapshots.length} project snapshots</span></div></div>
             {detailLoading ? <div className="reports-empty"><LoaderCircle className="spin" size={17}/> Loading project snapshots…</div> : projectSnapshots.length ? <div className="reports-project-grid">{projectSnapshots.map((item) => {
               const project = projects.find((p) => p.id === item.project_id);
-              const payload = asObject(item.snapshot_payload);
-              const projectRecord = asObject(payload.project_record);
-              return <article className="reports-project-card" key={item.id}><strong>{project?.project_code ?? "Project"} · {project?.name ?? String(projectRecord.name ?? "Project snapshot")}</strong><div className="reports-health-row"><span>Calculated health</span><b>{item.calculated_health ?? "Not Reported"}</b></div><div className="reports-health-row"><span>PM-reported health</span><b>{item.reported_health ?? "Not Reported"}</b></div><div className="reports-health-row"><span>KPI calculation</span><b>{String(payload.kpi_calculation_status ?? "Not Reported")}</b></div><div className="reports-health-row"><span>Data completeness</span><b>{String(payload.data_completeness_status ?? "Not Reported")}</b></div><small>Source updated {dateTime(item.source_updated_at)}</small></article>;
+              return <article className="reports-project-card" key={item.id}><strong>{project?.project_code ?? "Project"} · {project?.name ?? "Project snapshot"}</strong><div className="reports-health-row"><span>Calculated health</span><b>{item.calculated_health ?? "Not Reported"}</b></div><div className="reports-health-row"><span>PM-reported health</span><b>{item.reported_health ?? "Not Reported"}</b></div><small>Source updated {dateTime(item.source_updated_at)}</small></article>;
             })}</div> : <div className="reports-empty">No project records are available in this snapshot.</div>}
           </div>
         </>}
