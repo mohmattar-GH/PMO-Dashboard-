@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import LivePortfolioOverview from "./LivePortfolioOverview";
+import ChangeRequests from "./ChangeRequests";
 import {
   Activity, AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, Bell,
   CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
@@ -235,7 +236,7 @@ function App({ displayName, roles, onSignOut }: AppProps) {
             <div className="panel-heading"><div><h3>Recent phase changes</h3><span className="panel-subtitle">Lifecycle transitions recorded this month</span></div><button className="text-action" onClick={() => setActiveNav("Projects")}>Full phase history <ArrowRight size={13}/></button></div>
             <div className="phase-change-list"><div><strong>Customer Portal</strong><span>Testing <ArrowRight size={13}/> Deployment</span><small>18 Nov 2026 · 3 days in previous phase</small></div><div><strong>Document Management</strong><span>Execution <ArrowRight size={13}/> Testing</span><small>14 Nov 2026 · 21 days in previous phase</small></div><div><strong>Data Warehouse</strong><span>Deployment <ArrowRight size={13}/> Closure</span><small>12 Nov 2026 · 8 days in previous phase</small></div></div>
           </section>}
-        </>}</> : <section className="module-placeholder panel">
+        </>}</> : activeNav === "Change Requests" ? <ChangeRequests canManage={roles.includes("platform_admin") || roles.includes("project_manager")} /> : <section className="module-placeholder panel">
           <div className="placeholder-icon"><Command size={24}/></div><h2>{activeNav}</h2><p>The navigation and module entry point are in place. This screen will be implemented as the next delivery slice using the approved module wireframes and the existing governed backend.</p>
           <div className="placeholder-status"><span className="status-dot"/> UI foundation in progress</div>
           <button className="button-primary" onClick={() => setActiveNav("Executive Overview")}><ChevronLeft size={16}/> Back to Executive Overview</button>
