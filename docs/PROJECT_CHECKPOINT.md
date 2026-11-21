@@ -1070,3 +1070,18 @@ Remaining backend validation is unchanged: provision test Auth users and members
 - Security Advisor shows the same two previously identified lifecycle SECURITY DEFINER warnings and the existing private formula-template INFO; no new CR-specific warning was introduced. There are still no Auth users or project/CR fixtures, so signed-JWT role tests and full UI journeys remain outstanding.
 - Frontend production build/browser tests remain unverified. PR #1 remains draft/unmerged; no deployment. Staff Time & Performance remains untouched.
 - Next: Deliverables submission/review/PM acceptance UI, then milestone re-baseline UI and notification inbox/rule management, followed by end-to-end role tests and build verification.
+
+
+## Deliverables register and workflow UI — 21 November 2026
+
+- Added `src/Deliverables.tsx` and routed the Deliverables navigation item to the live Supabase module.
+- Register supports project/status/search filtering and summary counts for total, awaiting review, awaiting PM acceptance and formally accepted deliverables.
+- PM/Platform Admin create form captures contract, deliverable code/name/type, description, due date, acceptance criteria, owner, reviewer, accepting authority and baseline submission/acceptance dates. New records start planned and unaccepted.
+- Detail workspace displays contract and ownership metadata, baseline dates, description and acceptance criteria.
+- Assigned owner or active PM can submit a new submission version with notes using the existing `submit_contract_deliverable` RPC. This UI currently does not attach a project document/version; that remains a follow-up integration.
+- Assigned reviewer or active PM can record accepted / changes-required / rejected review outcomes through `review_contract_deliverable_submission`; rejection requires a reason.
+- Formal acceptance is a separate action and is displayed only to an active project PM after the latest submission has an accepted review. It calls `accept_contract_deliverable`; a review acceptance alone never marks the contractual deliverable accepted.
+- Submission/review history and formal acceptance details are displayed. Existing backend triggers retain immutable submission/review records, operational audit events and notification events.
+- Verified live database grants: authenticated users have SELECT/INSERT on deliverables, SELECT on submissions, and EXECUTE on submit/review/accept RPCs; RLS and workflow guards remain responsible for row/role enforcement. No database schema changes were made in this frontend slice.
+- End-to-end tests remain blocked by no Auth users or project/deliverable fixtures. Frontend build/browser tests are not yet verified. PR remains draft/unmerged; no deployment. Staff Time & Performance remains untouched.
+- Next: milestone tracker and re-baseline action UI, followed by Notifications inbox/rule management and remaining verification.
