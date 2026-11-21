@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Activity, AlertTriangle, ArrowLeft, BriefcaseBusiness, CalendarDays, CheckCircle2, CircleDollarSign, FileText, Flag, Layers3, Search, ShieldAlert, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ArrowLeft, BriefcaseBusiness, Layers3, Search, ShieldAlert, ShieldCheck } from "lucide-react";
 import { supabase } from "./lib/supabase";
 
 type Project = {
