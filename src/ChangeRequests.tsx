@@ -6,6 +6,8 @@ import { supabase } from "./lib/supabase";
 type Project = { id: string; project_code: string; name: string };
 type Contract = { id: string; project_id: string; contract_reference: string; contract_title: string; currency_code: string | null; status: string };
 type Variation = { id: string; variation_reference: string; title: string; amount_delta: number; currency_code: string; status: string; effective_date: string | null };
+type ScheduleTarget = { id: string; code: string; name: string; baseline_start_date: string | null; baseline_due_date: string | null; approved_revised_start_date: string | null; approved_revised_due_date: string | null };
+type ScheduleChange = { id: string; target_type: "activity" | "milestone"; activity_id: string | null; milestone_id: string | null; proposed_start_date: string | null; proposed_due_date: string | null; change_reason: string; applied_at: string | null };
 type Member = { project_id: string; user_id: string; display_name: string; project_role: string };
 type WorkflowVersion = { id: string; version_no: number; template_id: string; template_name: string; project_id: string | null; is_global: boolean };
 type CR = {
@@ -28,6 +30,10 @@ export default function ChangeRequests({ canManage }: { canManage: boolean }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [variation, setVariation] = useState<Variation | null>(null);
+  const [activities, setActivities] = useState<ScheduleTarget[]>([]);
+  const [milestones, setMilestones] = useState<ScheduleTarget[]>([]);
+  const [scheduleChanges, setScheduleChanges] = useState<ScheduleChange[]>([]);
+  const [scheduleForm, setScheduleForm] = useState({ target_type: "activity" as "activity" | "milestone", target_id: "", proposed_start_date: "", proposed_due_date: "", change_reason: "" });
   const [members, setMembers] = useState<Member[]>([]);
   const [versions, setVersions] = useState<WorkflowVersion[]>([]);
   const [records, setRecords] = useState<CR[]>([]);
@@ -99,11 +105,14 @@ export default function ChangeRequests({ canManage }: { canManage: boolean }) {
   const loadDetail = useCallback(async (record: CR) => {
     if (!supabase) return;
     setSelectedId(record.id); setDetailLoading(true); setDecisionReason(""); setSubmitReason(""); setVariation(null);
-    const [dimensionResult, impactResult, historyResult, variationResult] = await Promise.all([
+    const [dimensionResult, impactResult, historyResult, variationResult, activityResult, milestoneResult, scheduleResult] = await Promise.all([
       record.workflow_version_id ? supabase.from("ppm_workflow_impact_dimensions").select("id,dimension_code,dimension_label,is_required").eq("workflow_version_id", record.workflow_version_id).order("sequence_no") : Promise.resolve({ data: [], error: null }),
       supabase.from("project_change_request_impacts").select("id,impact_dimension,assessment_status,impact_summary,schedule_impact_days,not_applicable_reason,cost_delta,currency_code").eq("change_request_id", record.id),
       supabase.from("project_change_request_history").select("id,event_code,from_status,to_status,actor_user_id,event_reason,created_at").eq("change_request_id", record.id).order("created_at", { ascending: false }),
-      record.contract_variation_id ? supabase.from("project_contract_variations").select("id,variation_reference,title,amount_delta,currency_code,status,effective_date").eq("id", record.contract_variation_id).maybeSingle() : Promise.resolve({ data: null, error: null })
+      record.contract_variation_id ? supabase.from("project_contract_variations").select("id,variation_reference,title,amount_delta,currency_code,status,effective_date").eq("id", record.contract_variation_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
+      supabase.from("project_activities").select("id,activity_code,name,baseline_start_date,baseline_due_date,approved_revised_start_date,approved_revised_due_date").eq("project_id", record.project_id).order("sequence_no"),
+      supabase.from("project_milestones").select("id,milestone_code,name,baseline_start_date,baseline_due_date,approved_revised_start_date,approved_revised_due_date").eq("project_id", record.project_id).order("sequence_no"),
+      supabase.from("project_change_request_schedule_changes").select("id,target_type,activity_id,milestone_id,proposed_start_date,proposed_due_date,change_reason,applied_at").eq("change_request_id", record.id).order("created_at")
     ]);
     if (dimensionResult.error) setNotice("Impact configuration could not be loaded: " + dimensionResult.error.message);
     else setDimensions((dimensionResult.data ?? []) as ImpactDimension[]);
@@ -111,6 +120,10 @@ export default function ChangeRequests({ canManage }: { canManage: boolean }) {
     else setImpacts((impactResult.data ?? []) as Impact[]);
     setHistory((historyResult.data ?? []) as History[]);
     setVariation((variationResult.data ?? null) as Variation | null);
+    setActivities((activityResult.data ?? []).map((a: any) => ({ id: a.id, code: a.activity_code, name: a.name, baseline_start_date: a.baseline_start_date, baseline_due_date: a.baseline_due_date, approved_revised_start_date: a.approved_revised_start_date, approved_revised_due_date: a.approved_revised_due_date })) as ScheduleTarget[]);
+    setMilestones((milestoneResult.data ?? []).map((m: any) => ({ id: m.id, code: m.milestone_code, name: m.name, baseline_start_date: m.baseline_start_date, baseline_due_date: m.baseline_due_date, approved_revised_start_date: m.approved_revised_start_date, approved_revised_due_date: m.approved_revised_due_date })) as ScheduleTarget[]);
+    setScheduleChanges((scheduleResult.data ?? []) as ScheduleChange[]);
+    setScheduleForm({ target_type: "activity", target_id: "", proposed_start_date: "", proposed_due_date: "", change_reason: "" });
     setDetailLoading(false);
   }, []);
 
@@ -152,6 +165,22 @@ export default function ChangeRequests({ canManage }: { canManage: boolean }) {
     }).select("id").single();
     if (createError) setNotice("Could not create the Change Request: " + createError.message);
     else { setShowCreate(false); setForm({ project_id: "", contract_id: "", title: "", description: "", justification: "", priority: "medium", assigned_to: "", workflow_version_id: "" }); await loadRegister(); setNotice("Draft Change Request created."); if (data?.id) setSelectedId(data.id); }
+    setBusy(false);
+  };
+
+  const addScheduleChange = async () => {
+    if (!supabase || !selected || selected.status !== "draft") return;
+    if (!scheduleForm.target_id) { setNotice("Select an activity or milestone."); return; }
+    if (!scheduleForm.proposed_start_date && !scheduleForm.proposed_due_date) { setNotice("Enter at least one proposed schedule date."); return; }
+    if (scheduleForm.proposed_start_date && scheduleForm.proposed_due_date && scheduleForm.proposed_start_date > scheduleForm.proposed_due_date) { setNotice("Proposed start date cannot be later than the proposed due date."); return; }
+    if (scheduleForm.change_reason.trim().length < 8) { setNotice("Enter a schedule-change reason of at least 8 characters."); return; }
+    const duplicate = scheduleChanges.some((change) => change.target_type === scheduleForm.target_type && (scheduleForm.target_type === "activity" ? change.activity_id === scheduleForm.target_id : change.milestone_id === scheduleForm.target_id));
+    if (duplicate) { setNotice("This target already has a schedule change in this Change Request."); return; }
+    setBusy(true); setNotice("");
+    const payload = { change_request_id: selected.id, project_id: selected.project_id, target_type: scheduleForm.target_type, activity_id: scheduleForm.target_type === "activity" ? scheduleForm.target_id : null, milestone_id: scheduleForm.target_type === "milestone" ? scheduleForm.target_id : null, proposed_start_date: scheduleForm.proposed_start_date || null, proposed_due_date: scheduleForm.proposed_due_date || null, change_reason: scheduleForm.change_reason.trim() };
+    const { error: scheduleError } = await supabase.from("project_change_request_schedule_changes").insert(payload);
+    if (scheduleError) setNotice("Schedule change was not saved: " + scheduleError.message);
+    else { setNotice("Proposed schedule change added. The original baseline is unchanged until the PM accepts the Change Request."); await loadDetail(selected); }
     setBusy(false);
   };
 
@@ -239,6 +268,8 @@ export default function ChangeRequests({ canManage }: { canManage: boolean }) {
                 </div>;
               })}</div>}
             </div>
+
+            {selected.status === "draft" && <div className="cr-detail-section cr-schedule-section"><div className="cr-section-title"><div><h3>Proposed schedule changes</h3><p>Propose revised dates for existing activities or milestones. Baseline dates remain unchanged until PM acceptance.</p></div><span className="cr-edit-hint">{scheduleChanges.length} proposed</span></div><div className="cr-schedule-form"><div className="cr-form-two"><label>Target type<select value={scheduleForm.target_type} onChange={(e) => setScheduleForm((s) => ({ ...s, target_type: e.target.value as "activity" | "milestone", target_id: "" }))}><option value="activity">Activity</option><option value="milestone">Milestone</option></select></label><label>{scheduleForm.target_type === "activity" ? "Activity" : "Milestone"}<select value={scheduleForm.target_id} onChange={(e) => setScheduleForm((s) => ({ ...s, target_id: e.target.value }))}><option value="">Select {scheduleForm.target_type}</option>{(scheduleForm.target_type === "activity" ? activities : milestones).map((target) => <option key={target.id} value={target.id}>{target.code} · {target.name}</option>)}</select></label></div><div className="cr-form-two"><label>Proposed start date<input type="date" value={scheduleForm.proposed_start_date} onChange={(e) => setScheduleForm((s) => ({ ...s, proposed_start_date: e.target.value }))}/></label><label>Proposed due date<input type="date" value={scheduleForm.proposed_due_date} onChange={(e) => setScheduleForm((s) => ({ ...s, proposed_due_date: e.target.value }))}/></label></div><label>Reason for schedule change<textarea value={scheduleForm.change_reason} onChange={(e) => setScheduleForm((s) => ({ ...s, change_reason: e.target.value }))} placeholder="Explain why these dates need to change"/></label><button className="button-secondary" disabled={busy || !scheduleForm.target_id || (!scheduleForm.proposed_start_date && !scheduleForm.proposed_due_date) || scheduleForm.change_reason.trim().length < 8} onClick={() => void addScheduleChange()}>{busy ? "Saving…" : "Add proposed schedule change"}</button></div>{scheduleChanges.length > 0 && <div className="cr-schedule-list">{scheduleChanges.map((change) => { const target = change.target_type === "activity" ? activities.find((a) => a.id === change.activity_id) : milestones.find((m) => m.id === change.milestone_id); return <div key={change.id}><div><strong>{target ? `${target.code} · ${target.name}` : label(change.target_type)}</strong><small>{change.change_reason}</small></div><span>{change.proposed_start_date ?? "—"} → {change.proposed_due_date ?? "—"}</span><em>{change.applied_at ? "Applied on acceptance" : "Pending PM decision"}</em></div>;})}</div>}</div>}
 
             {selected.contract_variation_id ? <div className="cr-detail-section cr-variation-section"><div className="cr-section-title"><div><h3>Linked contract variation</h3><p>Created from the assessed financial impact and governed through the Change Request PM decision.</p></div></div>{variation ? <div className="cr-variation-summary"><strong>{variation.variation_reference} · {variation.title}</strong><span>{Number(variation.amount_delta).toLocaleString()} {variation.currency_code} · {label(variation.status)}</span></div> : <div className="cr-inline-empty">Variation reference is linked. Its details are not visible to this account.</div>}</div> : selected.status === "draft" ? <div className="cr-detail-section cr-variation-section"><div className="cr-section-title"><div><h3>Contract variation</h3><p>Financial impact is converted into one linked draft variation after currency and contract checks.</p></div></div><div className="cr-variation-actions"><span>{selected.contract_id ? `Contract: ${contracts.find((item) => item.id === selected.contract_id)?.contract_reference ?? "Selected contract"}` : "No contract linked to this Change Request."}</span><button className="button-secondary" disabled={busy || !selected.contract_id || !impacts.some((i) => i.assessment_status === "assessed" && Number(i.cost_delta ?? 0) !== 0)} onClick={() => void createLinkedVariation()}>{busy ? "Creating…" : "Create linked variation"}</button></div></div> : null}
 
