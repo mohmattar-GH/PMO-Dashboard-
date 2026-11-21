@@ -113,9 +113,9 @@ function App({ displayName, roles, onSignOut }: AppProps) {
           </button>
         )}
         <div className="nav-group-label nav-group-spaced">DELIVERY CONTROL</div>
-        {navItems.slice(5, 9).map(({ label, icon: Icon, count }) =>
+        {navItems.slice(5, 9).map(({ label, icon: Icon }) =>
           <button key={label} className={activeNav === label ? "nav-item active" : "nav-item"} onClick={() => { setActiveNav(label); setSidebarOpen(false); }}>
-            <Icon size={17}/><span>{label}</span>{count && <b>{count}</b>}
+            <Icon size={17}/><span>{label}</span>
           </button>
         )}
         <div className="nav-group-label nav-group-spaced">GOVERNANCE</div>
