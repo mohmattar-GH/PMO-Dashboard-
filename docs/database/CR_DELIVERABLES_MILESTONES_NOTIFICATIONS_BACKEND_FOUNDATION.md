@@ -195,3 +195,24 @@ This test used simulated Auth claim subjects, not signed-JWT HTTP/API requests. 
 ## Current module boundary
 
 The backend now includes CR workflow execution and approved financial/schedule application, deliverable submission/review/PM acceptance, and immediate in-app notification generation. User-facing CR/deliverable/configuration/notification screens, scheduled notification processing, external email, milestone re-baseline approval/application, real signed-JWT/API/Storage tests, and full clean replay of the latest migration chain remain outstanding.
+
+
+## PM-only Change Request decision model — 21 November 2026
+
+Migrations 091–093 (20261121123154, 20261121123213, 20261121123320) replace the previous CR approval route with a single assigned-Project-Manager decision:
+- `submit_project_change_request` submits a draft after validating the selected published impact-dimension configuration, completion of every required assessment (assessed or N/A with a reason), and an active assigned Project Manager.
+- `decide_project_change_request` permits only the assigned active Project Manager to accept or reject a submitted CR. The requester cannot decide their own CR. A reason is mandatory; actor and timestamp are database-recorded.
+- There are no Finance, Team Lead or other approval stages, no sequential/parallel CR approval assignments, and no approval-needed notifications. The legacy transition RPC is disabled; approval rows are retained as historical data but client writes and approval triggers are disabled.
+- Finance and technical impact remain assessment inputs. The old Finance-approval prerequisite for submission and for CR-linked contract variation application has been removed. Currency, contract/variation matching and transaction integrity checks remain.
+- PM acceptance atomically applies the linked contract variation and approved schedule changes and writes an application/history record. Original baseline dates remain untouched.
+- The assigned PM cannot be changed after submission. Direct lifecycle writes remain blocked by the database guard.
+- In-app CR notifications now cover submission and the PM's accepted/rejected decision only.
+
+### Verification and limitations
+
+- Supabase applied all three migrations; the live migration ledger count is 93.
+- Exact SQL source hash comparison passed for migrations 091 and 093. Migration 092 source was reconciled to the exact live ledger statement and exact comparison passed.
+- Catalog checks confirm the new public RPCs are SECURITY INVOKER wrappers, callable by authenticated users; their private SECURITY DEFINER implementations are not executable by client roles. The old transition wrapper is not executable by authenticated users. Approval-assignment triggers and the legacy Finance submission guard are absent.
+- Security Advisor shows no new CR-related warning. The two existing public lifecycle SECURITY DEFINER warnings remain; the private formula-template INFO remains. Performance Advisor still reports 19 unindexed-FK notices on existing lifecycle/financial tables; no new CR-module FK notice was reported.
+- The database has no Auth users, projects or CR records, so positive/negative role-journey tests with real fixtures and signed JWTs could not be performed. The new RPC paths have been catalog-verified, not claimed as end-to-end tested.
+- Full clean-environment replay of all 93 migrations and latest frontend build remain outstanding. No merge or deployment occurred.
