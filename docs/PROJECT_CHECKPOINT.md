@@ -873,3 +873,15 @@ Remaining backend validation is unchanged: provision test Auth users and members
 - External email delivery is not enabled. No frontend files were changed in this slice.
 - Detailed record: docs/database/CR_DELIVERABLES_MILESTONES_NOTIFICATIONS_BACKEND_FOUNDATION.md.
 - No merge or deployment. Staff Time & Performance remains untouched.
+
+
+## CR module policy/index hardening and migration ledger alignment — 21 November 2026
+
+- Added migration 065, 20261121094854_cr_workflow_policy_and_index_hardening: split write policies from read policies to eliminate seven multiple-permissive SELECT warnings, and added indexes for new module foreign keys.
+- Added migration 066, 20261121094908_contract_deliverable_review_fk_index: composite index covering the deliverable-review submission/project/deliverable FK.
+- Re-ran Security Advisor: no new findings. Existing findings remain two authenticated lifecycle SECURITY DEFINER WARNs and one intentional private formula-template INFO.
+- Re-ran Performance Advisor: zero unindexed foreign-key findings on the new module tables. Nineteen remaining unindexed-FK findings are on pre-existing financial/lifecycle tables. Unused-index INFOs are expected while the database contains no application data; do not remove indexes solely on that basis.
+- Reconciled GitHub migration filenames to the exact live ledger versions: 064 = 20261121094748, 065 = 20261121094854, 066 = 20261121094908.
+- Migration application and catalog checks succeeded. All 14 new tables have RLS enabled and policies. No new test users or sample business data were created.
+- Clean-environment replay of the complete 66-migration chain is not yet verified. GitHub's available workflow-run fetch did not return a PR-triggered run for the latest branch commit, so no CI pass is claimed for these commits.
+- The backend workflow engine and user-facing module actions remain incomplete as detailed in docs/database/CR_DELIVERABLES_MILESTONES_NOTIFICATIONS_BACKEND_FOUNDATION.md. No frontend changes, merge or deployment occurred. Staff Time & Performance remains untouched.
