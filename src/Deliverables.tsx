@@ -84,7 +84,6 @@ export default function Deliverables({ canManage }: { canManage: boolean }) {
   const selected = records.find((r) => r.id === selectedId) ?? null;
   const membersFor = (projectId: string) => members.filter((m) => m.project_id === projectId);
   const isProjectPM = (projectId: string) => membersFor(projectId).some((m) => m.user_id === currentUserId && m.project_role === "project_manager");
-  const canManageSelected = Boolean(selected && (isPlatformAdmin || isProjectPM(selected.project_id)));
   const projectName = (projectId: string) => projects.find((p) => p.id === projectId)?.name ?? "Project";
   const ownerName = (id: string | null, projectId: string) => id ? membersFor(projectId).find((m) => m.user_id === id)?.display_name ?? id.slice(0, 8) : "Unassigned";
   const filtered = useMemo(() => records.filter((r) =>
