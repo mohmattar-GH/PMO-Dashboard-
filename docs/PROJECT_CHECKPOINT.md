@@ -848,3 +848,13 @@ Remaining backend validation is unchanged: provision test Auth users and members
 - This is static source verification only. Fresh rollback-only tests for future-dated/expired assignments and real signed-JWT HTTP tests remain outstanding. Do not treat the earlier simulated negative-test note as proof that this missing check was previously enforced.
 - Security Advisor remains at two intentional authenticated SECURITY DEFINER WARN findings plus one INFO for the server-only private formula-template table.
 - No Auth users or persistent test fixtures created. No merge or deployment; PR #1 remains draft. Staff Time & Performance untouched.
+
+
+## Post-fix lifecycle authorization verification — 21 November 2026
+
+- Ran four rollback-only SQL tests after migration 063: future-dated and expired Project Manager memberships, plus future-dated and expired Platform Administrator assignments. All four were denied with the expected authorization error.
+- Tests used simulated `request.jwt.claim.sub` values and temporary fixtures within one transaction; follow-up query confirmed zero test Auth users, profiles or projects remained.
+- Confirmed function ACL: anon cannot execute `transition_project_phase`; authenticated retains the intended grant. Live function source includes effective-from and effective-to checks on both authorization paths.
+- These tests are not signed-JWT HTTP tests; actual Auth/Data API/RPC testing and Storage tests remain outstanding.
+- The migration source archive now contains 63 files matching all 63 live migration ledger entries, with no missing or extra filenames.
+- Frontend build passed for current branch head `a3289bdda9f28a29abc8cc42d6f3f32dd51a0185`. Migration replay is still running; an earlier PR replay attempt failed before stack startup because GitHub rate-limited the action's lookup of the latest Supabase CLI release. The workflow is now pinned to Supabase CLI 3.2.0 and uses a guarded cleanup step.
