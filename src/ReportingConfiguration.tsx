@@ -42,7 +42,7 @@ export default function ReportingConfiguration({ globalRoles }: { globalRoles: s
   const [parametersJson, setParametersJson] = useState("[]");
   const [reason, setReason] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
-  const [createForm, setCreateForm] = useState({ scope_type: "global" as "global" | "project", project_id: "", configuration_code: "", name: "", description: "", effective_from: "", effective_to: "" });
+  const [createForm, setCreateForm] = useState({ useExistingSet: false, scope_type: "global" as "global" | "project", project_id: "", configuration_code: "", name: "", description: "", effective_from: "", effective_to: "" });
   const [projectIds, setProjectIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -133,22 +133,26 @@ export default function ReportingConfiguration({ globalRoles }: { globalRoles: s
   };
 
   const createDraft = async () => {
-    if (createForm.scope_type === "project" && !createForm.project_id) { setError("Select a project for project-scoped configuration."); return; }
-    const result = await invokeGovernance("create_draft", {
-      scope_type: createForm.scope_type, project_id: createForm.scope_type === "project" ? createForm.project_id : null,
-      configuration_code: createForm.configuration_code.trim(), name: createForm.name.trim(),
-      description: createForm.description.trim() || null, effective_from: createForm.effective_from ? new Date(createForm.effective_from).toISOString() : null,
-      effective_to: createForm.effective_to ? new Date(createForm.effective_to).toISOString() : null
-    }, reason);
+    const useExisting = createForm.useExistingSet && Boolean(selectedSet);
+    if (useExisting && selectedVersion && (["draft","submitted","approved"].includes(selectedVersion.status) || selectedVersion.id !== versions[0]?.id)) {
+      setError("Finish the latest version lifecycle before creating its successor.");
+      return;
+    }
+    if (!useExisting && createForm.scope_type === "project" && !createForm.project_id) { setError("Select a project for project-scoped configuration."); return; }
+    if (!useExisting && (!createForm.configuration_code.trim() || !createForm.name.trim())) { setError("Configuration code and name are required."); return; }
+    const payload = useExisting && selectedSet
+      ? { configuration_set_id: selectedSet.id, scope_type: selectedSet.scope_type, project_id: selectedSet.project_id, effective_from: createForm.effective_from ? new Date(createForm.effective_from).toISOString() : null, effective_to: createForm.effective_to ? new Date(createForm.effective_to).toISOString() : null }
+      : { scope_type: createForm.scope_type, project_id: createForm.scope_type === "project" ? createForm.project_id : null, configuration_code: createForm.configuration_code.trim(), name: createForm.name.trim(), description: createForm.description.trim() || null, effective_from: createForm.effective_from ? new Date(createForm.effective_from).toISOString() : null, effective_to: createForm.effective_to ? new Date(createForm.effective_to).toISOString() : null };
+    const result = await invokeGovernance("create_draft", payload, reason);
     if (!result) return;
     const setId = String(result.configuration_set_id ?? "");
     const version = result.version as { id?: string } | undefined;
-    setCreateOpen(false); setCreateForm({ scope_type: "global", project_id: "", configuration_code: "", name: "", description: "", effective_from: "", effective_to: "" });
+    setCreateOpen(false);
+    setCreateForm({ useExistingSet: false, scope_type: "global", project_id: "", configuration_code: "", name: "", description: "", effective_from: "", effective_to: "" });
     setReason("");
     await loadBase();
     if (setId) { setSelectedSetId(setId); await loadVersions(setId, version?.id); }
   };
-
   const saveDraftRules = async () => {
     if (!selectedVersion) return;
     try {
