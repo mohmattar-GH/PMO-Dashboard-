@@ -10,7 +10,7 @@ type RuleHistory={id:string;rule_id:string;version_no:number;rule_snapshot:Recor
 const label=(value:string)=>value.replace(/_/g," ").replace(/\b\w/g,(s)=>s.toUpperCase());
 const dateTime=(value:string)=>new Intl.DateTimeFormat(undefined,{dateStyle:"medium",timeStyle:"short"}).format(new Date(value));
 
-export default function Notifications({isAdmin}:{isAdmin:boolean}){
+export default function Notifications({isAdmin,onUnreadChange}:{isAdmin:boolean;onUnreadChange:(count:number)=>void}){
   const [tab,setTab]=useState<"inbox"|"rules">("inbox");
   const [userId,setUserId]=useState("");
   const [projects,setProjects]=useState<Project[]>([]);
@@ -25,7 +25,6 @@ export default function Notifications({isAdmin}:{isAdmin:boolean}){
   const [severityFilter,setSeverityFilter]=useState("all");
   const [editingId,setEditingId]=useState<string|null>(null);
   const [ruleForm,setRuleForm]=useState({rule_code:"",rule_name:"",module_code:"change_request",event_code:"cr_submitted",is_enabled:true,severity:"normal",project_roles:"project_manager",global_roles:"platform_admin",include_target_users:true,exclude_actor:true,requires_acknowledgement:false});
-  const [historyRuleId,setHistoryRuleId]=useState("");
 
   const load=useCallback(async()=>{
     if(!supabase){setError("Supabase client is not configured.");setLoading(false);return;}
@@ -47,6 +46,7 @@ export default function Notifications({isAdmin}:{isAdmin:boolean}){
     setLoading(false);
   },[isAdmin]);
   useEffect(()=>{void load();},[load]);
+  useEffect(()=>{onUnreadChange(notifications.filter((n)=>!n.is_read).length);},[notifications,onUnreadChange]);
 
   const unreadCount=notifications.filter((n)=>!n.is_read).length;
   const pendingAck=notifications.filter((n)=>n.requires_acknowledgement&&!n.acknowledged_at).length;
@@ -86,7 +86,7 @@ export default function Notifications({isAdmin}:{isAdmin:boolean}){
       include_target_users:recipients.include_target_users===true,exclude_actor:recipients.exclude_actor!==false,
       requires_acknowledgement:rule.requires_acknowledgement
     });
-    setHistoryRuleId(rule.id);void loadRuleHistory(rule.id);
+    void loadRuleHistory(rule.id);
   };
   const loadRuleHistory=async(id:string)=>{
     if(!supabase||!isAdmin)return;
@@ -94,7 +94,7 @@ export default function Notifications({isAdmin}:{isAdmin:boolean}){
     if(err)setNotice("Rule history unavailable: "+err.message);else setHistory((data??[]) as RuleHistory[]);
   };
   const resetRule=()=>{
-    setEditingId(null);setHistoryRuleId("");setHistory([]);
+    setEditingId(null);setHistory([]);
     setRuleForm({rule_code:"",rule_name:"",module_code:"change_request",event_code:"cr_submitted",is_enabled:true,severity:"normal",project_roles:"project_manager",global_roles:"platform_admin",include_target_users:true,exclude_actor:true,requires_acknowledgement:false});
   };
   const saveRule=async(event:FormEvent)=>{
