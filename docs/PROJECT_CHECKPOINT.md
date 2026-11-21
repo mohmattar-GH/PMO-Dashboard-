@@ -953,3 +953,20 @@ Remaining backend validation is unchanged: provision test Auth users and members
 - Total live migrations: 84. Security Advisor still shows only two pre-existing public lifecycle SECURITY DEFINER warnings and the intentional private formula-template INFO. Performance Advisor still shows 19 unindexed-FK notices on pre-existing lifecycle/financial tables; none on the new CR module tables. Clean replay of all 84 migrations remains outstanding.
 - CR screens, schedule impact UI, linked variation UI, approval inbox, SLA/notification wiring, deliverable submission/review actions and milestone re-baseline execution remain outstanding. No merge or deployment. Staff Time & Performance remains untouched.
 - Detailed record: docs/database/CR_DELIVERABLES_MILESTONES_NOTIFICATIONS_BACKEND_FOUNDATION.md.
+
+
+## Deliverable submission, review and PM acceptance actions — 21 November 2026
+
+- Added migrations 085–087 (20261121101154, 20261121101202, 20261121101233) and archived their exact applied SQL sources in GitHub.
+- Added public SECURITY INVOKER RPC wrappers with private-schema implementations:
+  - submit_contract_deliverable: assigned owner or active PM submits a numbered version with notes and optional document/version. Document references are checked for same-project scope, active status, uploaded version and the user's classification read permission.
+  - review_contract_deliverable_submission: assigned reviewer or active PM records accepted, changes_required or rejected; rejection requires a reason. One review decision per submission.
+  - accept_contract_deliverable: only active PM for the project may accept, and only after the latest submission receives an accepted review outcome.
+- A reviewer outcome of accepted does not formally accept the deliverable. acceptance_status remains unaccepted until the separate PM acceptance action stamps accepted_by and accepted_at.
+- Direct client writes to submission/review records are revoked. Direct client changes to deliverable submission/review/acceptance lifecycle fields are blocked. PM acceptance is enforced through a transaction-local action context and the existing database acceptance guard.
+- Submission and review audit events are recorded; deliverable operational history captures state changes.
+- Rollback-only test passed: Team Lead submitted version 1; assigned reviewer accepted the submission; deliverable remained unaccepted; direct PM table acceptance was rejected; PM acceptance RPC succeeded and stamped actor/time. Test transaction rolled back; no fixture records remain.
+- This is SQL-level simulation, not signed-JWT HTTP/API or actual Storage upload/download testing. Document classification checks are implemented; document-linked submission and Storage E2E remain pending.
+- Total live migration count: 87. Clean-environment replay of 84 migrations passed before migrations 085–087 were added; full replay of all 87 migrations must be rerun. Frontend build also passed at the earlier commit; rerun both pipelines at the latest branch head.
+- Deliverable screens/actions, CR screens, approval inbox, workflow configuration UI and notification event processing remain outstanding. No merge or deployment. Staff Time & Performance remains untouched.
+- Detailed implementation: docs/database/CR_DELIVERABLES_MILESTONES_NOTIFICATIONS_BACKEND_FOUNDATION.md.
