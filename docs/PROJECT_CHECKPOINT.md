@@ -1113,3 +1113,5 @@ Remaining backend validation is unchanged: provision test Auth users and members
 - Security Advisor remains at the same existing findings: two known public lifecycle SECURITY DEFINER warnings and one private formula-template INFO; no new notification-related warning.
 - There are currently no notification rules or inbox records, and no Auth users/project fixtures. Real role-based inbox/rule tests remain outstanding. Frontend build/browser tests are not verified. PR #1 remains draft/unmerged; no deployment. Staff Time & Performance remains untouched.
 - Next: scheduled SLA/reminder/escalation processing requires a separate supported backend design; then perform signed-JWT role tests, clean migration replay and frontend build verification.
+
+- Rule editor includes the supported event codes confirmed from the live database trigger functions for Change Requests, Deliverables and Milestone re-baselining, reducing the risk of configuring a rule against a non-emitted event.
