@@ -9,7 +9,7 @@ type Project = {
 };
 type Phase = { project_id: string; phase_name: string; progress_percent: number | null; planned_start_date: string | null; forecast_completion_date: string | null; actual_completion_date: string | null };
 type Snapshot = { project_id: string; calculated_health: string | null; reported_health: string | null; created_at: string };
-type Member = { project_id: string; user_id: string; project_role: string; display_name: string };
+type Member = { project_id: string; user_id: string; project_role: string; display_name: string; job_title: string | null };
 type Contract = { id: string; contract_reference: string; contract_title: string; contract_type: string; status: string; signed_date: string | null; commencement_date: string | null; contractual_end_date: string | null; duration_months: number | null; scope_summary: string | null; obligations: string | null; acceptance_criteria: string | null; penalties_terms: string | null; change_control_terms: string | null; payment_terms: string | null; currency_code: string | null; original_contract_value: number | null };
 type Finance = { currency_code: string; original_contract_value: number; approved_variations: number; revised_contract_value: number | null; tax_rate: number | null; retention_rate: number | null; payment_terms: string | null; billing_notes: string | null };
 type Milestone = { id: string; milestone_code: string; name: string; milestone_type: string; baseline_due_date: string | null; approved_revised_due_date: string | null; forecast_due_date: string | null; actual_due_date: string | null; progress_percent: number; status: string; weight: number | null; is_critical: boolean };
@@ -30,13 +30,14 @@ const amount = (value: number | null | undefined, currency: string | null | unde
 };
 const statusClass = (status: string | null | undefined) => (status || "not-reported").toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
-export default function Projects({ isPlatformAdmin }: { isPlatformAdmin: boolean }) {
+export default function Projects() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [clients, setClients] = useState<Record<string, string>>({});
   const [portfolios, setPortfolios] = useState<Record<string, string>>({});
   const [phases, setPhases] = useState<Record<string, Phase>>({});
   const [snapshots, setSnapshots] = useState<Record<string, Snapshot>>({});
-  const [members, setMembers] = useState<Member[]>([]);
+  const [teamDirectory, setTeamDirectory] = useState<Member[]>([]);
+  const [currentUserId, setCurrentUserId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
@@ -65,6 +66,8 @@ export default function Projects({ isPlatformAdmin }: { isPlatformAdmin: boolean
       supabase.from("project_snapshot_index").select("project_id,calculated_health,reported_health,created_at").order("created_at", { ascending: false })
     ]);
     if (projectResult.error) { setError(projectResult.error.message); setLoading(false); return; }
+    const { data: userData } = await supabase.auth.getUser();
+    setCurrentUserId(userData.user?.id ?? "");
     setProjects((projectResult.data ?? []) as Project[]);
     setClients(Object.fromEntries((clientResult.data ?? []).map((row: { id: string; name: string }) => [row.id, row.name])));
     setPortfolios(Object.fromEntries((portfolioResult.data ?? []).map((row: { id: string; name: string }) => [row.id, row.name])));
@@ -72,24 +75,17 @@ export default function Projects({ isPlatformAdmin }: { isPlatformAdmin: boolean
     const latest: Record<string, Snapshot> = {};
     for (const row of (snapshotResult.data ?? []) as Snapshot[]) if (!latest[row.project_id]) latest[row.project_id] = row;
     setSnapshots(latest);
-    if (isPlatformAdmin) {
-      const memberResult = await supabase.from("project_memberships").select("project_id,user_id,project_role").eq("status", "active").lte("effective_from", new Date().toISOString()).or("effective_to.is.null,effective_to.gt." + new Date().toISOString());
-      const raw = (memberResult.data ?? []) as Omit<Member, "display_name">[];
-      const ids = [...new Set(raw.map((member) => member.user_id))];
-      const profileResult = ids.length ? await supabase.from("user_profiles").select("user_id,display_name").in("user_id", ids) : { data: [], error: null };
-      const names = new Map((profileResult.data ?? []).map((profile: { user_id: string; display_name: string | null }) => [profile.user_id, profile.display_name || profile.user_id.slice(0, 8)]));
-      setMembers(raw.map((member) => ({ ...member, display_name: names.get(member.user_id) ?? member.user_id.slice(0, 8) })));
-    } else setMembers([]);
     setLoading(false);
-  }, [isPlatformAdmin]);
+  }, []);
 
   useEffect(() => { void loadRegister(); }, [loadRegister]);
 
   const selected = projects.find((project) => project.id === selectedId) ?? null;
   const memberName = (projectId: string, userId: string | null) => {
     if (!userId) return "Not assigned";
-    if (!isPlatformAdmin) return "Assigned · name restricted by role";
-    return members.find((member) => member.project_id === projectId && member.user_id === userId)?.display_name ?? "Name not available";
+    const member = teamDirectory.find((item) => item.project_id === projectId && item.user_id === userId);
+    if (member?.display_name) return member.display_name;
+    return userId === currentUserId ? "You" : "Assigned · name restricted by role";
   };
   const filtered = useMemo(() => projects.filter((project) => {
     const phase = phases[project.id]?.phase_name ?? "";
@@ -110,8 +106,10 @@ export default function Projects({ isPlatformAdmin }: { isPlatformAdmin: boolean
       supabase.from("project_licenses").select("id,license_reference,license_name,license_type,provider,expiry_date,renewal_notice_date,status,renewal_cost,currency_code").eq("project_id", project.id).order("expiry_date"),
       supabase.from("project_invoices").select("id,invoice_reference,invoice_type,status,issue_date,submission_date,due_date,currency_code,total_amount,disputed_reason").eq("project_id", project.id).order("issue_date", { ascending: false }),
       supabase.from("project_invoice_balances").select("invoice_id,applied_amount,outstanding_amount,is_settled").eq("project_id", project.id),
-      supabase.from("project_cash_transactions").select("id,transaction_reference,transaction_type,status,transaction_date,currency_code,amount,payer_payee").eq("project_id", project.id).order("transaction_date", { ascending: false })
+      supabase.from("project_cash_transactions").select("id,transaction_reference,transaction_type,status,transaction_date,currency_code,amount,payer_payee").eq("project_id", project.id).order("transaction_date", { ascending: false }),
+      supabase.rpc("get_project_team_directory", { p_project_id: project.id })
     ]);
+    const teamResult = arguments[0] as never;
     const errors = [contractResult.error, financeResult.error, milestoneResult.error, activityResult.error, riskResult.error, licenseResult.error, invoiceResult.error, balanceResult.error, cashResult.error].filter(Boolean);
     setDetailNotice(errors.length ? "Some sections could not be loaded because of data permissions or a service error. Restricted financial sections are not treated as zero." : "");
     setContracts((contractResult.data ?? []) as Contract[]);
@@ -123,6 +121,7 @@ export default function Projects({ isPlatformAdmin }: { isPlatformAdmin: boolean
     setInvoices((invoiceResult.data ?? []) as Invoice[]);
     setBalances(Object.fromEntries(((balanceResult.data ?? []) as Balance[]).map((balance) => [balance.invoice_id, balance])));
     setCash((cashResult.data ?? []) as Cash[]);
+    setTeamDirectory((teamResult.data ?? []) as Member[]);
     setDetailLoading(false);
   }, []);
 
