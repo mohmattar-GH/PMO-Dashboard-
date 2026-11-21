@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ArrowLeft, BriefcaseBusiness, Layers3, Search, ShieldAlert, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ArrowLeft, BriefcaseBusiness, CheckCircle2, Layers3, Plus, Search, ShieldAlert, ShieldCheck } from "lucide-react";
 import { supabase } from "./lib/supabase";
 
 type Project = {
@@ -30,10 +30,13 @@ const amount = (value: number | null | undefined, currency: string | null | unde
 };
 const statusClass = (status: string | null | undefined) => (status || "not-reported").toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
-export default function Projects() {
+export default function Projects({ isPlatformAdmin }: { isPlatformAdmin: boolean }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [clients, setClients] = useState<Record<string, string>>({});
+  const [clientOptions, setClientOptions] = useState<{ id: string; name: string }[]>([]);
   const [portfolios, setPortfolios] = useState<Record<string, string>>({});
+  const [portfolioOptions, setPortfolioOptions] = useState<{ id: string; name: string }[]>([]);
+  const [userOptions, setUserOptions] = useState<{ user_id: string; display_name: string; job_title: string | null }[]>([]);
   const [phases, setPhases] = useState<Record<string, Phase>>({});
   const [snapshots, setSnapshots] = useState<Record<string, Snapshot>>({});
   const [teamDirectory, setTeamDirectory] = useState<Member[]>([]);
@@ -54,6 +57,11 @@ export default function Projects() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [balances, setBalances] = useState<Record<string, Balance>>({});
   const [cash, setCash] = useState<Cash[]>([]);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState("");
+  const [createSuccess, setCreateSuccess] = useState("");
+  const [createForm, setCreateForm] = useState({ project_code: "", name: "", client_id: "", portfolio_id: "", project_manager_id: "", team_lead_id: "", start_date: "", target_end_date: "", timezone: "UTC", currency_code: "" });
 
   const loadRegister = useCallback(async () => {
     if (!supabase) { setError("Supabase client is not configured."); setLoading(false); return; }
@@ -63,20 +71,24 @@ export default function Projects() {
       supabase.from("clients").select("id,name"),
       supabase.from("portfolios").select("id,name"),
       supabase.from("project_current_phase").select("project_id,phase_name,progress_percent,planned_start_date,forecast_completion_date,actual_completion_date"),
-      supabase.from("project_snapshot_index").select("project_id,calculated_health,reported_health,created_at").order("created_at", { ascending: false })
+      supabase.from("project_snapshot_index").select("project_id,calculated_health,reported_health,created_at").order("created_at", { ascending: false }),
+      isPlatformAdmin ? supabase.from("user_profiles").select("user_id,display_name,job_title").eq("is_active", true).order("display_name") : Promise.resolve({ data: [], error: null })
     ]);
     if (projectResult.error) { setError(projectResult.error.message); setLoading(false); return; }
     const { data: userData } = await supabase.auth.getUser();
     setCurrentUserId(userData.user?.id ?? "");
     setProjects((projectResult.data ?? []) as Project[]);
+    setClientOptions((clientResult.data ?? []) as { id: string; name: string }[]);
+    setPortfolioOptions((portfolioResult.data ?? []) as { id: string; name: string }[]);
     setClients(Object.fromEntries((clientResult.data ?? []).map((row: { id: string; name: string }) => [row.id, row.name])));
     setPortfolios(Object.fromEntries((portfolioResult.data ?? []).map((row: { id: string; name: string }) => [row.id, row.name])));
+    setUserOptions((profilesResult.data ?? []) as { user_id: string; display_name: string; job_title: string | null }[]);
     setPhases(Object.fromEntries(((phaseResult.data ?? []) as Phase[]).map((row) => [row.project_id, row])));
     const latest: Record<string, Snapshot> = {};
     for (const row of (snapshotResult.data ?? []) as Snapshot[]) if (!latest[row.project_id]) latest[row.project_id] = row;
     setSnapshots(latest);
     setLoading(false);
-  }, []);
+  }, [isPlatformAdmin]);
 
   useEffect(() => { void loadRegister(); }, [loadRegister]);
 
@@ -93,6 +105,32 @@ export default function Projects() {
     const client = project.client_id ? clients[project.client_id] ?? "" : "";
     return [project.project_code, project.name, client, phase, health, project.lifecycle_status].join(" ").toLowerCase().includes(query.trim().toLowerCase());
   }), [projects, phases, snapshots, clients, query]);
+
+  const createProject = async () => {
+    if (!supabase) return;
+    if (!createForm.project_code.trim() || !createForm.name.trim() || !createForm.project_manager_id) {
+      setCreateError("Project code, project name and Project Manager are required."); return;
+    }
+    if (createForm.start_date && createForm.target_end_date && createForm.target_end_date < createForm.start_date) {
+      setCreateError("Target end date cannot be earlier than the project start date."); return;
+    }
+    setCreating(true); setCreateError(""); setCreateSuccess("");
+    const { error: createRpcError } = await supabase.rpc("create_project_register_entry", {
+      p_project_code: createForm.project_code.trim().toUpperCase(), p_name: createForm.name.trim(),
+      p_client_id: createForm.client_id || null, p_portfolio_id: createForm.portfolio_id || null,
+      p_project_manager_id: createForm.project_manager_id, p_team_lead_id: createForm.team_lead_id || null,
+      p_start_date: createForm.start_date || null, p_target_end_date: createForm.target_end_date || null,
+      p_timezone: createForm.timezone.trim() || "UTC", p_currency_code: createForm.currency_code.trim().toUpperCase() || null
+    });
+    if (createRpcError) setCreateError(createRpcError.message);
+    else {
+      setCreateSuccess("Project created in Draft status. Assign its lifecycle phase before treating it as an active delivery project.");
+      setShowCreateForm(false);
+      setCreateForm({ project_code: "", name: "", client_id: "", portfolio_id: "", project_manager_id: "", team_lead_id: "", start_date: "", target_end_date: "", timezone: "UTC", currency_code: "" });
+      await loadRegister();
+    }
+    setCreating(false);
+  };
 
   const loadDetail = useCallback(async (project: Project) => {
     if (!supabase) return;
@@ -140,7 +178,20 @@ export default function Projects() {
 
   return <section className="project-module">
     {!selected ? <>
-      <div className="project-module-heading"><div><span className="module-eyebrow">PORTFOLIO DATA</span><h2>Project Register</h2><p>Live project profiles, delivery position and governance information.</p></div><div className="project-register-search"><Search size={15}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search project, client, phase or health"/></div></div>
+      <div className="project-module-heading"><div><span className="module-eyebrow">PORTFOLIO DATA</span><h2>Project Register</h2><p>Live project profiles, delivery position and governance information.</p></div><div className="project-register-header-actions">{isPlatformAdmin && <button className="button-primary small" onClick={() => { setCreateError(""); setShowCreateForm(true); }}><Plus size={13}/> New Project</button>}<div className="project-register-search"><Search size={15}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search project, client, phase or health"/></div></div></div>
+      {createSuccess && <div className="project-create-success"><CheckCircle2 size={15}/>{createSuccess}</div>}
+      {showCreateForm && <div className="panel project-create-form"><div className="project-panel-heading"><h3>Create Project</h3><span>Platform Administrator only · new projects start in Draft</span></div><div className="project-create-grid">
+        <label>Project code<input value={createForm.project_code} maxLength={50} onChange={(e) => setCreateForm((f) => ({ ...f, project_code: e.target.value.toUpperCase() }))} placeholder="e.g. PPM-001"/></label>
+        <label>Project name<input value={createForm.name} maxLength={180} onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))} placeholder="Project name"/></label>
+        <label>Client<select value={createForm.client_id} onChange={(e) => setCreateForm((f) => ({ ...f, client_id: e.target.value }))}><option value="">Not assigned</option>{clientOptions.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}</select></label>
+        <label>Portfolio<select value={createForm.portfolio_id} onChange={(e) => setCreateForm((f) => ({ ...f, portfolio_id: e.target.value }))}><option value="">Not assigned</option>{portfolioOptions.map((portfolio) => <option key={portfolio.id} value={portfolio.id}>{portfolio.name}</option>)}</select></label>
+        <label>Project Manager<select value={createForm.project_manager_id} onChange={(e) => setCreateForm((f) => ({ ...f, project_manager_id: e.target.value }))}><option value="">Select active Project Manager</option>{userOptions.map((user) => <option key={user.user_id} value={user.user_id}>{user.display_name}{user.job_title ? " · " + user.job_title : ""}</option>)}</select></label>
+        <label>Team Lead<select value={createForm.team_lead_id} onChange={(e) => setCreateForm((f) => ({ ...f, team_lead_id: e.target.value }))}><option value="">Not assigned</option>{userOptions.map((user) => <option key={user.user_id} value={user.user_id}>{user.display_name}{user.job_title ? " · " + user.job_title : ""}</option>)}</select></label>
+        <label>Start date<input type="date" value={createForm.start_date} onChange={(e) => setCreateForm((f) => ({ ...f, start_date: e.target.value }))}/></label>
+        <label>Target end date<input type="date" value={createForm.target_end_date} onChange={(e) => setCreateForm((f) => ({ ...f, target_end_date: e.target.value }))}/></label>
+        <label>Project timezone<input value={createForm.timezone} onChange={(e) => setCreateForm((f) => ({ ...f, timezone: e.target.value }))} placeholder="UTC / Asia/Amman"/></label>
+        <label>Currency code<input value={createForm.currency_code} maxLength={3} onChange={(e) => setCreateForm((f) => ({ ...f, currency_code: e.target.value.toUpperCase() }))} placeholder="JOD, USD…"/></label>
+      </div>{createError && <div className="project-create-error"><AlertTriangle size={14}/>{createError}</div>}{!userOptions.length && <p className="project-empty-inline">No active application profiles are available for assignment. Add an active Project Manager profile before creating a project.</p>}<div className="project-create-actions"><button className="button-secondary small" disabled={creating} onClick={() => setShowCreateForm(false)}>Cancel</button><button className="button-primary small" disabled={creating || !userOptions.length} onClick={() => void createProject()}>{creating ? "Creating…" : "Create Draft Project"}</button></div></div>}
       <div className="project-register-summary">
         <div><span>Visible projects</span><strong>{projects.length}</strong></div>
         <div><span>Active lifecycle</span><strong>{projects.filter((project) => !["closed","cancelled","completed"].includes(project.lifecycle_status)).length}</strong></div>
