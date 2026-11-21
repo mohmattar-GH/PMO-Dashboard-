@@ -70,6 +70,6 @@ The four migration source files are named to match the versions recorded in the 
 - 20261121094908_contract_deliverable_review_fk_index.sql
 - 20261121095042_contract_deliverable_pm_acceptance_guard.sql
 
-The 14 new tables all have RLS enabled. The seven new multiple-permissive SELECT policy warnings were eliminated by splitting write policies from read policies. Remaining Performance Advisor unindexed-FK findings are on pre-existing tables, not the new module tables. The clean-environment replay of the complete 66-migration chain has not yet been run.
+The 14 new tables all have RLS enabled. The seven new multiple-permissive SELECT policy warnings were eliminated by splitting write policies from read policies. Remaining Performance Advisor unindexed-FK findings are on pre-existing tables, not the new module tables. All four migration files were compared byte-for-byte against the SQL statements recorded in the live Supabase migration ledger; all matched. The clean-environment replay of the complete 67-migration chain has not yet been run.
 
 The PM acceptance trigger is SECURITY INVOKER with an empty search_path; direct EXECUTE is revoked from client roles. Catalog verification confirms the trigger is installed and the strengthened status/acceptance constraint is active. A positive signed-JWT acceptance test remains pending because no Auth users or project fixtures exist.
