@@ -3,7 +3,7 @@ import { AlertCircle, CheckCircle2, FilePlus2, LoaderCircle, RefreshCw, Save, Sh
 import { supabase } from "./lib/supabase";
 
 type ConfigSet = { id: string; scope_type: "global" | "project"; project_id: string | null; configuration_code: string; name: string; description: string | null; created_at: string };
-type ConfigVersion = { id: string; configuration_set_id: string; version_number: number; status: string; effective_from: string | null; effective_to: string | null; change_summary: string; created_at: string; submitted_at: string | null; approved_at: string | null; published_at: string | null };
+type ConfigVersion = { id: string; configuration_set_id: string; version_number: number; status: string; effective_from: string | null; effective_to: string | null; change_summary: string; created_at: string; created_by: string | null; submitted_by: string | null; submitted_at: string | null; approved_by: string | null; approved_at: string | null; published_by: string | null; published_at: string | null };
 type Project = { id: string; project_code: string; name: string };
 type Dimension = { id: string; dimension_code: string; name: string; description: string | null; display_order: number; weight: number | null; is_active: boolean; missing_data_status: string };
 type KPI = { id: string; dimension_id: string | null; kpi_code: string; name: string; description: string | null; calculation_method: string; formula_template: string; source_mapping: Record<string, unknown>; parameters: Record<string, unknown>; unit: string | null; weight: number | null; is_active: boolean; display_order: number };
@@ -78,7 +78,7 @@ export default function ReportingConfiguration({ globalRoles }: { globalRoles: s
   const loadVersions = useCallback(async (setId: string, preferredVersionId?: string) => {
     if (!supabase || !setId) { setVersions([]); setSelectedVersionId(""); return; }
     const { data, error: versionError } = await supabase.from("reporting_configuration_versions")
-      .select("id,configuration_set_id,version_number,status,effective_from,effective_to,change_summary,created_at,submitted_at,approved_at,published_at")
+      .select("id,configuration_set_id,version_number,status,effective_from,effective_to,change_summary,created_at,created_by,submitted_by,submitted_at,approved_by,approved_at,published_by,published_at")
       .eq("configuration_set_id", setId).order("version_number", { ascending: false });
     if (versionError) { setError(versionError.message); return; }
     const rows = (data ?? []) as ConfigVersion[];
@@ -134,6 +134,8 @@ export default function ReportingConfiguration({ globalRoles }: { globalRoles: s
 
   const createDraft = async () => {
     const useExisting = createForm.useExistingSet && Boolean(selectedSet);
+    if (useExisting && detailLoading) { setError("Wait for the selected version's rules to finish loading."); return; }
+    if (useExisting && versions.length > 0 && !selectedVersion) { setError("Select the latest version before creating its successor."); return; }
     if (useExisting && selectedVersion && (["draft","submitted","approved"].includes(selectedVersion.status) || selectedVersion.id !== versions[0]?.id)) {
       setError("Finish the latest version lifecycle before creating its successor.");
       return;
@@ -207,7 +209,7 @@ export default function ReportingConfiguration({ globalRoles }: { globalRoles: s
       <section className="panel reporting-config-workspace">
         <div className="reporting-config-panel-title"><div><strong>{selectedSetTitle}</strong><span>{selectedSet ? (selectedSet.scope_type === "global" ? "Global configuration" : "Project-scoped configuration") : "Versioned configuration workspace"}</span></div>{selectedSet && <span>{versions.length} versions</span>}</div>
         {!selectedSet ? <div className="reporting-config-empty large">Create or select a configuration set to manage dimensions, KPI definitions and rule parameters.</div> : <>
-          <div className="reporting-config-version-bar"><label>Version<select value={selectedVersionId} onChange={(e) => setSelectedVersionId(e.target.value)}><option value="">Select version</option>{versions.map((version) => <option key={version.id} value={version.id}>v{version.version_number} · {label(version.status)}</option>)}</select></label><div className="reporting-config-version-meta">{selectedVersion && <><span>Created {dateTime(selectedVersion.created_at)}</span><span>Effective {dateTime(selectedVersion.effective_from)}</span><span>Published {dateTime(selectedVersion.published_at)}</span></>}</div></div>
+          <div className="reporting-config-version-bar"><label>Version<select value={selectedVersionId} onChange={(e) => setSelectedVersionId(e.target.value)}><option value="">Select version</option>{versions.map((version) => <option key={version.id} value={version.id}>v{version.version_number} · {label(version.status)}</option>)}</select></label><div className="reporting-config-version-meta">{selectedVersion && <><span>Created {dateTime(selectedVersion.created_at)} · {selectedVersion.created_by?.slice(0,8) ?? "Unknown actor"}</span><span>Submitted {dateTime(selectedVersion.submitted_at)} · {selectedVersion.submitted_by?.slice(0,8) ?? "—"}</span><span>Approved {dateTime(selectedVersion.approved_at)} · {selectedVersion.approved_by?.slice(0,8) ?? "—"}</span><span>Published {dateTime(selectedVersion.published_at)} · {selectedVersion.published_by?.slice(0,8) ?? "—"}</span></>}</div></div>
           {detailLoading ? <div className="reporting-config-empty"><LoaderCircle className="spin" size={18}/> Loading configuration version…</div> : selectedVersion && <>
             <div className="reporting-config-json-grid">
               <label><span>Reporting dimensions JSON</span><small>Active dimension weights must all be set or all omitted; if set, they must total 1.0. Missing-data status is Not Reported or Insufficient Data.</small><textarea spellCheck={false} disabled={!canEditDraft} value={dimensionsJson} onChange={(e) => setDimensionsJson(e.target.value)}/></label>
@@ -234,6 +236,6 @@ export default function ReportingConfiguration({ globalRoles }: { globalRoles: s
       <label className="wide">Description<textarea value={createForm.description} onChange={(e) => setCreateForm((f) => ({ ...f, description: e.target.value }))}/></label></>}
       <label>Effective from<input type="datetime-local" value={createForm.effective_from} onChange={(e) => setCreateForm((f) => ({ ...f, effective_from: e.target.value }))}/></label>
       <label>Effective to<input type="datetime-local" value={createForm.effective_to} onChange={(e) => setCreateForm((f) => ({ ...f, effective_to: e.target.value }))}/></label>
-    </div><div className="reporting-config-actions"><label>Creation reason<input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Minimum 8 characters"/></label><button className="button-primary small" disabled={busy || reason.trim().length < 8 || (createForm.useExistingSet ? !selectedSet : !createForm.configuration_code.trim() || !createForm.name.trim() || (createForm.scope_type === "project" && !createForm.project_id))} onClick={() => void createDraft()}>{busy ? "Creating…" : "Create draft version"}</button></div></div>}
+    </div><div className="reporting-config-actions"><label>Creation reason<input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Minimum 8 characters"/></label><button className="button-primary small" disabled={busy || detailLoading || reason.trim().length < 8 || (createForm.useExistingSet ? !selectedSet : !createForm.configuration_code.trim() || !createForm.name.trim() || (createForm.scope_type === "project" && !createForm.project_id))} onClick={() => void createDraft()}>{busy ? "Creating…" : "Create draft version"}</button></div></div>}
   </div>;
 }
