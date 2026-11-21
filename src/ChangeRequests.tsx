@@ -146,11 +146,11 @@ export default function ChangeRequests({ globalRoles }: { globalRoles: string[] 
     const next: Impact = {
       impact_dimension: dimension.dimension_code,
       assessment_status: patch.assessment_status ?? existing?.assessment_status ?? "not_assessed",
-      impact_summary: patch.impact_summary ?? existing?.impact_summary ?? "",
-      schedule_impact_days: patch.schedule_impact_days ?? existing?.schedule_impact_days ?? null,
+      impact_summary: patch.impact_summary !== undefined ? patch.impact_summary : existing?.impact_summary ?? "",
+      schedule_impact_days: patch.schedule_impact_days !== undefined ? patch.schedule_impact_days : existing?.schedule_impact_days ?? null,
       cost_delta: patch.cost_delta !== undefined ? patch.cost_delta : existing?.cost_delta ?? null,
       currency_code: patch.currency_code !== undefined ? patch.currency_code : existing?.currency_code ?? null,
-      not_applicable_reason: patch.not_applicable_reason ?? existing?.not_applicable_reason ?? null,
+      not_applicable_reason: patch.not_applicable_reason !== undefined ? patch.not_applicable_reason : existing?.not_applicable_reason ?? null,
       ...(patch.cost_delta !== undefined ? { cost_delta: patch.cost_delta } : existing?.cost_delta !== undefined ? { cost_delta: existing.cost_delta } : {}),
       ...(patch.currency_code !== undefined ? { currency_code: patch.currency_code } : existing?.currency_code ? { currency_code: existing.currency_code } : {})
     };
