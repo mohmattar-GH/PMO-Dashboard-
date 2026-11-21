@@ -143,15 +143,32 @@ export default function ReportingConfiguration({ globalRoles }: { globalRoles: s
     const payload = useExisting && selectedSet
       ? { configuration_set_id: selectedSet.id, scope_type: selectedSet.scope_type, project_id: selectedSet.project_id, effective_from: createForm.effective_from ? new Date(createForm.effective_from).toISOString() : null, effective_to: createForm.effective_to ? new Date(createForm.effective_to).toISOString() : null }
       : { scope_type: createForm.scope_type, project_id: createForm.scope_type === "project" ? createForm.project_id : null, configuration_code: createForm.configuration_code.trim(), name: createForm.name.trim(), description: createForm.description.trim() || null, effective_from: createForm.effective_from ? new Date(createForm.effective_from).toISOString() : null, effective_to: createForm.effective_to ? new Date(createForm.effective_to).toISOString() : null };
-    const result = await invokeGovernance("create_draft", payload, reason);
+    const reasonText = reason.trim();
+    const result = await invokeGovernance("create_draft", payload, reasonText);
     if (!result) return;
     const setId = String(result.configuration_set_id ?? "");
     const version = result.version as { id?: string } | undefined;
     setCreateOpen(false);
     setCreateForm({ useExistingSet: false, scope_type: "global", project_id: "", configuration_code: "", name: "", description: "", effective_from: "", effective_to: "" });
-    setReason("");
     await loadBase();
-    if (setId) { setSelectedSetId(setId); await loadVersions(setId, version?.id); }
+    if (setId) {
+      setSelectedSetId(setId);
+      if (useExisting && selectedVersion && version?.id) {
+        try {
+          const dimensions = parseArray(dimensionsJson, "Dimensions");
+          const kpis = parseArray(kpisJson, "KPIs");
+          const parameters = parseArray(parametersJson, "Rule parameters");
+          const copyReason = (reasonText + " (copied from version " + selectedVersion.version_number + ")").slice(0, 1000);
+          const copied = await invokeGovernance("save_draft_rules", { configuration_version_id: version.id, dimensions, kpis, parameters }, copyReason);
+          if (!copied) setError("The successor draft was created, but copying the previous rules failed.");
+        } catch (copyError) {
+          setError(copyError instanceof Error ? copyError.message : "The successor draft was created, but its rule copy failed.");
+        }
+      }
+      await loadVersions(setId, version?.id);
+      if (version?.id) await loadVersionDetails(version.id);
+    }
+    setReason("");
   };
   const saveDraftRules = async () => {
     if (!selectedVersion) return;
