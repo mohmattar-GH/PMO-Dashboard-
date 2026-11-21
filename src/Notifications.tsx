@@ -111,7 +111,7 @@ export default function Notifications({isAdmin,onUnreadChange}:{isAdmin:boolean;
       ? await supabase.from("ppm_notification_rules").update(payload).eq("id",editingId).select("id,version_no").single()
       : await supabase.from("ppm_notification_rules").insert({...payload,created_by:userId}).select("id,version_no").single();
     if(result.error)setNotice("Notification rule could not be saved: "+result.error.message);
-    else{setNotice(editingId?"Notification rule updated as a new version.":"Notification rule created.");await load();if(result.data?.id){setEditingId(result.data.id);setHistoryRuleId(result.data.id);await loadRuleHistory(result.data.id);}}
+    else{setNotice(editingId?"Notification rule updated as a new version.":"Notification rule created.");await load();if(result.data?.id){setEditingId(result.data.id);await loadRuleHistory(result.data.id);}}
     setBusy(false);
   };
 
