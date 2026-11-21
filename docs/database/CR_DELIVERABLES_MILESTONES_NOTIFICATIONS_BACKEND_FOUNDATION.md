@@ -77,7 +77,7 @@ The PM acceptance trigger is SECURITY INVOKER with an empty search_path; direct 
 
 ## Change Request workflow engine — 21 November 2026
 
-Migrations 068–079 implement the first executable CR approval workflow:
+Migrations 068–084 implement the executable CR approval and approved-change application workflow:
 - Administrator publication of a draft workflow version validates the configured stages, transition roles and required impact dimensions. Published workflow versions and their stage/transition/impact-dimension definitions are immutable; changes require a new version.
 - Stage approval mode is configurable as sequential or parallel. Required approver roles are resolved against active, effective project memberships and global role assignments.
 - CR submission is permitted only to an active Project Manager or Platform Administrator. A published/effective CR workflow must be selected.
@@ -108,3 +108,38 @@ This is SQL-level simulation, not a real signed-JWT HTTP/API test. Real Supabase
 - Admin UI for workflow template/version/stage/transition/impact-dimension authoring is not yet implemented.
 - Parallel approval logic is implemented but the rollback-only integration fixture exercised the sequential path; parallel and self-approval denial still require dedicated test cases.
 - Clean-environment replay of the complete 79-migration chain remains outstanding.
+
+
+## Approved CR application to contract and schedule — 21 November 2026
+
+Migrations 080–084 add atomic application of approved CR changes:
+- Workflow stages now support a configurable decision outcome (approved/rejected) independently of whether the stage is terminal. This permits the CR to enter an Approved decision stage, apply changes, and continue through implementation/verification/closure stages.
+- CR decision actor and timestamp are captured by the database. Every approval row records the actual deciding user, including role-based approvals where the approver was not preassigned to a named user.
+- A financially impactful CR must have one net financial amount/currency, a linked contract, a matching draft contract variation and a Finance/Finance Admin approval stage. Currency must match the contract and project financial terms.
+- The PM-facing RPC create_change_request_contract_variation creates a single CR-linked draft variation using the assessed net cost impact. The variation is protected from independent submission/approval; it can be approved only by the CR application path after all configured approval rounds complete and an actual Finance approval is recorded.
+- Typed schedule-change records target an existing project activity or milestone and store proposed start/due dates plus reason. They can be created only while the CR is draft. Once approved, the application records the previous approved-revised dates and updates only approved_revised_start_date / approved_revised_due_date on the target activity or milestone. Baseline dates remain unchanged.
+- Direct client edits to approved revised schedule dates are blocked. The approved CR application or the separate approved milestone re-baseline path is required.
+- A single application record per CR captures applied actor/time, linked variation, financial amount/currency, schedule change count and audit metadata. The trigger applies variation, financial rollup and all schedule changes in the same transaction; any failure rolls back the entire CR approval transition. Duplicate application is blocked.
+- Finance can read CR decision history and application records. Team Leads can read schedule impact records but do not receive financial application records.
+
+### Rollback-only end-to-end verification
+
+A transaction-scoped test used temporary Auth identities, a project, contract, financial terms, workflow, CR, activity and milestone. It then rolled back all fixtures. Verified results before rollback:
+- PM created the CR, assessed required dimensions and created a linked draft variation for USD 100.
+- PM submitted the CR; Finance then Team Lead approvals completed in configured sequential order. An out-of-order approval attempt was denied.
+- The CR reached its configured Approved decision stage.
+- The linked contract variation became Approved; the actual Finance approver was recorded as the variation decision actor.
+- Project financial terms reflected USD 100 in approved variations.
+- The activity approved-revised due date changed to 5 December 2026 and the milestone approved-revised due date changed to 15 December 2026. Original baseline dates were not changed.
+- One application record and two applied schedule-change records were created.
+- The entire test transaction rolled back. Follow-up counts confirmed zero temporary Auth users, projects and CRs.
+
+This remains SQL-level simulation using temporary claim subjects, not real signed-JWT HTTP/API testing. Parallel approval, rejection/return paths, self-approval denial in a live user journey, and full Storage authorization still require dedicated tests.
+
+### Still incomplete
+
+- CR screens, schedule-change entry UI, variation creation action and approval inbox UI are not implemented. The approved wireframes remain the UI gate.
+- SLA timers, due-date escalation, notification rule evaluation and event delivery are not connected to this workflow.
+- Deliverable submission/review actions and PM-facing acceptance UI remain outstanding.
+- Milestone re-baseline request approval/application is separate from CR schedule changes and remains outstanding; baseline date protection is already in place.
+- Clean-environment replay of the complete 84-migration chain remains outstanding.
