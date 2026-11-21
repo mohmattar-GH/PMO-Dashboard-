@@ -18,6 +18,27 @@ const formulaCatalog = [
   { code: "weighted_sum_v1", method: "weighted_sum", description: "Weighted aggregation of validated source values", required: ["values", "weights"] }
 ];
 
+const validateRiskScoringParameters = (parameters: unknown[]) => {
+  const rows = parameters.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && (item as Record<string, unknown>).rule_code === "risk_scoring");
+  if (!rows.length) return;
+  const values = new Map(rows.map((row) => [String(row.parameter_code), row]));
+  const readNumber = (key: string) => {
+    const row = values.get(key);
+    if (!row || row.value_type !== "number" || typeof row.parameter_value !== "number" || !Number.isFinite(row.parameter_value)) {
+      throw new Error("Risk scoring parameter " + key + " must be a numeric rule parameter.");
+    }
+    return row.parameter_value;
+  };
+  const probabilityMax = readNumber("probability_scale_max");
+  const impactMax = readNumber("impact_scale_max");
+  const probabilityWeight = readNumber("probability_weight");
+  const impactWeight = readNumber("impact_weight");
+  const multiplier = values.has("score_multiplier") ? readNumber("score_multiplier") : 100;
+  if (!Number.isInteger(probabilityMax) || probabilityMax <= 0 || !Number.isInteger(impactMax) || impactMax <= 0) throw new Error("Risk scoring scale maxima must be positive whole numbers.");
+  if (probabilityWeight < 0 || probabilityWeight > 1 || impactWeight < 0 || impactWeight > 1 || Math.abs(probabilityWeight + impactWeight - 1) > 0.000001) throw new Error("Risk scoring probability and impact weights must each be between 0 and 1 and total 1.");
+  if (multiplier <= 0) throw new Error("Risk scoring multiplier must be greater than zero.");
+};
+
 const pretty = (value: unknown) => JSON.stringify(value, null, 2) ?? "[]";
 const parseArray = (value: string, label: string) => {
   const parsed = JSON.parse(value);
