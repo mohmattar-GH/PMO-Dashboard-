@@ -1056,3 +1056,17 @@ Remaining backend validation is unchanged: provision test Auth users and members
 - Client-side validation requires at least one proposed date, start not later than due date, a reason of at least 8 characters, and prevents duplicate target entries within the same CR.
 - Live catalog verification confirmed authenticated INSERT and SELECT privileges on the schedule-change table and the applicable RLS/trigger protections. No Supabase schema changes were made in this UI slice.
 - End-to-end testing remains blocked by the absence of Auth users, project fixtures and CR fixtures. Frontend build/browser tests remain unverified; the PR remains draft/unmerged and no deployment occurred.
+
+
+## CR implementation, verification and closure — 21 November 2026
+
+- Applied Supabase migration `20261121134005_cr_implementation_verification_closure_actions` and archived its exact recorded SQL statement at `supabase/migrations/20261121134005_cr_implementation_verification_closure_actions.sql`.
+- Added three authenticated RPC actions: `update_project_change_request_implementation`, `verify_project_change_request`, and `close_project_change_request`.
+- Implementation tracking supports an active project-member owner, target completion date, and progress states `not_started`, `in_progress`, `blocked`, and `completed`. PM/Platform Admin can assign/reassign and manage due dates; the assigned implementation owner can update progress but cannot change ownership or due date.
+- Completing implementation moves the CR to `implemented`; only a project PM or Platform Admin can verify a completed implementation with mandatory evidence. Only a PM or Platform Admin can close a verified CR with mandatory closure evidence.
+- Each action requires an active application profile, validates the lifecycle state, records actor/reason/timestamp in the CR history, and emits notification events through the existing configurable notification-rule engine. No CR approver stages or Finance approval routes were added.
+- Frontend now provides implementation owner/date/progress controls, verification evidence, closure evidence and audit-history visibility. The membership lookup now loads active project members so implementation owners can be selected; PM decision controls still require the Project Manager role.
+- Verified live database grants: all three public RPCs are executable by `authenticated`, not `anon`; their private SECURITY DEFINER implementations are not executable by client roles. A direct unauthenticated verification call returned the expected `Authentication required` error.
+- Security Advisor shows the same two previously identified lifecycle SECURITY DEFINER warnings and the existing private formula-template INFO; no new CR-specific warning was introduced. There are still no Auth users or project/CR fixtures, so signed-JWT role tests and full UI journeys remain outstanding.
+- Frontend production build/browser tests remain unverified. PR #1 remains draft/unmerged; no deployment. Staff Time & Performance remains untouched.
+- Next: Deliverables submission/review/PM acceptance UI, then milestone re-baseline UI and notification inbox/rule management, followed by end-to-end role tests and build verification.
