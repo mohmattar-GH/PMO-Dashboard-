@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "./lib/supabase";
 import LivePortfolioOverview from "./LivePortfolioOverview";
 import ChangeRequests from "./ChangeRequests";
 import Deliverables from "./Deliverables";
@@ -40,6 +41,15 @@ const navItems = [
   { label: "Reports & Snapshots", icon: FileText },
 ];
 
+const dashboardWidgetOptions = [
+  { code: "portfolio_summary", label: "Portfolio Summary" },
+  { code: "project_health", label: "Latest Calculated Project Health" },
+  { code: "project_phase", label: "Project Phase Overview" },
+  { code: "project_register", label: "Project Register" },
+  { code: "data_quality", label: "Data Quality / Not Reported Metrics" },
+];
+const defaultDashboardWidgetOrder = dashboardWidgetOptions.map((widget) => widget.code);
+
 const phaseCounts = [
   { name: "Initiation", count: 2, color: "#a9b8ca" },
   { name: "Planning", count: 3, color: "#8b9bb1" },
@@ -76,10 +86,46 @@ function App({ displayName, roles, onSignOut }: AppProps) {
   const [presentation, setPresentation] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [hiddenWidgets, setHiddenWidgets] = useState<string[]>([]);
+  const [visibleWidgets, setVisibleWidgets] = useState<string[]>(defaultDashboardWidgetOrder);
+  const [widgetOrder, setWidgetOrder] = useState<string[]>(defaultDashboardWidgetOrder);
+  const [currentUserId, setCurrentUserId] = useState("");
+  const [layoutVersion, setLayoutVersion] = useState(1);
+  const [layoutLoading, setLayoutLoading] = useState(false);
+  const [layoutSaving, setLayoutSaving] = useState(false);
+  const [layoutMessage, setLayoutMessage] = useState("");
   const [showFinancial, setShowFinancial] = useState(false);
   const [toast, setToast] = useState("");
   const [section, setSection] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    async function loadDashboardLayout() {
+      if (!supabase) return;
+      setLayoutLoading(true);
+      const [{ data: userData }, { data, error }] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.from("ppm_dashboard_layouts").select("layout_config,version_no").eq("layout_code", "executive_overview").maybeSingle()
+      ]);
+      if (!active) return;
+      setCurrentUserId(userData.user?.id ?? "");
+      if (error) {
+        setLayoutMessage("Saved dashboard layout could not be loaded: " + error.message);
+      } else if (data?.layout_config) {
+        const config = data.layout_config as { visible_widgets?: unknown; widget_order?: unknown };
+        const allowed = new Set(defaultDashboardWidgetOrder);
+        const savedOrder = Array.isArray(config.widget_order) ? config.widget_order.filter((code): code is string => typeof code === "string" && allowed.has(code)) : [];
+        const completeOrder = [...savedOrder, ...defaultDashboardWidgetOrder.filter((code) => !savedOrder.includes(code))];
+        const savedVisible = Array.isArray(config.visible_widgets) ? config.visible_widgets.filter((code): code is string => typeof code === "string" && allowed.has(code)) : defaultDashboardWidgetOrder;
+        setWidgetOrder(completeOrder);
+        setVisibleWidgets(savedVisible.length ? savedVisible : defaultDashboardWidgetOrder);
+        setLayoutVersion(data.version_no ?? 1);
+      }
+      setLayoutLoading(false);
+    }
+    void loadDashboardLayout();
+    return () => { active = false; };
+  }, []);
 
   const filteredProjects = useMemo(() => projects.filter((project) =>
     (phaseFilter === "All phases" || project.phase === phaseFilter) &&
@@ -96,6 +142,38 @@ function App({ displayName, roles, onSignOut }: AppProps) {
   );
 
   const isHidden = (name: string) => hiddenWidgets.includes(name);
+
+  const toggleDashboardWidget = (code: string) => setVisibleWidgets((current) => {
+    if (current.includes(code)) return current.length > 1 ? current.filter((item) => item !== code) : current;
+    return [...current, code];
+  });
+
+  const moveDashboardWidget = (code: string, direction: -1 | 1) => setWidgetOrder((current) => {
+    const index = current.indexOf(code);
+    const nextIndex = index + direction;
+    if (index < 0 || nextIndex < 0 || nextIndex >= current.length) return current;
+    const next = [...current];
+    [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+    return next;
+  });
+
+  const persistDashboardLayout = async (nextVisible: string[], nextOrder: string[]) => {
+    if (!supabase || !currentUserId || !roles.includes("platform_admin")) return;
+    setLayoutSaving(true); setLayoutMessage("");
+    const { data, error } = await supabase.from("ppm_dashboard_layouts").update({
+      layout_config: { visible_widgets: nextVisible, widget_order: nextOrder }, updated_by: currentUserId
+    }).eq("layout_code", "executive_overview").select("version_no").single();
+    if (error) setLayoutMessage("Dashboard layout was not saved: " + error.message);
+    else { setLayoutVersion(data.version_no); setLayoutMessage("Layout saved for all users as version " + data.version_no + "."); }
+    setLayoutSaving(false);
+  };
+
+  const saveDashboardLayout = () => void persistDashboardLayout(visibleWidgets, widgetOrder);
+  const resetDashboardLayout = () => {
+    setVisibleWidgets(defaultDashboardWidgetOrder);
+    setWidgetOrder(defaultDashboardWidgetOrder);
+    void persistDashboardLayout(defaultDashboardWidgetOrder, defaultDashboardWidgetOrder);
+  };
 
   return <div className={presentation ? "app-shell presentation-shell" : "app-shell"}>
     {!presentation && <aside className={sidebarOpen ? "sidebar sidebar-open" : "sidebar"}>
@@ -157,16 +235,19 @@ function App({ displayName, roles, onSignOut }: AppProps) {
         <div className="snapshot-strip"><span className="snapshot-status"><CheckCircle2 size={14}/> LIVE DATA VIEW</span><span>Current operational records</span><span className="strip-spacer"/><span className="demo-label">NO FINALIZED SNAPSHOT</span></div>
 
         {showLayoutEditor && !presentation && roles.includes("platform_admin") && <section className="layout-editor">
-          <div className="layout-editor-heading"><div><strong><SlidersHorizontal size={17}/> Dashboard layout editor</strong><p>Administrator controls · changes are a local preview in this build</p></div><button className="icon-button" onClick={() => setShowLayoutEditor(false)}><X size={17}/></button></div>
-          <div className="layout-options">
-            {["Portfolio KPIs","Project Phase Distribution","Recent Phase Changes","Projects Requiring Attention","Portfolio Risks","Management Decisions","Financial Position","Milestone Performance","Weekly Summary"].map((name) =>
-              <label key={name} className="layout-option"><input type="checkbox" checked={!isHidden(name)} onChange={() => toggleWidget(name)}/><span>{name}</span></label>
-            )}
-          </div>
-          <div className="layout-footer"><span>Hidden components retain their underlying data.</span><button className="button-secondary small" onClick={() => {setHiddenWidgets([]); notify("Default layout restored in preview");}}>Reset default</button><button className="button-primary small" onClick={() => notify("Layout preview saved locally — publishing is not connected")}>Save preview</button></div>
+          <div className="layout-editor-heading"><div><strong><SlidersHorizontal size={17}/> Dashboard layout editor</strong><p>Platform Administrator · shared layout · version {layoutVersion}</p></div><button className="icon-button" onClick={() => setShowLayoutEditor(false)}><X size={17}/></button></div>
+          {layoutLoading ? <div className="layout-loading">Loading saved dashboard layout…</div> : <div className="layout-options">
+            {widgetOrder.map((code, index) => {
+              const widget = dashboardWidgetOptions.find((item) => item.code === code);
+              if (!widget) return null;
+              return <div key={code} className="layout-option-row"><label className="layout-option"><input type="checkbox" checked={visibleWidgets.includes(code)} onChange={() => toggleDashboardWidget(code)}/><span>{widget.label}</span></label><div className="layout-order-actions"><button type="button" className="icon-button" aria-label={"Move " + widget.label + " up"} disabled={index === 0} onClick={() => moveDashboardWidget(code, -1)}>↑</button><button type="button" className="icon-button" aria-label={"Move " + widget.label + " down"} disabled={index === widgetOrder.length - 1} onClick={() => moveDashboardWidget(code, 1)}>↓</button></div></div>;
+            })}
+          </div>}
+          {layoutMessage && <div className="layout-save-message">{layoutMessage}</div>}
+          <div className="layout-footer"><span>Changes affect the shared Executive Overview. At least one section must remain visible.</span><button className="button-secondary small" disabled={layoutSaving || layoutLoading} onClick={resetDashboardLayout}>Reset default</button><button className="button-primary small" disabled={layoutSaving || layoutLoading} onClick={saveDashboardLayout}>{layoutSaving ? "Saving…" : "Save layout"}</button></div>
         </section>}
 
-        {activeNav === "Executive Overview" || presentation ? <><LivePortfolioOverview search={search} />{false && <>
+        {activeNav === "Executive Overview" || presentation ? <><LivePortfolioOverview search={search} visibleWidgets={visibleWidgets} widgetOrder={widgetOrder} />{false && <>
           {!isHidden("Portfolio KPIs") && <section className="metrics-grid">
             <MetricCard label="Total projects" value="20" detail="Across 4 portfolios" icon={BriefcaseBusiness} tone="blue"/>
             <MetricCard label="On track" value="13" detail="65% of active portfolio" trend="up" icon={Target} tone="green"/>
