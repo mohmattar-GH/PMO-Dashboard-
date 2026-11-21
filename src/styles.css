@@ -127,3 +127,7 @@
 .cr-implementation-section>.cr-meta-grid{margin-top:12px}
 .cr-implementation-form button{align-self:flex-start}
 @media(max-width:700px){.cr-implementation-form button{width:100%}}
+
+.cr-closure-evidence{margin-top:12px;padding:12px 14px;border:1px solid #dce9e1;border-radius:8px;background:#f5faf7}
+.cr-closure-evidence strong{font-size:10px;color:#365d49}
+.cr-closure-evidence p{margin:6px 0 0;font-size:11px;line-height:1.55;color:#536b5d}
