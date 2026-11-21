@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { FormEvent } from "react";
 import { AlertCircle, CheckCircle2, ChevronRight, FileCheck2, FilePlus2, LoaderCircle, Search, ShieldCheck, X } from "lucide-react";
 import { supabase } from "./lib/supabase";
 
@@ -107,7 +108,7 @@ export default function Deliverables({ canManage, isPlatformAdmin }: { canManage
     setDetailLoading(false);
   }, []);
 
-  const createDeliverable = async (event: React.FormEvent) => {
+  const createDeliverable = async (event: FormEvent) => {
     event.preventDefault();
     if (!supabase) return;
     setBusy(true); setNotice("");
