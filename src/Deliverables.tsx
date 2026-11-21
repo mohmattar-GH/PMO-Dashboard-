@@ -145,8 +145,8 @@ export default function Deliverables({ canManage }: { canManage: boolean }) {
     if (!supabase || !selected) return null;
     const mimeByExtension: Record<string, string> = { pdf: "application/pdf", doc: "application/msword", docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", xls: "application/vnd.ms-excel", xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", ppt: "application/vnd.ms-powerpoint", pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", txt: "text/plain", csv: "text/csv" };
     const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
-    const contentType = file.type || mimeByExtension[extension] || "";
     const allowedTypes = new Set(Object.values(mimeByExtension));
+    const contentType = allowedTypes.has(file.type) ? file.type : mimeByExtension[extension] || "";
     if (!allowedTypes.has(contentType)) throw new Error("Unsupported file type. Upload PDF, Office, JPG, PNG, TXT or CSV files.");
     if (file.size < 1 || file.size > 50 * 1024 * 1024) throw new Error("The attachment must be between 1 byte and 50 MB.");
     const { data: document, error: documentError } = await supabase.from("project_documents").insert({
@@ -191,12 +191,15 @@ export default function Deliverables({ canManage }: { canManage: boolean }) {
 
   const openSubmissionDocument = async (submission: Submission) => {
     if (!supabase || !submission.document_version_id) return;
+    const popup = window.open("about:blank", "_blank");
+    if (popup) popup.opener = null;
+    if (!popup) { setNotice("Your browser blocked the document window. Allow pop-ups for this application and try again."); return; }
     setBusy(true); setNotice("");
     const { data: version, error: versionError } = await supabase.from("project_document_versions").select("storage_path").eq("id", submission.document_version_id).single();
-    if (versionError || !version) { setNotice("Document details are not available to this account: " + (versionError?.message ?? "Version not found")); setBusy(false); return; }
+    if (versionError || !version) { popup.close(); setNotice("Document details are not available to this account: " + (versionError?.message ?? "Version not found")); setBusy(false); return; }
     const { data: signed, error: signedError } = await supabase.storage.from("project-documents").createSignedUrl(version.storage_path, 60);
-    if (signedError || !signed) setNotice("Could not create a secure document link: " + (signedError?.message ?? "No link returned"));
-    else window.open(signed.signedUrl, "_blank", "noopener,noreferrer");
+    if (signedError || !signed) { popup.close(); setNotice("Could not create a secure document link: " + (signedError?.message ?? "No link returned")); }
+    else popup.location.href = signed.signedUrl;
     setBusy(false);
   };
 
