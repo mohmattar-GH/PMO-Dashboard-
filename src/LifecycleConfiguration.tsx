@@ -62,16 +62,17 @@ export default function LifecycleConfiguration({ isPlatformAdmin }: { isPlatform
 
   useEffect(() => { void load(); }, [load]);
 
-  const globalTemplates = templates.filter((template) => template.project_id === null && template.status === "active");
+  const globalTemplates = useMemo(() => templates.filter((template) => template.project_id === null && template.status === "active"), [templates]);
   const selectedTemplate = templates.find((template) => template.id === selectedTemplateId) ?? null;
-  const templateVersions = versions.filter((version) => version.template_id === selectedTemplateId);
+  const templateVersions = useMemo(() => versions.filter((version) => version.template_id === selectedTemplateId), [versions, selectedTemplateId]);
   const selectedVersion = versions.find((version) => version.id === selectedVersionId) ?? null;
-  const versionPhases = phases.filter((phase) => phase.version_id === selectedVersionId).sort((a, b) => a.display_order - b.display_order);
-  const versionRules = rules.filter((rule) => rule.version_id === selectedVersionId);
-  const initialRules = versionRules.filter((rule) => rule.from_phase_id === null);
-  const publishedVersions = versions.filter((version) => version.status === "published" && version.effective_from && new Date(version.effective_from) <= new Date() && (!version.effective_to || new Date(version.effective_to) > new Date()));
-  const activeProjectIds = new Set(assignments.map((assignment) => assignment.project_id));
-  const unassignedProjects = projects.filter((project) => !activeProjectIds.has(project.id));
+  const versionPhases = useMemo(() => phases.filter((phase) => phase.version_id === selectedVersionId).sort((a, b) => a.display_order - b.display_order), [phases, selectedVersionId]);
+  const versionRules = useMemo(() => rules.filter((rule) => rule.version_id === selectedVersionId), [rules, selectedVersionId]);
+  const initialRules = useMemo(() => versionRules.filter((rule) => rule.from_phase_id === null), [versionRules]);
+  const globalTemplateIds = useMemo(() => new Set(globalTemplates.map((template) => template.id)), [globalTemplates]);
+  const publishedVersions = useMemo(() => versions.filter((version) => globalTemplateIds.has(version.template_id) && version.project_id === null && version.status === "published" && version.effective_from && new Date(version.effective_from) <= new Date() && (!version.effective_to || new Date(version.effective_to) > new Date())), [versions, globalTemplateIds]);
+  const activeProjectIds = useMemo(() => new Set(assignments.map((assignment) => assignment.project_id)), [assignments]);
+  const unassignedProjects = useMemo(() => projects.filter((project) => !activeProjectIds.has(project.id)), [projects, activeProjectIds]);
   const fromPhaseName = (id: string | null) => id ? versionPhases.find((phase) => phase.id === id)?.phase_name ?? "Unknown phase" : "Project start";
   const toPhaseName = (id: string) => versionPhases.find((phase) => phase.id === id)?.phase_name ?? "Unknown phase";
 
@@ -89,8 +90,8 @@ export default function LifecycleConfiguration({ isPlatformAdmin }: { isPlatform
     setPhaseEdits(Object.fromEntries(versionPhases.map((phase) => [phase.id, {
       phase_name: phase.phase_name, description: phase.description ?? "", display_order: String(phase.display_order), is_active: phase.is_active
     }])));
-    const startRule = versionRules.find((rule) => rule.from_phase_id === null);
-    if (startRule) setAssignForm((form) => ({ ...form, initial_phase_id: startRule.to_phase_id }));
+    const startRule = rules.find((rule) => rule.version_id === selectedVersionId && rule.from_phase_id === null);
+    setAssignForm((form) => ({ ...form, initial_phase_id: startRule?.to_phase_id ?? "" }));
   }, [selectedVersionId, phases, rules]);
 
   const createTemplate = async () => {
@@ -182,7 +183,7 @@ export default function LifecycleConfiguration({ isPlatformAdmin }: { isPlatform
   };
 
   const assignLifecycle = async () => {
-    if (!supabase || !selectedVersion || !assignForm.project_id || !assignForm.initial_phase_id || assignForm.reason.trim().length < 8) {
+    if (!supabase || !selectedVersion || selectedVersion.status !== "published" || !publishedVersions.some((version) => version.id === selectedVersion.id) || !assignForm.project_id || !assignForm.initial_phase_id || assignForm.reason.trim().length < 8) {
       setError("Project, published version, initial phase and an assignment reason of at least 8 characters are required."); return;
     }
     setBusy(true); setError(""); setMessage("");
@@ -204,14 +205,14 @@ export default function LifecycleConfiguration({ isPlatformAdmin }: { isPlatform
     {error && <div className="lifecycle-config-alert error">{error}</div>}{message && <div className="lifecycle-config-alert success"><CheckCircle2 size={14}/>{message}</div>}
     <div className="lifecycle-config-layout">
       <aside className="panel lifecycle-template-list"><div className="lifecycle-panel-heading"><strong>Global Templates</strong><button className="icon-button" title="Create template" onClick={() => setShowTemplateForm(!showTemplateForm)}><Plus size={15}/></button></div>
-        {globalTemplates.map((template) => <button key={template.id} className={"lifecycle-template-option " + (selectedTemplateId === template.id ? "active" : "")} onClick={() => setSelectedTemplateId(template.id)}><strong>{template.template_name}</strong><span>{template.template_code} · {templateVersions.filter((version) => version.template_id === template.id).length} versions</span></button>)}
+        {globalTemplates.map((template) => <button key={template.id} className={"lifecycle-template-option " + (selectedTemplateId === template.id ? "active" : "")} onClick={() => setSelectedTemplateId(template.id)}><strong>{template.template_name}</strong><span>{template.template_code} · {versions.filter((version) => version.template_id === template.id).length} versions</span></button>)}
         {!globalTemplates.length && <p className="project-empty-inline">No global templates have been created.</p>}
       </aside>
       <div className="lifecycle-config-main">
         {showTemplateForm && <div className="panel lifecycle-editor-panel"><h3>Create Global Lifecycle Template</h3><div className="lifecycle-form-grid"><label>Template code<input value={templateForm.template_code} onChange={(e) => setTemplateForm((f) => ({ ...f, template_code: e.target.value.toUpperCase() }))}/></label><label>Template name<input value={templateForm.template_name} onChange={(e) => setTemplateForm((f) => ({ ...f, template_name: e.target.value }))}/></label><label className="wide">Description<textarea value={templateForm.description} onChange={(e) => setTemplateForm((f) => ({ ...f, description: e.target.value }))}/></label></div><div className="lifecycle-form-actions"><button className="button-secondary small" onClick={() => setShowTemplateForm(false)}>Cancel</button><button className="button-primary small" disabled={busy} onClick={() => void createTemplate()}>Create template</button></div></div>}
         {selectedTemplate ? <>
           <div className="panel lifecycle-editor-panel"><div className="lifecycle-panel-heading"><div><span className="module-eyebrow">{selectedTemplate.template_code}</span><h3>{selectedTemplate.template_name}</h3><p>{selectedTemplate.description || "No description recorded."}</p></div><span className={"project-status-pill " + statusClass(selectedTemplate.status)}>{label(selectedTemplate.status)}</span></div>
-            <div className="lifecycle-version-toolbar"><label>Template version<select value={selectedVersionId} onChange={(e) => setSelectedVersionId(e.target.value)}>{templateVersions.map((version) => <option key={version.id} value={version.id}>v{version.version_number} · {label(version.status)}</option>)}</select></label><div>{selectedVersion?.status === "published" && <button className="button-secondary small" onClick={() => { setVersionReason("Update lifecycle phases and transition rules based on operational feedback."); setShowVersionForm(true); }}><Copy size={13}/> New version</button>}</div></div>
+            <div className="lifecycle-version-toolbar"><label>Template version<select value={selectedVersionId} onChange={(e) => setSelectedVersionId(e.target.value)}>{templateVersions.map((version) => <option key={version.id} value={version.id}>v{version.version_number} · {label(version.status)}</option>)}</select></label><div>{(selectedVersion?.status === "published" || templateVersions.length === 0) && <button className="button-secondary small" onClick={() => { setVersionReason(""); setShowVersionForm(true); }}><Copy size={13}/> {templateVersions.length ? "New version" : "Create first version"}</button>}</div></div>
             {selectedVersion && <div className="lifecycle-version-meta"><span className={"project-status-pill " + statusClass(selectedVersion.status)}>{label(selectedVersion.status)}</span><span>Version {selectedVersion.version_number}</span><span>{selectedVersion.effective_from ? "Effective " + new Date(selectedVersion.effective_from).toLocaleDateString() : "Not yet effective"}</span><span>{selectedVersion.change_reason}</span></div>}
           </div>
           {showVersionForm && <div className="panel lifecycle-editor-panel"><h3>Create a new draft version</h3><p>Published versions are immutable. A new draft copies all current phases and transition rules.</p><textarea value={versionReason} onChange={(e) => setVersionReason(e.target.value)} placeholder="Reason for the new version (8–1000 characters)"/><div className="lifecycle-form-actions"><button className="button-secondary small" onClick={() => setShowVersionForm(false)}>Cancel</button><button className="button-primary small" disabled={busy} onClick={() => void createDraftVersion()}>Create draft version</button></div></div>}
