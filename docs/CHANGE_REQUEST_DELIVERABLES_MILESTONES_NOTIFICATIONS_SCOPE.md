@@ -20,27 +20,32 @@ Provide an end-to-end controlled workflow, not merely a list of CRs.
 - Origin/type/category, priority and affected contract, deliverables, milestones, activities and documents.
 - Impact assessment covering scope, schedule, cost/budget, resources, risks, contractual terms, licenses and operational readiness.
 - Before/after values and supporting evidence for each affected baseline or contractual item.
-- Recommendation, decision, approver(s), decision date, decision rationale and comments.
+- PM recommendation/decision, decision date, decision rationale and comments. The assigned Project Manager is the sole CR decision-maker.
 - Implementation owner, target date, implementation status, verification and closure evidence.
 
-### Configurable workflow
-- Initial lifecycle proposal: Draft → Submitted → Impact Assessment → Pending Approval → Approved / Rejected / Withdrawn → In Implementation → Implemented → Verified → Closed.
-- Workflow stages, transitions, required fields, approval levels, approver roles, thresholds, delegation, SLA timers and rejection/return paths must be configurable by authorized administrators.
-- Enforce separation of duties and role-based authorization. A requester must not approve their own CR where the configured governance rules prohibit it.
+### Project Manager decision model
+
+- CR lifecycle: Draft → Submitted → PM Review → Accepted / Rejected → In Implementation → Implemented → Verified → Closed (with a return-to-requester action where configured).
+- The assigned Project Manager is the sole person authorized to accept or reject a submitted CR. The decision must be recorded with actor, timestamp and reason.
+- No CR approval route: no Finance, Team Lead or other sequential/parallel approver stages; no approval assignments, approval inbox, approval bottleneck KPI or approval SLA.
+- Finance, technical and other impact assessments remain information for the Project Manager's decision. Completing an assessment is not an approval and does not confer decision rights.
+- Administrators may configure CR fields, impact dimensions, status labels, required information, notification rules and implementation controls, but cannot add additional CR decision-makers or approval stages.
+- Enforce the assigned PM's active project membership and role in the database, not only in the UI. The requester cannot decide their own CR unless they are also the assigned PM and an explicit governance rule permits it; default is to prevent self-decision.
 - Capture immutable decision history, actor, timestamps, reasons, comments and record revisions.
-- Approved CRs may update project scope, contract variation values, schedules, deliverables, milestones, activities, resource plans and reporting baselines only through controlled, auditable transactions.
-- Approval must not silently overwrite original baselines. Preserve original baseline, approved revised baseline, forecast and actual values distinctly.
+- Accepted CRs may update project scope, contract variation values, schedules, deliverables, milestones, activities, resource plans and reporting baselines only through controlled, auditable transactions initiated after the PM decision.
+- A PM decision must not silently overwrite original baselines. Preserve original baseline, approved revised baseline, forecast and actual values distinctly.
 - Rejected, withdrawn and superseded requests remain traceable.
-- Support CR register filters, search, status summaries, aging, approval bottlenecks, impact summaries and project-level drill-down.
+- Support CR register filters, search, status summaries, aging, impact summaries and project-level drill-down.
+
 
 ### CR KPIs
 - Open CR count by status and priority.
-- CRs awaiting impact assessment / approval.
-- Average approval cycle time and aging.
-- Approved / rejected / withdrawn counts and rates.
+- CRs awaiting impact assessment / PM decision.
+- Average PM decision cycle time and aging.
+- Accepted / rejected / withdrawn counts and rates.
 - Pending and approved cost impact.
 - Schedule impact (days) and affected milestones.
-- CRs overdue against configured SLA.
+- CRs overdue against configurable PM decision target.
 - Approved CR implementation progress and overdue implementation actions.
 
 ## 2. Deliverables Tracker
@@ -147,7 +152,7 @@ Not yet established as implemented:
 
 1. Update the PRD, project workspace screen specification, permission matrix, data model and acceptance criteria to include this approved scope.
 2. Present the CR workflow, deliverables tracker, milestones tracker and notification centre wireframes for product-owner review.
-3. Confirm approval roles, separation-of-duty rules, client-facing access and external notification channels before implementation.
+3. Confirm PM assignment, self-decision rule, client-facing access and external notification channels before implementation.
 4. Review database changes against the existing schema and migration history; reuse current tables where sound and create reviewed migrations only for genuine gaps.
 5. Implement backend authorization, auditability, transaction integrity and tests before relying on UI controls.
 6. Implement frontend only after the user approves the relevant wireframes and interaction approach.
