@@ -1099,3 +1099,17 @@ Remaining backend validation is unchanged: provision test Auth users and members
 - Verified live grants: authenticated role has SELECT/INSERT on milestones, SELECT on re-baseline requests and EXECUTE on both re-baseline RPCs. Existing RLS and baseline immutability triggers remain in force. No Supabase schema changes were made in this UI slice.
 - Live database currently has zero milestone records; there are no Auth users or project fixtures, so real user journeys cannot yet be exercised. Frontend production build/browser tests remain unverified. PR #1 remains draft/unmerged; no deployment. Staff Time & Performance remains untouched.
 - Next: Notifications inbox and rule-management UI, then finish role-based testing and build verification.
+
+
+## Notifications inbox and rule-management UI — 21 November 2026
+
+- Added `src/Notifications.tsx` and connected the Notifications navigation route. The top navigation badge now reflects the signed-in user's live unread count; the previous static demo count was removed.
+- Inbox is recipient-scoped through existing RLS and displays title, message, severity, project, event code, timestamp, expiry and acknowledgement state. Supports unread/read/all and severity filters, mark-read, mark-all-read and required acknowledgement actions.
+- Added Platform Administrator-only notification rule management. Admins can create and edit immediate event rules with rule code/name, module/event code, enabled state, severity, project/global recipient roles, explicit target-user inclusion, actor exclusion and acknowledgement requirement.
+- Existing database version trigger increments rule versions and snapshots the previous configuration in `ppm_notification_rule_history`; the UI displays prior versions.
+- Backend scope is explicitly respected: only immediate event rules are configured. Trigger conditions must remain empty; lead time, repeat intervals, quiet hours and escalation rules remain at safe defaults because the current database guard rejects scheduled/quiet-hour/escalation configuration. No unsupported scheduler behavior is represented in the UI.
+- Found and fixed a pre-existing inbox permission gap: RLS already restricted updates to each recipient's own rows, but authenticated had no UPDATE column grant. Applied migration `20261121134630_notification_inbox_recipient_update_grants`, granting UPDATE only on `is_read` and `acknowledged_at`. Archived exact SQL at `supabase/migrations/20261121134630_notification_inbox_recipient_update_grants.sql`.
+- Verified column privileges: authenticated can update `is_read` and `acknowledged_at`, but cannot update notification `title`; the existing row-level policy and update guard still enforce recipient scope and immutable content.
+- Security Advisor remains at the same existing findings: two known public lifecycle SECURITY DEFINER warnings and one private formula-template INFO; no new notification-related warning.
+- There are currently no notification rules or inbox records, and no Auth users/project fixtures. Real role-based inbox/rule tests remain outstanding. Frontend build/browser tests are not verified. PR #1 remains draft/unmerged; no deployment. Staff Time & Performance remains untouched.
+- Next: scheduled SLA/reminder/escalation processing requires a separate supported backend design; then perform signed-JWT role tests, clean migration replay and frontend build verification.
