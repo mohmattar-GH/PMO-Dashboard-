@@ -17,7 +17,7 @@ type Deliverable = {
   approved_revised_acceptance_date: string | null; forecast_acceptance_date: string | null;
   acceptance_status: string; accepted_by: string | null; accepted_at: string | null;
 };
-type Submission = { id: string; deliverable_id: string; submission_no: number; submitted_by: string; submitted_at: string; document_id: string | null; document_version_id: string | null; submission_notes: string | null; status: string };
+type Submission = { id: string; deliverable_id: string; submission_no: number; submitted_by: string; submitted_at: string; document_id: string | null; document_version_id: string | null; document_file_name?: string | null; submission_notes: string | null; status: string };
 type Review = { id: string; submission_id: string; reviewer_user_id: string; outcome: string; comments: string | null; rejection_reason: string | null; reviewed_at: string };
 
 const label = (value: string) => value.replace(/_/g, " ").replace(/\b\w/g, (s) => s.toUpperCase());
@@ -42,6 +42,7 @@ export default function Deliverables({ canManage }: { canManage: boolean }) {
   const [busy, setBusy] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [submissionNotes, setSubmissionNotes] = useState("");
+  const [submissionFile, setSubmissionFile] = useState<File | null>(null);
   const [reviewOutcome, setReviewOutcome] = useState("accepted");
   const [reviewComments, setReviewComments] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
@@ -94,11 +95,14 @@ export default function Deliverables({ canManage }: { canManage: boolean }) {
 
   const loadDetail = useCallback(async (record: Deliverable) => {
     if (!supabase) return;
-    setSelectedId(record.id); setDetailLoading(true); setSubmissionNotes(""); setReviewComments(""); setRejectionReason(""); setReviewOutcome("accepted");
+    setSelectedId(record.id); setDetailLoading(true); setSubmissionNotes(""); setSubmissionFile(null); setReviewComments(""); setRejectionReason(""); setReviewOutcome("accepted");
     const submissionResult = await supabase.from("contract_deliverable_submissions").select("id,deliverable_id,submission_no,submitted_by,submitted_at,document_id,document_version_id,submission_notes,status").eq("deliverable_id", record.id).order("submission_no", { ascending: false });
     if (submissionResult.error) setNotice("Submission history is not available to this account: " + submissionResult.error.message);
     const submissionRows = (submissionResult.data ?? []) as Submission[];
-    setSubmissions(submissionRows);
+    const versionIds = submissionRows.map((submission) => submission.document_version_id).filter((id): id is string => Boolean(id));
+    const versionResult = versionIds.length ? await supabase.from("project_document_versions").select("id,file_name").in("id", versionIds) : { data: [], error: null };
+    const versionNames = new Map((versionResult.data ?? []).map((version: { id: string; file_name: string }) => [version.id, version.file_name]));
+    setSubmissions(submissionRows.map((submission) => ({ ...submission, document_file_name: submission.document_version_id ? versionNames.get(submission.document_version_id) ?? null : null })));
     if (submissionRows.length) {
       const reviewResult = await supabase.from("contract_deliverable_reviews").select("id,submission_id,reviewer_user_id,outcome,comments,rejection_reason,reviewed_at").in("submission_id", submissionRows.map((s) => s.id)).order("reviewed_at", { ascending: false });
       if (reviewResult.error) setNotice("Some review details are not available to this account: " + reviewResult.error.message);
@@ -137,15 +141,62 @@ export default function Deliverables({ canManage }: { canManage: boolean }) {
     setBusy(false);
   };
 
+  const uploadSubmissionDocument = async (file: File): Promise<{ documentId: string; versionId: string } | null> => {
+    if (!supabase || !selected) return null;
+    const mimeByExtension: Record<string, string> = { pdf: "application/pdf", doc: "application/msword", docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", xls: "application/vnd.ms-excel", xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", ppt: "application/vnd.ms-powerpoint", pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", txt: "text/plain", csv: "text/csv" };
+    const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
+    const contentType = file.type || mimeByExtension[extension] || "";
+    const allowedTypes = new Set(Object.values(mimeByExtension));
+    if (!allowedTypes.has(contentType)) throw new Error("Unsupported file type. Upload PDF, Office, JPG, PNG, TXT or CSV files.");
+    if (file.size < 1 || file.size > 50 * 1024 * 1024) throw new Error("The attachment must be between 1 byte and 50 MB.");
+    const { data: document, error: documentError } = await supabase.from("project_documents").insert({
+      project_id: selected.project_id, title: file.name.slice(0, 250), category: "deliverable", classification: "project", status: "active"
+    }).select("id").single();
+    if (documentError || !document) throw new Error("Could not register the project document: " + (documentError?.message ?? "No document ID returned"));
+    const versionId = crypto.randomUUID();
+    const safeFileName = file.name.replace(/[\\/]/g, "_").trim().slice(0, 255) || "deliverable-file";
+    const storagePath = `${selected.project_id}/${document.id}/${versionId}/${safeFileName}`;
+    const { error: versionError } = await supabase.from("project_document_versions").insert({
+      id: versionId, document_id: document.id, project_id: selected.project_id, version_number: 1,
+      file_name: safeFileName, storage_path: storagePath, content_type: contentType, file_size_bytes: file.size,
+      uploaded_by: currentUserId, status: "pending"
+    });
+    if (versionError) throw new Error("Could not prepare the document version: " + versionError.message);
+    const { error: uploadError } = await supabase.storage.from("project-documents").upload(storagePath, file, { contentType, upsert: false });
+    if (uploadError) {
+      await supabase.from("project_document_versions").update({ status: "failed", failure_reason: uploadError.message.slice(0, 500) }).eq("id", versionId).eq("status", "pending");
+      throw new Error("Document upload failed: " + uploadError.message);
+    }
+    const { error: finalizeError } = await supabase.from("project_document_versions").update({ status: "uploaded" }).eq("id", versionId).eq("status", "pending");
+    if (finalizeError) throw new Error("The file was uploaded but its version could not be finalized: " + finalizeError.message);
+    return { documentId: document.id, versionId };
+  };
+
   const submitDeliverable = async () => {
     if (!supabase || !selected) return;
     setBusy(true); setNotice("");
-    const { error: submitError } = await supabase.rpc("submit_contract_deliverable", {
-      p_deliverable_id: selected.id, p_document_id: null, p_document_version_id: null,
-      p_submission_notes: submissionNotes.trim() || null
-    });
-    if (submitError) setNotice("Submission failed: " + submitError.message);
-    else { setNotice("Deliverable submitted for review."); await loadRegister(); await loadDetail({ ...selected, status: "submitted" }); }
+    try {
+      const attachment = submissionFile ? await uploadSubmissionDocument(submissionFile) : null;
+      const { error: submitError } = await supabase.rpc("submit_contract_deliverable", {
+        p_deliverable_id: selected.id, p_document_id: attachment?.documentId ?? null,
+        p_document_version_id: attachment?.versionId ?? null, p_submission_notes: submissionNotes.trim() || null
+      });
+      if (submitError) setNotice("Submission failed: " + submitError.message + (attachment ? " The uploaded document remains in the project document register." : ""));
+      else { setNotice("Deliverable submitted for review" + (attachment ? " with its document attached." : ".")); setSubmissionFile(null); await loadRegister(); await loadDetail({ ...selected, status: "submitted" }); }
+    } catch (uploadOrSubmitError) {
+      setNotice(uploadOrSubmitError instanceof Error ? uploadOrSubmitError.message : "Unable to upload the attachment.");
+    }
+    setBusy(false);
+  };
+
+  const openSubmissionDocument = async (submission: Submission) => {
+    if (!supabase || !submission.document_version_id) return;
+    setBusy(true); setNotice("");
+    const { data: version, error: versionError } = await supabase.from("project_document_versions").select("storage_path").eq("id", submission.document_version_id).single();
+    if (versionError || !version) { setNotice("Document details are not available to this account: " + (versionError?.message ?? "Version not found")); setBusy(false); return; }
+    const { data: signed, error: signedError } = await supabase.storage.from("project-documents").createSignedUrl(version.storage_path, 60);
+    if (signedError || !signed) setNotice("Could not create a secure document link: " + (signedError?.message ?? "No link returned"));
+    else window.open(signed.signedUrl, "_blank", "noopener,noreferrer");
     setBusy(false);
   };
 
@@ -176,6 +227,7 @@ export default function Deliverables({ canManage }: { canManage: boolean }) {
   const isOwner = Boolean(selected && selected.owner_user_id === currentUserId && membersFor(selected.project_id).some((m) => m.user_id === currentUserId));
   const isReviewer = Boolean(selected && selected.reviewer_user_id === currentUserId && membersFor(selected.project_id).some((m) => m.user_id === currentUserId));
   const canSubmit = Boolean(selected && (isOwner || isProjectPM(selected.project_id)) && ["planned","in_progress","changes_required"].includes(selected.status));
+  const canUploadDocument = Boolean(selected && (canManage || isProjectPM(selected.project_id) || membersFor(selected.project_id).some((m) => m.user_id === currentUserId && m.project_role === "team_lead")));
   const canReview = Boolean(selected && (isProjectPM(selected.project_id) || isReviewer) && latestSubmission?.status === "submitted" && !latestReview);
   const canAccept = Boolean(selected && isProjectPM(selected.project_id) && selected.status === "reviewed" && latestReview?.outcome === "accepted");
 
@@ -215,7 +267,7 @@ export default function Deliverables({ canManage }: { canManage: boolean }) {
             {selected.acceptance_criteria && <div className="dl-section"><h3>Acceptance criteria</h3><p>{selected.acceptance_criteria}</p></div>}
             {selected.accepting_authority && <div className="dl-section"><h3>Accepting authority</h3><p>{selected.accepting_authority}</p></div>}
 
-            {canSubmit && <div className="dl-action"><strong>Submit deliverable</strong><p>Submit a new version for review. A project document link can be attached in a later integration step; submission notes are captured now.</p><textarea value={submissionNotes} onChange={(e) => setSubmissionNotes(e.target.value)} placeholder="Submission notes, version reference or evidence location"/><button className="button-primary" disabled={busy} onClick={() => void submitDeliverable()}>{busy ? "Submitting…" : "Submit for review"}</button></div>}
+            {canSubmit && <div className="dl-action"><strong>Submit deliverable</strong><p>Submit a version for review. Attachments are stored in the private project document vault and linked to this submission.</p>{canUploadDocument ? <label>Submission attachment (optional)<input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.txt,.csv" onChange={(e) => setSubmissionFile(e.target.files?.[0] ?? null)}/><small>Maximum 50 MB. Project-classified access; only authorized project roles can upload.</small></label> : <p>You can submit notes without an attachment. A Project Manager or Team Lead must upload the file.</p>}{submissionFile && <small>Selected: {submissionFile.name} · {(submissionFile.size / (1024 * 1024)).toFixed(2)} MB</small>}<textarea value={submissionNotes} onChange={(e) => setSubmissionNotes(e.target.value)} placeholder="Submission notes, version reference or evidence location"/><button className="button-primary" disabled={busy} onClick={() => void submitDeliverable()}>{busy ? "Submitting…" : "Submit for review"}</button></div>}
 
             {canReview && latestSubmission && <div className="dl-action"><strong>Review submission #{latestSubmission.submission_no}</strong><p>Review outcome is separate from formal Project Manager acceptance.</p><select value={reviewOutcome} onChange={(e) => setReviewOutcome(e.target.value)}><option value="accepted">Review accepted</option><option value="changes_required">Changes required</option><option value="rejected">Reject submission</option></select><textarea value={reviewComments} onChange={(e) => setReviewComments(e.target.value)} placeholder="Review comments"/>{reviewOutcome === "rejected" && <textarea value={rejectionReason} onChange={(e) => setRejectionReason(e.target.value)} placeholder="Mandatory rejection reason (minimum 8 characters)"/>}<button className="button-primary" disabled={busy || (reviewOutcome === "rejected" && rejectionReason.trim().length < 8)} onClick={() => void reviewSubmission(latestSubmission)}>{busy ? "Saving review…" : "Record review"}</button></div>}
 
@@ -224,7 +276,7 @@ export default function Deliverables({ canManage }: { canManage: boolean }) {
             {selected.acceptance_status === "accepted" && <div className="dl-accepted"><CheckCircle2 size={17}/><div><strong>Formally accepted</strong><p>Accepted by {ownerName(selected.accepted_by,selected.project_id)} · {dateTime(selected.accepted_at)}</p></div></div>}
 
             <div className="dl-section"><div className="cr-section-title"><div><h3>Submission and review history</h3><p>Each submission version and review decision is retained.</p></div><button className="text-action" onClick={() => void loadDetail(selected)}>Refresh</button></div>
-              {submissions.length === 0 ? <div className="cr-inline-empty">No submissions recorded yet.</div> : <div className="dl-history">{submissions.map((submission) => { const review = reviews.find((r) => r.submission_id === submission.id); return <article key={submission.id}><div><strong>Submission #{submission.submission_no}</strong><small>{dateTime(submission.submitted_at)} · Submitted by {ownerName(submission.submitted_by,selected.project_id)}</small>{submission.submission_notes && <p>{submission.submission_notes}</p>}</div><span className="cr-status">{label(submission.status)}</span>{review && <div className="dl-review"><strong>{label(review.outcome)} · {dateTime(review.reviewed_at)}</strong>{review.comments && <p>{review.comments}</p>}{review.rejection_reason && <p>Reason: {review.rejection_reason}</p>}</div>}</article>;})}</div>}
+              {submissions.length === 0 ? <div className="cr-inline-empty">No submissions recorded yet.</div> : <div className="dl-history">{submissions.map((submission) => { const review = reviews.find((r) => r.submission_id === submission.id); return <article key={submission.id}><div><strong>Submission #{submission.submission_no}</strong><small>{dateTime(submission.submitted_at)} · Submitted by {ownerName(submission.submitted_by,selected.project_id)}</small>{submission.submission_notes && <p>{submission.submission_notes}</p>}{submission.document_file_name && <small>Attachment: {submission.document_file_name}</small>}</div><span className="cr-status">{label(submission.status)}</span>{submission.document_version_id && <button className="button-secondary small" disabled={busy} onClick={() => void openSubmissionDocument(submission)}>Open file</button>}{review && <div className="dl-review"><strong>{label(review.outcome)} · {dateTime(review.reviewed_at)}</strong>{review.comments && <p>{review.comments}</p>}{review.rejection_reason && <p>Reason: {review.rejection_reason}</p>}</div>}</article>;})}</div>}
             </div>
           </div>}
       </section>
