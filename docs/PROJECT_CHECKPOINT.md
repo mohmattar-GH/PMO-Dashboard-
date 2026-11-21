@@ -1045,3 +1045,14 @@ Remaining backend validation is unchanged: provision test Auth users and members
 - Verified in the live database that the authenticated role has EXECUTE on the public variation RPC, and reviewed its implementation and relevant RLS policies. The contract/variation tables currently contain no project fixtures, and there are no Auth users or CR fixtures, so the UI flow cannot yet be exercised end-to-end with real user sessions.
 - Frontend build and browser interaction tests have not yet been run/verified. The feature branch PR remains draft/unmerged; no deployment. Staff Time & Performance remains untouched.
 - Next: add structured schedule-change editor, then CR implementation/verification/closure actions. Follow with deliverables, milestone and notification screens, then signed-JWT role tests and build verification.
+
+
+## CR structured schedule-change UI — 21 November 2026
+
+- Added draft Change Request schedule-impact entry for existing project activities and milestones, with target type/selection, proposed start and due dates, and a mandatory reason.
+- Existing activity and milestone records are loaded read-only. The UI does not update baseline, approved revised, forecast or actual dates directly.
+- Schedule proposals are inserted into `project_change_request_schedule_changes`; database RLS restricts creation to active project PMs or Platform Administrators, and a trigger requires the parent CR to remain in draft and stamps the authenticated creator.
+- The register shows proposed schedule changes and their application state throughout the CR lifecycle. The backend applies approved date changes only as part of the PM's accepted CR transaction, preserving original baselines and recording previous approved revised dates.
+- Client-side validation requires at least one proposed date, start not later than due date, a reason of at least 8 characters, and prevents duplicate target entries within the same CR.
+- Live catalog verification confirmed authenticated INSERT and SELECT privileges on the schedule-change table and the applicable RLS/trigger protections. No Supabase schema changes were made in this UI slice.
+- End-to-end testing remains blocked by the absence of Auth users, project fixtures and CR fixtures. Frontend build/browser tests remain unverified; the PR remains draft/unmerged and no deployment occurred.
