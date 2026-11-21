@@ -66,10 +66,10 @@ export default function Projects({ isPlatformAdmin }: { isPlatformAdmin: boolean
   const loadRegister = useCallback(async () => {
     if (!supabase) { setError("Supabase client is not configured."); setLoading(false); return; }
     setLoading(true); setError("");
-    const [projectResult, clientResult, portfolioResult, phaseResult, snapshotResult] = await Promise.all([
+    const [projectResult, clientResult, portfolioResult, phaseResult, snapshotResult, profilesResult] = await Promise.all([
       supabase.from("projects").select("id,project_code,name,client_id,portfolio_id,project_manager_id,team_lead_id,lifecycle_status,start_date,target_end_date,timezone,currency_code").order("project_code"),
-      supabase.from("clients").select("id,name"),
-      supabase.from("portfolios").select("id,name"),
+      supabase.from("clients").select("id,name").eq("status", "active"),
+      supabase.from("portfolios").select("id,name").eq("status", "active"),
       supabase.from("project_current_phase").select("project_id,phase_name,progress_percent,planned_start_date,forecast_completion_date,actual_completion_date"),
       supabase.from("project_snapshot_index").select("project_id,calculated_health,reported_health,created_at").order("created_at", { ascending: false }),
       isPlatformAdmin ? supabase.from("user_profiles").select("user_id,display_name,job_title").eq("is_active", true).order("display_name") : Promise.resolve({ data: [], error: null })
