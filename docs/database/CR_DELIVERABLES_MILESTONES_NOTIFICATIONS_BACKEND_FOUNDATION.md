@@ -7,7 +7,7 @@
 
 ## Applied migration
 
-20261121110000_project_change_request_workflow_and_notifications
+20261121094748_project_change_request_workflow_and_notifications
 
 The migration adds:
 - Configurable workflow templates, version records, stages, transitions, role-code allowlists, stage requirements, and SLA hours.
@@ -32,10 +32,10 @@ The migration adds:
 
 ## Verification performed
 
-- Supabase migration application returned success.
+- Supabase migrations 064–066 were applied successfully: 20261121094748 (module schema), 20261121094854 (RLS policy overlap hardening and FK indexes), and 20261121094908 (composite deliverable-review FK index).
 - Catalog verification confirms RLS enabled on all 14 new tables and policies present.
 - Deliverable acceptance default and required acceptance metadata constraint are present.
-- Security Advisor findings are unchanged from before this migration: two existing lifecycle SECURITY DEFINER WARNs and one intentional INFO for the server-only private formula-template table.
+- Security Advisor: no new security findings; the two existing lifecycle SECURITY DEFINER WARNs and one intentional INFO for the server-only private formula-template table remain. The multiple-permissive-policy warnings introduced by the first policy layout were removed by migration 065. Performance Advisor now reports no unindexed foreign keys on the new module tables; 19 remaining unindexed-FK notices relate to pre-existing financial/lifecycle tables.
 - Database currently has zero Auth users, projects, CRs, notifications and deliverables. No real-user or signed-JWT authorization tests were possible.
 
 ## Explicitly incomplete — do not treat as production-ready
@@ -60,3 +60,13 @@ This is a schema foundation, not the complete module implementation:
 7. Run clean migration replay, frontend build, and security/performance advisors.
 
 No merge or deployment was performed. The Staff Time & Performance application was not accessed or modified.
+
+
+## Migration source reconciliation
+
+The three migration source files are named to match the versions recorded in the live Supabase migration ledger:
+- 20261121094748_project_change_request_workflow_and_notifications.sql
+- 20261121094854_cr_workflow_policy_and_index_hardening.sql
+- 20261121094908_contract_deliverable_review_fk_index.sql
+
+The 14 new tables all have RLS enabled. The seven new multiple-permissive SELECT policy warnings were eliminated by splitting write policies from read policies. Remaining Performance Advisor unindexed-FK findings are on pre-existing tables, not the new module tables. The clean-environment replay of the complete 66-migration chain has not yet been run.
