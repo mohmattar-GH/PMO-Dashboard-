@@ -107,3 +107,15 @@
 .cr-variation-actions span{font-size:11px;color:#66758a}
 .cr-variation-summary{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;padding:12px;border:1px solid #dce9e1;border-radius:8px;background:#f5faf7;font-size:11px;color:#365d49}
 @media(max-width:700px){.cr-financial-impact{grid-template-columns:1fr}.cr-variation-actions{align-items:stretch;flex-direction:column}}
+
+/* Change Request proposed schedule changes */
+.cr-schedule-form{display:flex;flex-direction:column;gap:10px;padding:13px;border:1px solid #e8edf3;border-radius:8px;background:#fafbfd}
+.cr-schedule-form label{display:flex;flex-direction:column;gap:5px;font-size:10px;color:#66758a;font-weight:600}
+.cr-schedule-form textarea{min-height:60px;resize:vertical;padding:9px}
+.cr-schedule-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.cr-schedule-list>div{display:grid;grid-template-columns:minmax(0,1.2fr) auto auto;align-items:center;gap:10px;padding:10px 12px;border:1px solid #edf0f4;border-radius:7px}
+.cr-schedule-list>div>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.cr-schedule-list strong{font-size:10px;color:#34445a}
+.cr-schedule-list small,.cr-schedule-list span,.cr-schedule-list em{font-size:9px;color:#78869a}
+.cr-schedule-list em{font-style:normal;white-space:nowrap}
+@media(max-width:700px){.cr-schedule-list>div{grid-template-columns:1fr;gap:5px}}
