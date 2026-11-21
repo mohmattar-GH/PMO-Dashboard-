@@ -11,7 +11,7 @@
 - Full Change Request Management is included in the current release. This supersedes older screen-specification statements that CR Management was deferred.
 - Portfolio registers provide cross-project oversight; project workspace trackers provide operational detail. Both use the same underlying records.
 - Existing contract variations, contract deliverables, project milestones, activities, documents, audit and financial records must be assessed and reused or extended. Do not create duplicate financial variation records or duplicate milestone/deliverable sources.
-- All workflow stages, statuses, approval routes, thresholds, SLAs, reminders, recipients and escalation rules are configurable and versioned.
+- CR decision authority is fixed to the assigned active Project Manager; there are no CR approval routes or approver stages. Impact dimensions, assessment requirements, statuses, SLA/reminder settings and notification rules remain configurable and versioned.
 - Every write is permission-checked by trusted backend/RLS, audited and traceable. UI visibility is not authorization.
 - Historical snapshots remain immutable and retain the source/configuration context used at generation.
 - The wireframes are conceptual. Example labels and values are illustrative, not live records.
@@ -39,9 +39,9 @@ The Notification Centre is available from the global top bar and as a full-page 
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ Change Requests                              [Create CR] [Export ▼]         │
 │ Search [________________]  Project [All ▼] Status [All ▼] Priority [All ▼] │
-│ Owner [All ▼] Approver [All ▼] Submitted [Date range]   [More filters]     │
+│ Requester [All ▼] Assigned PM [All ▼] Submitted [Date range]   [More filters]     │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ OPEN ##   AWAITING APPROVAL ##   OVERDUE SLA ##   APPROVED THIS PERIOD ##   │
+│ OPEN ##   AWAITING PM DECISION ##   OVERDUE SLA ##   ACCEPTED THIS PERIOD ##   │
 │ PENDING COST IMPACT [permission-gated]   SCHEDULE IMPACT ##                 │
 ├──────┬───────────┬─────────┬──────────┬──────────┬──────────┬───────────────┤
 │ CR # │ Title     │ Project │ Status   │ Priority │ Owner    │ Age / Due     │
@@ -51,7 +51,7 @@ The Notification Centre is available from the global top bar and as a full-page 
 ```
 
 ### Register behavior
-- Search by CR reference/title; filter by project, status, priority, requester, owner, approver, date, SLA state and impact category.
+- Search by CR reference/title; filter by project, status, priority, requester, assigned PM, date, SLA state and impact category.
 - Configurable columns and saved administrative views; exports follow role and field permissions.
 - Summary tiles drill into matching records.
 - Each row opens CR02. Status and age use configured workflow/SLA rules; do not hardcode labels or thresholds.
@@ -66,7 +66,7 @@ The Notification Centre is available from the global top bar and as a full-page 
 │ CR-2026-###  [Status badge]  [Priority]  Project: [Project name]             │
 │ [Edit] [Submit] [Withdraw] [More actions ▼]  (actions permission/state based)│
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ Summary | Impact Assessment | Approvals | Implementation | History | Files  │
+│ Summary | Impact Assessment | PM Decision | Implementation | History | Files  │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │ Title / description / justification                                         │
 │ Requester / submitted date / origin / category / affected contract          │
@@ -94,19 +94,20 @@ The Notification Centre is available from the global top bar and as a full-page 
 - Assessment owner, evidence, assessment status, assumptions and confidence.
 - Structured before/after comparison; preserve source baseline values.
 
-**C. Approvals**
-- Configurable approval stages and sequence/parallel rules.
-- Approver, role, decision, timestamp, mandatory reason/comment, delegation and due date.
-- Approve / reject / return for clarification / request reassessment actions only when authorized and valid for current state.
-- Separation-of-duties validation; apply configured self-approval restrictions.
-- Complete immutable decision trail.
+**C. PM Decision**
+- One decision-maker: the active Project Manager assigned to the Change Request before submission.
+- Finance and technical impact assessments are decision inputs, not approvals.
+- Only the assigned PM can accept or reject; the requester cannot decide their own CR.
+- A decision reason is mandatory and recorded with the actor and timestamp.
+- No approval stages, approval assignments, sequential/parallel routes, or approval inbox actions exist for CRs.
+- Complete immutable decision and event history.
 
 **D. Implementation**
 - Approved change package and linked operational records to update.
 - Implementation owner, tasks, target dates, progress, verification criteria and evidence.
 - Actual schedule/financial/scope effects recorded after implementation.
 - Verification outcome, verifier, date and closure decision.
-- An approved CR does not silently alter original baselines. Any revised baseline update is an explicit controlled action with reason, approver and audit.
+- An approved CR does not silently alter original baselines. Any revised baseline update is an explicit controlled action with reason, accountable decision actor and audit.
 
 **E. History & Files**
 - Version history, field change log, workflow transition history, comments, documents and evidence.
@@ -115,9 +116,9 @@ The Notification Centre is available from the global top bar and as a full-page 
 ### Configurable workflow proposal
 
 Initial suggested stages (administrator-configurable):
-Draft → Submitted → Impact Assessment → Pending Approval → Approved / Rejected / Withdrawn → In Implementation → Implemented → Verified → Closed.
+Draft → Submitted → PM Decision (Accepted / Rejected) → In Implementation → Implemented → Verified → Closed.
 
-The configuration must support return-for-clarification, reassessment, multiple approval stages, conditional routing, thresholds, delegated approvers, due dates, SLA pause/resume rules and escalation. These are proposals, not fixed rules.
+The impact-assessment configuration supports configurable dimensions, required fields, assessment states, due dates and notification/SLA rules. CR decision authority remains the assigned active Project Manager and is not configurable into an approval route.
 
 ## 5. Screen DL01 — Portfolio Deliverables Register
 
@@ -196,7 +197,7 @@ Allow resubmission and configurable review stages, acceptance authority, SLA and
 │ Inbox ##  Unread ##  Assigned to me ##  Escalated ##                        │
 │ Filter: All / Unread / CRs / Deliverables / Milestones / Escalations        │
 ├───────────────┬─────────────────────────────────────────────────────────────┤
-│ TODAY         │ [High] CR-### approval required                             │
+│ TODAY         │ [High] CR-### PM decision required                             │
 │               │ Project / short safe summary / due time                     │
 │               │ [Open record] [Acknowledge]                                 │
 │               ├─────────────────────────────────────────────────────────────┤
@@ -223,7 +224,7 @@ Allow resubmission and configurable review stages, acceptance authority, SLA and
 │ Rule set [Global ▼] Version [Draft]   Effective from [date]                 │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │ EVENT              CONDITION       RECIPIENT       CHANNEL    REMINDER      │
-│ CR approval needed  Submitted       Approver role   In-app     SLA-based     │
+│ CR PM decision due  Submitted       Assigned PM   In-app     SLA-based     │
 │ Deliverable overdue Due date passed Owner + PM      In-app     Daily*        │
 │ Milestone at risk   Threshold hit   PM + Sponsor    In-app     Configurable  │
 ├─────────────────────────────────────────────────────────────────────────────┤
@@ -244,19 +245,19 @@ Allow resubmission and configurable review stages, acceptance authority, SLA and
 - Test/preview must show resolved recipients and sample payload without sending real messages unless a separately confirmed test-send action is used.
 
 ### Initial event catalogue
-- CR created/submitted/returned/approval requested/approved/rejected/implementation due/implemented/verified/closed.
+- CR created/submitted/PM decision requested/accepted/rejected/implementation due/implemented/verified/closed.
 - Deliverable due soon/overdue/submitted/review assigned/review overdue/changes requested/resubmitted/accepted/rejected.
 - Milestone approaching/forecast slipping/overdue/achieved/re-baselined/blocked.
 - Dependency blocked/unblocked, ownership reassigned, decision required and escalation threshold reached.
 
 ## 9. Permissions and governance
 
-- Project Manager: create/manage CRs and trackers for assigned projects within configured authority; submit CRs and assess impacts; cannot bypass approvals.
-- Approver: decide only assigned approval stages; decisions require configured rationale and are audited.
-- Finance: assess/approve financial impacts and contract variations within assigned permissions.
+- Project Manager: create/manage CRs and trackers for assigned projects; assess impacts; the assigned PM alone accepts or rejects a submitted CR.
+- CR decision authority: only the assigned active PM may accept or reject; the requester cannot decide their own CR; a reason is mandatory and audited.
+- Finance: assess financial impacts within assigned permissions. A CR-linked contract variation is applied through the assigned PM's CR acceptance; the separate standalone contract-variation workflow retains its Finance decision.
 - Team Lead / contributor: update assigned activities and deliverable evidence as permitted.
 - Executive Viewer: read-only portfolio/project visibility subject to project scope and explicit financial permission.
-- Administrator: configure workflows, statuses, approval routing, notification rules and permissions; administrative configuration changes are versioned and audited.
+- Administrator: configure impact-assessment dimensions, statuses, notification rules and permissions. CR decision authority remains assigned-PM-only; other modules may retain their own configured approval rules.
 - Exact permissions and separation-of-duty constraints must be finalized in the permission matrix. No role inherits authority merely from UI visibility.
 
 ## 10. Cross-module behavior
@@ -272,7 +273,7 @@ Allow resubmission and configurable review stages, acceptance authority, SLA and
 ## 11. Product-owner review decisions
 
 Please review and approve or revise:
-1. CR lifecycle and approval design: should approval be sequential, parallel, or configurable per CR type/impact threshold? Recommended: configurable, with sequential and parallel stages supported.
+1. CR decision authority: assigned active Project Manager only. Finance and technical assessments are decision inputs, not approval steps; no CR approval route exists.
 2. Whether every CR must include a documented schedule/cost/scope impact assessment, or whether impact sections can be marked not applicable with a reason. Recommended: mandatory assessment outcome for each impact dimension.
 3. Deliverable acceptance: which roles may accept deliverables, and is client/authority acceptance captured internally or through a future external portal? Recommended: configurable accepting authority; internal capture in this release.
 4. Milestone re-baselining: should it require an approved CR, or can an authorized standalone re-baseline request be approved? Recommended: support both paths, with mandatory reason and audit.
@@ -280,13 +281,13 @@ Please review and approve or revise:
 6. Reminder/escalation schedules and business calendars: configure globally with project overrides? Recommended: yes.
 7. Should notification acknowledgement be mandatory for all action-required items, or only selected severity/event types? Recommended: configurable by rule.
 
-**Approval boundary:** This is a design proposal only. No frontend implementation, database migration, external notification integration or production deployment has been performed.
+**CR decision boundary:** A Change Request has one decision-maker: its assigned active Project Manager. The CR UI uses the PM-only decision model; other module workflows remain separately governed.
 
 ## Product-owner decisions — 20 November 2026
 
 The user has confirmed the following design decisions for this release:
 
-1. **CR approval routing:** Configurable. The workflow must support sequential and parallel approval stages, with routes governed by administrator-managed configuration.
+1. **CR decision authority:** Fixed to the assigned active Project Manager. No CR approval stages, approver assignments or sequential/parallel CR routes.
 2. **CR impact assessment:** Required for every CR. Each impact dimension must contain an assessment or be explicitly marked Not Applicable with a documented reason.
 3. **Deliverable acceptance:** A deliverable remains **Unaccepted** until the Project Manager formally records acceptance in the system. Submission or review activity alone must not change it to Accepted.
 4. **Milestone re-baselining:** Support both an approved Change Request and a separate approved re-baseline request. Require a reason, preserve prior baseline values and retain approval/audit history.
@@ -297,4 +298,4 @@ The user has confirmed the following design decisions for this release:
 
 7. **Notification acknowledgement:** Configurable by selected event types and severity. Acknowledgement is required only for events/severities designated by the administrator; it is not mandatory for every action-required notification.
 
-These are approved product decisions for design. They do not authorize frontend implementation, schema changes or deployment. The user must still review and approve the complete wireframes and interaction approach before implementation begins.
+These decisions supersede the earlier CR approval-routing proposal. The PM-only CR backend and frontend are implemented on the draft feature branch; the PR remains unmerged and no deployment has occurred. Deliverables, milestone re-baselining and notification screens remain subject to their own workflow designs.

@@ -74,6 +74,7 @@ begin
  return new;
 end;
 $function$;
+
 revoke all on function private.capture_operational_record_history() from public,anon,authenticated,service_role;
 
 do $history$
@@ -117,7 +118,10 @@ $history$;
 create or replace function private.kpi_source_has_post_cutoff_changes_v1(
  p_project_id uuid,p_source text,p_cutoff timestamptz
 )
-returns boolean language plpgsql stable set search_path=''
+returns boolean
+language plpgsql
+stable
+set search_path=''
 as $function$
 declare v_table text; v_coverage timestamptz;
 begin
@@ -146,7 +150,10 @@ $function$;
 create or replace function private.read_kpi_source_rows_v1(
  p_project_id uuid,p_source text,p_cutoff timestamptz
 )
-returns jsonb language plpgsql stable set search_path=''
+returns jsonb
+language plpgsql
+stable
+set search_path=''
 as $function$
 declare v_table text; v_rows jsonb;
 begin

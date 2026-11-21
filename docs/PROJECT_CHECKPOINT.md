@@ -1,6 +1,6 @@
-# Project Checkpoint — 14 November 2026 (updated)
+# Project Checkpoint — 21 November 2026 (updated)
 
-## Confirmed infrastructure
+## Current verified state — 21 November 2026\n- 112 live Supabase migrations; clean-environment replay run 305 passed all 112 archived migrations.\n- Frontend build run 642 passed TypeScript and Vite production build.\n- PR #1 remains draft/unmerged; no deployment.\n- No Auth users, projects or business records exist yet, so authenticated role journeys remain untested.\n\n## Confirmed infrastructure
 - GitHub repository: `mohmattar-GH/PMO-Dashboard-`, default branch `main`.
 - Dedicated Supabase project: `Executive PPM Platform`, ref `oihawkpbtgqxxliaamxs`, organization `My Own`, region `eu-central-1`, PostgreSQL 17.
 - Existing Staff Time & Performance repository `mohmattar-GH/project-draft` and Supabase project `nwxwszwcdnczaurhjqke` are separate and must not be modified.
@@ -683,3 +683,496 @@ Backend closure-boundary safeguards are implemented. Prepare the UI/UX proposal 
 - Reminder/escalation schedules use global defaults with project-level overrides.
 - Notification acknowledgement is configurable by selected event types and severity. It is required only where the administrator designates it; it is not mandatory for every action-required notification.
 - These are design decisions only. Frontend implementation, schema changes and deployment remain blocked until the user reviews and approves the complete wireframes and interaction approach.
+
+
+## Executive financial access controls — 21 November 2026
+
+- Applied Supabase migration 054, `executive_financial_access_grants`, to the separate Executive PPM Platform project.
+- Added administrator-managed, project-scoped or global executive financial access grants. Grants require a reason, can expire, are revocable once, and retain grant/revocation actor and timestamps. Authenticated users cannot delete grant history.
+- Updated SELECT RLS for project contracts, contract financial terms, invoices, cash transactions, invoice allocations and contract variations. Executive Viewer access now requires an active grant in addition to the active Executive Viewer role. Existing Project Manager, Finance, Finance Admin and Platform Admin access paths are retained.
+- Changed `project_invoice_balances` to a security-invoker view so underlying invoice/allocation RLS applies.
+- Supabase Security Advisor returned no findings immediately after migration.
+- The migration source is committed as `supabase/migrations/20261121010000_migration_054_executive_financial_access_grants.sql`.
+- Important remaining security work: historical `project_snapshots` expose a JSON payload and `snapshot_metric_values` are currently readable by Executive Viewer. KPI sensitivity classification and a safe snapshot data contract are still required before financial KPIs or snapshot payloads can be exposed to executive users. Real JWT tests are also pending because no application users are provisioned yet.
+- The frontend build failure caused by literal escaped newline characters in `src/styles.css` was fixed in commit `13887dccc9bbdda957a77faf9bd87ca15565ff84`; GitHub Actions build run 29 completed successfully.
+- PR #1 remains draft and unmerged. No deployment has been performed.
+
+
+## Historical snapshot access hardening — 21 November 2026
+
+- Applied migration 055 to the live Executive PPM Supabase project.
+- Removed broad authenticated table-level SELECT from `project_snapshots` and `portfolio_snapshots`; granted only non-JSON metadata columns. Opaque `snapshot_payload` and `portfolio_summary` are not selectable by authenticated users.
+- Removed Executive Viewer access to unclassified `snapshot_metric_values`. Platform Admin and active project members retain the existing read path.
+- Applied migration 056: added `project_snapshot_index` and `portfolio_snapshot_index` views with `security_invoker=true`, exposing only safe metadata and preserving underlying RLS/column grants.
+- Verified the views carry the `security_invoker=true` option. Supabase Security Advisor returned zero lints after the changes.
+- Current database contains zero portfolio snapshots, zero project snapshots, zero snapshot metric rows and zero KPI definitions; therefore there is no existing historical dataset to classify or validate yet.
+- Real authenticated-user tests remain outstanding because no application users have been provisioned. API consumers must use the new snapshot index views and explicit column selections; `select *` on the base snapshot tables is intentionally not supported for authenticated users.
+- Current frontend CI for the latest migration commits was still running at the time of this checkpoint update.
+
+
+## Executive Overview live project-register connection — 21 November 2026
+
+- Added `src/LivePortfolioOverview.tsx` and connected the Executive Overview to `public.projects` through the authenticated Supabase browser client.
+- The read-only query returns project code, name, lifecycle status, start date, target end date, project-manager assignment indicator and related client name. Access remains governed by the existing `projects` and `clients` SELECT grants and RLS policies; no service-role key is used.
+- Added loading, query-error, empty-register and search-filter states. Summary counts derive only from rows returned to the signed-in user.
+- Replaced fixed demo reporting period and finalized snapshot indicators with an explicit live operational view / no-finalized-snapshot status.
+- Admin layout editor entry is now restricted to the database-derived `platform_admin` role. Layout persistence is not yet implemented; the editor remains preview-only.
+- Important data-model distinction: `projects.lifecycle_status` is not the configurable project phase. The current database has no phase assignment/history tables in the inspected public schema. Project phase, calculated health, verified progress, milestone achievement, risk rollups and executive decisions remain Not Reported until the respective live data contracts are connected.
+- Database currently contains zero project rows and zero Auth users. Therefore the frontend live query has not yet been verified using a real signed-in account; do not claim a complete end-to-end integration test.
+- Latest known completed CI: run 42 succeeded for prior commit `e06f07f35155ba9a1f4e11622a9bdbede51cf69d`. The GitHub connector did not return push-triggered workflow runs for the latest commits, so this slice's build result remains unverified through the available run-list action.
+- No schema changes, user provisioning, merge or deployment were performed in this slice.
+
+
+## Snapshot-backed project health integration — 21 November 2026
+
+- Added a read-only frontend integration to the existing `project_snapshot_index` view (migration 056). Query requests only safe metadata: project ID, calculated health and snapshot creation time.
+- Snapshot query paginates at 1,000 rows and orders newest first; the latest visible calculated health is selected per project. Missing, unknown or absent snapshot status is classified as Not Reported, never Green.
+- Project register displays calculated health separately from project lifecycle status. PM-reported health is not substituted for calculated health.
+- Project Phase is explicitly shown as Not configured. Database inspection confirmed no lifecycle template, phase definition, project phase assignment or phase history tables exist yet; do not infer a phase from lifecycle status.
+- KPI metric values remain disconnected. Executive Viewer access to unclassified `snapshot_metric_values` was deliberately removed in migration 055. The KPI calculation engine and health aggregation exist, but there are currently no KPI definitions/configuration versions or snapshot values. Design a safe, sensitivity-classified KPI read contract before exposing any KPI metrics.
+- Security Advisor returned zero lints after this frontend-only change. No schema or RLS permissions were changed.
+- Database currently has zero projects, zero project/portfolio snapshots, zero KPI configuration rows and zero Auth users. Therefore authenticated browser behavior and role-specific RLS still need real-user tests.
+- Latest frontend slice commits: live register `27dc9f0e83bb4625141af0a29a58b0cbb3a3d8a8`, health integration `c1672a7b1f47140436f1ef97cfa71d40510cbf21`, styles `75a6a239d6b27d9d524f55f96cb9cb9a574ebd00`; documentation updated after these commits.
+- PR #1 remains draft and unmerged; no deployment was performed.
+
+
+## Latest frontend CI verification — 21 November 2026
+
+- GitHub Actions run `44831475659` completed successfully for the latest frontend health-integration commit `ace40388a4e54ada500e96e6c10d3d5f2733f74d`.
+- Dependency installation and TypeScript type-check/production build passed.
+- The result verifies the frontend build, not live authenticated user behavior or role-specific RLS. The database still has no provisioned application users or project records.
+- The next implementation slice is the configurable lifecycle-template / phase-definition / project-assignment / phase-transition-history model. No phase model has yet been applied; the frontend correctly continues to show Not configured until that governed data model exists.
+- PR #1 remains draft and unmerged. No deployment has been performed.
+
+
+## Configurable project lifecycle backend — 21 November 2026
+
+- Applied Supabase migrations 057 (`migration_057_configurable_project_lifecycle_phases`) and 058 (`migration_058_global_lifecycle_assignment_scope_fix`) to project `oihawkpbtgqxxliaamxs`.
+- New tables: `project_lifecycle_templates`, `project_lifecycle_template_versions`, `project_lifecycle_phases`, `project_lifecycle_transition_rules`, `project_lifecycle_assignments`, and `project_phase_history`. Added `project_current_phase` security-invoker view.
+- Lifecycle templates support global and project-specific scope. Versions are numbered and governed through draft/published/retired states and effective dates. Phase names, order, active state and allowed transitions are configured by administrators; no universal phase names are hardcoded or seeded.
+- Published/retired versions and child definitions are immutable. Project assignments are limited to one active assignment per project. A global template's scope is stored separately from the project using it, so global versions can be assigned to any project without invalid composite foreign keys.
+- Platform Administrators assign a published/effective version and initial phase. Assigned Project Managers or Platform Administrators can update current phase dates/progress and move to an explicitly allowed target phase. Transition reasons follow per-transition configuration.
+- RLS is enabled on all six tables; policies scope project data to active memberships and reserve configuration writes for Platform Administrators. Explicit Data API grants are applied. Lifecycle assignment and phase history writes create private audit events.
+- Verification: all six tables have RLS enabled and scoped policies; global draft template + two phases + starting/forward rules passed a transaction-scoped fixture test and were rolled back; both RPCs rejected unauthenticated calls. No test fixtures were retained.
+- Security Advisor reports two WARN findings for authenticated execution of SECURITY DEFINER RPCs. This is intentional for atomic writes while direct client writes to assignment/history tables remain unavailable. Functions use empty search_path, explicit auth/profile/role checks, and no anon/PUBLIC execution. The warnings remain open for review and real JWT tests.
+- Current database has zero projects and zero Auth users. Therefore positive admin assignment, PM transitions, and actual dashboard read behavior cannot yet be tested.
+- Existing project timeline views and frontend register have not yet been extended to consume phase history. The frontend must continue to show Not configured / Not Reported until lifecycle setup is completed.
+- Design and implementation notes: `docs/database/PROJECT_LIFECYCLE_PHASE_MODEL.md`.
+- Supabase migrations 057/058 are applied. The original SQL for migration 057 has now been restored from the exact `statements` array retained in `supabase_migrations.schema_migrations` and committed at `supabase/migrations/20261120225103_migration_057_configurable_project_lifecycle_phases.sql`. Migration 058 was also aligned to the exact applied SQL stored in Supabase migration history. The complete migration sequence still requires clean-environment replay before replay compatibility can be claimed.
+- PR #1 remains draft and unmerged; no deployment or user provisioning was performed.
+
+
+## Executive phase read integration — 21 November 2026
+
+- Applied migration 059, `migration_059_executive_lifecycle_phase_read_access`: active Executive Viewer users can read non-financial lifecycle definitions, assignments and history. This does not grant access to finance data.
+- Applied migration 060, `migration_060_executive_phase_change_read_model`: added `project_phase_change_log` with `security_invoker=true`; the existing `project_current_phase` view is also security-invoker.
+- Connected the Executive Overview to current phase and phase history read models. Added the Project Phase Distribution component, ordered by configured phase order, the Recent Phase Changes component (latest 10), and current phase/progress/forecast date in the project register.
+- Search now includes current phase names. No phase names or sample records are seeded.
+- SQL read checks against both views succeeded and returned empty results as expected; there are currently zero projects, lifecycle templates, versions, phases, assignments, history rows and Auth users.
+- Latest frontend commits: phase data integration `5aa5ff6806be1a1a7a1240a4172b4f06bb608018`, configured phase ordering `5621b16458b5440a45e4422275eee0c8c768a418`, styles `4f38344e355cd36a18284fb1dfaa81c54efde10c`.
+- Latest frontend CI status is unverified. The available GitHub workflow-run connector returns only PR-triggered runs and found no run for the latest commits.
+- Security Advisor reports two WARN findings for the authenticated SECURITY DEFINER lifecycle RPCs. They are intentionally used to perform atomic assignment/history writes without direct client table-write grants; both use an empty search_path, explicit auth/profile/role checks, and revoke anon/PUBLIC execution. Real JWT tests remain required.
+- Migrations 057, 059 and 060 source files have now been restored from the exact SQL statements retained in `supabase_migrations.schema_migrations`; migration 058 source remains unchanged. Recovery details are in `docs/database/MIGRATION_SOURCE_RECOVERY.md`. Clean-environment replay remains unverified.
+- PR #1 remains draft and unmerged. No deployment or user provisioning was performed.
+
+
+## Private formula-template RLS hardening — 21 November 2026
+
+- Applied migration `20261120225701_enable_rls_reporting_formula_templates` to the Executive PPM Supabase project.
+- Enabled RLS on `private.reporting_formula_templates` as defense in depth.
+- No client policies were added because `anon` and `authenticated` have neither `USAGE` on the `private` schema nor `SELECT` on this table. The existing server-side `service_role` SELECT grant remains; `service_role` bypasses RLS.
+- Post-migration verification confirms RLS enabled, RLS not forced, client schema/table access still denied, and the service-role SELECT grant retained.
+- Security Advisor now reports one INFO finding because the table has RLS enabled with no policies; this is intentional for a private server-only table with no client access. Two existing WARN findings remain for the authenticated SECURITY DEFINER lifecycle assignment/transition RPCs and require real JWT tests and security review.
+- Matching SQL source committed at `supabase/migrations/20261120225701_enable_rls_reporting_formula_templates.sql`.
+- No application data, user access, existing Staff Time & Performance assets, PR merge or deployment was changed.
+
+
+## Lifecycle migration source archive reconciled — 21 November 2026
+
+- Confirmed the live Supabase migration history stores the original SQL in `supabase_migrations.schema_migrations.statements`, not only migration version/name metadata.
+- Restored exact original SQL for migrations 057, 059 and 060 from those authoritative applied-migration records into the matching `supabase/migrations` files on `feature/ppm-frontend-foundation`.
+- Migration 059 and 060 files that had previously been reconstructed from catalog state were replaced with the exact recorded statements. Migration 058 was inspected and left unchanged.
+- Added `docs/database/MIGRATION_SOURCE_RECOVERY.md` documenting provenance, verification and remaining replay gate.
+- All four migrations 057–060 are present in live migration history and corresponding SQL files are now archived in GitHub.
+- Clean-environment replay has not yet been run. No claim of replay compatibility or production readiness is made.
+- No live database schema/data changes, user provisioning, merge or deployment occurred. Staff Time & Performance remains untouched.
+
+
+## Exact migration source archive verification — 21 November 2026
+
+- Retrieved the applied SQL statement arrays for migrations 057, 058, 059 and 060 directly from `supabase_migrations.schema_migrations` in the live PPM database.
+- Restored migration 057 and replaced the earlier reconstructed 059/060 files with their exact recorded SQL. Also aligned migration 058 to the exact stored SQL; the previous repository copy had additional explanatory header comments not present in the applied statement.
+- Re-fetched each GitHub migration file and compared its full text to the corresponding stored SQL statement. All four comparisons returned exact matches.
+- GitHub Actions Frontend build run `44834250881` completed successfully for checkpoint commit `b01610681755f21730968f552bc62da51508dfc1`. This verifies the frontend build for that commit; subsequent changes in this pass are SQL-source/documentation-only.
+- A clean-environment replay of the full migration chain remains unverified. No merge, deployment, live schema change, or Staff Time & Performance change occurred.
+
+
+## Full applied migration archive reconciliation — 21 November 2026
+
+- Queried the authoritative live PPM migration ledger, `supabase_migrations.schema_migrations`, and enumerated all 61 applied migrations.
+- Found four missing repository sources: migrations 001–004. Restored their exact `statements[1]` SQL from the applied migration ledger into `supabase/migrations/` on `feature/ppm-frontend-foundation`.
+- Re-fetched each of the four new GitHub files and compared the full file text with the stored applied SQL. All four matched exactly.
+- Confirmed that all 61 applied migration names now have a corresponding SQL file in the repository. This check uses migration names because some existing filenames use a timestamp prefix that differs from the applied ledger version; the suffix/name mapping is complete.
+- Previously restored migrations 057–060 were also checked against their stored applied SQL in this pass; all four matched exactly. No SQL content was changed in those four files during this check.
+- This establishes source-archive completeness and exact-source matching for migrations 001–004 and 057–060. It does not establish that the entire chain replays successfully on a fresh database.
+- Clean-environment replay remains an outstanding validation gate. No clean Supabase project/branch was created; no live schema/data changes, user provisioning, merge or deployment occurred. Staff Time & Performance remains untouched.
+
+
+## Clean migration replay validation — 21 November 2026
+
+The 61-migration source archive was restored from the exact SQL retained in the live Supabase migration ledger, and migration filename versions were aligned to the ledger. A clean local Supabase replay passed in GitHub Actions: `supabase start`, `supabase db reset`, and `supabase migration list` all succeeded; the final local migration history contained all 61 versions. The workflow uses a local PostgreSQL 17 stack and no hosted Supabase credentials. No hosted Supabase project or branch was created, and the live PPM database was not modified. Evidence: https://github.com/mohmattar-GH/PMO-Dashboard-/actions/runs/44836138953. Detailed record: `docs/database/MIGRATION_SOURCE_RECOVERY.md`. Dedicated checkpoint: `docs/checkpoints/2026-11-21-clean-migration-replay.md`.
+
+Remaining backend validation is unchanged: provision test Auth users and memberships for JWT/RLS tests; review lifecycle SECURITY DEFINER RPCs, Team Lead contract access, invoice cash-allocation reversal, and the KPI safe-read contract/sensitivity classification. Clean replay does not establish production readiness.
+
+
+## Backend security and authorization validation — 21 November 2026
+
+- Migration 062 (`20261120232936_security_policy_hardening`) is applied in the Executive PPM Supabase project and committed in `supabase/migrations/20261120232936_security_policy_hardening.sql`.
+- Corrected `project_contracts` SELECT policy: Team Lead and Project Viewer memberships no longer expose full contractual/commercial records. Project Manager and Finance project roles, Platform Administrator and Finance Administrator global roles, and Executive Viewer with an active explicit financial grant are authorized.
+- Rollback-only SQL role tests passed for project scope and Executive Viewer grant scope. Finance allocation reversal passed; Team Lead reversal was denied.
+- All 47 public/private tables have RLS enabled; private formula-template table has no client access; six key read-model views are security_invoker.
+- Clean replay of all 62 migrations passed: https://github.com/mohmattar-GH/PMO-Dashboard-/actions/runs/44837247508
+- Frontend build passed: https://github.com/mohmattar-GH/PMO-Dashboard-/actions/runs/44837247564
+- Current Security Advisor findings: two WARN for authenticated SECURITY DEFINER lifecycle RPCs (intentional, with explicit checks) and one INFO for the server-only private formula-template table.
+- Remaining: real signed JWT tests through Auth/Data API, Storage permission tests, and full frontend role journeys. The current SQL tests use simulated request claims, not cryptographically signed tokens.
+- Detailed report: `docs/database/SECURITY_AUTHORIZATION_TEST_RESULTS.md`; checkpoint: `docs/checkpoints/2026-11-21-security-authorization-tests.md`.
+- No real test users or data were retained. No deployment or merge; PR #1 remains draft. Staff Time & Performance untouched.
+
+
+## Lifecycle transition authorization correction — 21 November 2026
+
+- Deeper review found that `transition_project_phase` was missing effective-date checks for the Platform Administrator global assignment and Project Manager project membership, despite requiring each row's status to be active.
+- Applied live migration `20261121082534_lifecycle_transition_effective_date_authorization`; replacement function now checks active profile, effective-from and effective-to dates for both authorization paths.
+- Re-read the live function definition and verified the two effective-date predicates. Existing execution ACLs were preserved.
+- Migration SQL committed to GitHub: `supabase/migrations/20261121082534_lifecycle_transition_effective_date_authorization.sql`.
+- This is static source verification only. Fresh rollback-only tests for future-dated/expired assignments and real signed-JWT HTTP tests remain outstanding. Do not treat the earlier simulated negative-test note as proof that this missing check was previously enforced.
+- Security Advisor remains at two intentional authenticated SECURITY DEFINER WARN findings plus one INFO for the server-only private formula-template table.
+- No Auth users or persistent test fixtures created. No merge or deployment; PR #1 remains draft. Staff Time & Performance untouched.
+
+
+## Post-fix lifecycle authorization verification — 21 November 2026
+
+- Ran four rollback-only SQL tests after migration 063: future-dated and expired Project Manager memberships, plus future-dated and expired Platform Administrator assignments. All four were denied with the expected authorization error.
+- Tests used simulated `request.jwt.claim.sub` values and temporary fixtures within one transaction; follow-up query confirmed zero test Auth users, profiles or projects remained.
+- Confirmed function ACL: anon cannot execute `transition_project_phase`; authenticated retains the intended grant. Live function source includes effective-from and effective-to checks on both authorization paths.
+- These tests are not signed-JWT HTTP tests; actual Auth/Data API/RPC testing and Storage tests remain outstanding.
+- The migration source archive now contains 63 files matching all 63 live migration ledger entries, with no missing or extra filenames.
+- Frontend build passed for current branch head `a3289bdda9f28a29abc8cc42d6f3f32dd51a0185`. Migration replay is still running; an earlier PR replay attempt failed before stack startup because GitHub rate-limited the action's lookup of the latest Supabase CLI release. The workflow is now pinned to Supabase CLI 3.2.0 and uses a guarded cleanup step.
+
+
+## CR, Deliverables, Milestones and Notifications backend foundation — 21 November 2026
+
+- Added and applied Supabase migration 064: 20261121110000_project_change_request_workflow_and_notifications.
+- Added configurable workflow template/version/stage/transition schema; CR register, impact assessments, approval records and history; deliverable submission/review history; milestone re-baseline request/history; notification rules and per-user in-app inbox.
+- Extended existing contract_deliverables rather than creating a duplicate deliverable register. New deliverables default to unaccepted; accepted status requires accepted_by and accepted_at and the existing status must be accepted. The existing table's write authorization remains PM / Platform Administrator controlled.
+- Financial CR impact rows have narrower access than the base CR record. Workflow and notification rules are Platform Administrator controlled. Notification inbox rows are recipient-scoped, and client updates are limited to read/acknowledgement fields. Authenticated delete privileges are revoked on the new tables.
+- RLS is enabled on all 14 new tables; catalog verification confirmed policies exist. Supabase migration application returned success.
+- Security Advisor findings remain unchanged: two existing lifecycle SECURITY DEFINER WARNs and one intentional INFO for private server-only formula templates.
+- The live PPM database currently has zero Auth users, projects, CRs, notifications and deliverables. Real signed-JWT tests and positive role-based journeys remain impossible until test accounts and project fixtures exist.
+- Important: this is a backend schema foundation, not a completed module. CR transition/approval execution, separation-of-duties enforcement, impact completeness, atomic contract/schedule application, history population, deliverable submission/review/PM acceptance actions, milestone re-baseline approval/application, notification event evaluation/recipient resolution/retry processing and frontend screens remain outstanding.
+- External email delivery is not enabled. No frontend files were changed in this slice.
+- Detailed record: docs/database/CR_DELIVERABLES_MILESTONES_NOTIFICATIONS_BACKEND_FOUNDATION.md.
+- No merge or deployment. Staff Time & Performance remains untouched.
+
+
+## CR module policy/index hardening and migration ledger alignment — 21 November 2026
+
+- Added migration 065, 20261121094854_cr_workflow_policy_and_index_hardening: split write policies from read policies to eliminate seven multiple-permissive SELECT warnings, and added indexes for new module foreign keys.
+- Added migration 066, 20261121094908_contract_deliverable_review_fk_index: composite index covering the deliverable-review submission/project/deliverable FK.
+- Re-ran Security Advisor: no new findings. Existing findings remain two authenticated lifecycle SECURITY DEFINER WARNs and one intentional private formula-template INFO.
+- Re-ran Performance Advisor: zero unindexed foreign-key findings on the new module tables. Nineteen remaining unindexed-FK findings are on pre-existing financial/lifecycle tables. Unused-index INFOs are expected while the database contains no application data; do not remove indexes solely on that basis.
+- Reconciled GitHub migration filenames to the exact live ledger versions: 064 = 20261121094748, 065 = 20261121094854, 066 = 20261121094908.
+- Migration application and catalog checks succeeded. All 14 new tables have RLS enabled and policies. No new test users or sample business data were created.
+- Clean-environment replay of the complete 66-migration chain is not yet verified. GitHub's available workflow-run fetch did not return a PR-triggered run for the latest branch commit, so no CI pass is claimed for these commits.
+- The backend workflow engine and user-facing module actions remain incomplete as detailed in docs/database/CR_DELIVERABLES_MILESTONES_NOTIFICATIONS_BACKEND_FOUNDATION.md. No frontend changes, merge or deployment occurred. Staff Time & Performance remains untouched.
+
+
+## PM-only deliverable acceptance enforcement — 21 November 2026
+
+- Added and applied migration 067, 20261121095042_contract_deliverable_pm_acceptance_guard.
+- Strengthened the deliverable acceptance constraint so status='accepted' and acceptance_status='accepted' must agree, with accepted_by and accepted_at required.
+- Added a SECURITY INVOKER trigger with empty search_path. Only an active Project Manager with an active, effective project membership can transition a deliverable to accepted. The trigger stamps accepted_by and accepted_at from the authenticated actor and current database time; clients cannot supply or backdate those values.
+- A recorded acceptance cannot be reversed or have its accepting actor/time rewritten. New deliverables cannot be inserted already accepted.
+- Trigger function EXECUTE is revoked from anon, authenticated and service_role; it runs only through the table trigger.
+- Catalog verification confirms the trigger, invoker mode, denied direct function execution, and strengthened check constraint. Positive signed-JWT acceptance testing remains pending because the PPM database has zero Auth users and zero project fixtures.
+- Matching migration source is archived as supabase/migrations/20261121095042_contract_deliverable_pm_acceptance_guard.sql.
+- Total live migration count is now 67. Clean-environment replay of all 67 migrations remains unverified. No frontend changes, merge or deployment. Staff Time & Performance remains untouched.
+
+
+## Module migration archive final check — 21 November 2026
+
+- Queried the live Supabase migration ledger: 67 migrations are applied.
+- Compared the full SQL source of migrations 064, 065, 066 and 067 in GitHub with the corresponding statements[1] values in supabase_migrations.schema_migrations using PostgreSQL MD5 equality. All four exact-source comparisons returned true.
+- The latest Security Advisor check remains unchanged: two existing lifecycle SECURITY DEFINER WARNs and one intentional INFO for the private server-only formula-template table. The new PM acceptance trigger is SECURITY INVOKER and direct execution is revoked from client roles.
+- The PR description and backend foundation document reflect the current scope and implementation limits. PR #1 remains open, draft, unmerged. No deployment. The separate Staff Time & Performance app remains untouched.
+
+
+## CR workflow engine implementation — 21 November 2026
+
+- Added migrations 068–077 (versions 20261121095515 through 20261121100005) and archived the exact applied SQL sources under supabase/migrations.
+- Added configurable sequential/parallel approval mode per workflow stage, ordered role-based approval assignments, approval rounds for stage re-entry, required impact-dimension definitions and metadata validation.
+- Added Platform Administrator-only workflow publication RPC. Published workflow versions and their child stage/transition/impact-dimension configuration are immutable; new configuration requires a new draft version and publication.
+- Added CR transition RPC for draft submission and configured stage actions. It validates active application profile and effective role assignments, checks the selected published/effective workflow, enforces completion of every required impact dimension, routes role-based approvals, blocks out-of-order sequential approvals, and records approval/history events atomically.
+- Self-approval is rejected by both the transition path and approval trigger. Approval decisions and CR history are not writable directly by authenticated clients. Approver-role members can read their pending approval rows.
+- CR creation is restricted to active PM / Platform Administrator and always starts as draft with requester stamped from auth.uid(). Direct lifecycle-field updates are blocked. Submitted identity/content is immutable. Workflow version can be selected while still draft and is locked after submission.
+- Impact assessment rows can only be edited by active PM/Finance or authorized global administrators while the CR is draft; assessed_by/assessed_at are database-stamped. Impact row identity cannot be reassigned and rows cannot be deleted.
+- Privileged implementations were moved to the non-exposed private schema behind public SECURITY INVOKER RPC wrappers. Security Advisor now reports only the two previously existing public lifecycle SECURITY DEFINER warnings and the intentional private formula-template INFO; no new warning was introduced by the CR engine.
+- Rollback-only integration test passed with simulated Auth claim subjects and temporary fixtures: PM submitted; a later sequential approver was denied out of order; Finance approved; Team Lead approved; CR reached the configured terminal Approved stage; two approvals and three history events were recorded. The test transaction rolled back, and a follow-up query confirmed zero temporary Auth users, projects or CRs remained.
+- This is not a signed-JWT HTTP test. Real Auth/JWT/API/Storage testing remains outstanding. The parallel path and self-approval denial need dedicated tests.
+- Remaining CR work: atomic application to contract variations and schedule/milestone records, admin workflow authoring UI, CR screens/actions, SLA/escalation and notification event wiring.
+- Total live migration count: 77. Clean-environment replay of all 77 migrations remains unverified. No merge or deployment. Staff Time & Performance remains untouched.
+- Detailed implementation and test record: docs/database/CR_DELIVERABLES_MILESTONES_NOTIFICATIONS_BACKEND_FOUNDATION.md.
+
+
+## CR workflow guard corrections and final validation — 21 November 2026
+
+- Added migrations 078–079 (20261121100113 and 20261121100132) to correct workflow-field comparisons and make transaction-local authorization-context checks NULL-safe.
+- Important security correction: the original guard comparison could fail to detect direct lifecycle field changes when the custom transaction setting was absent. The final guard compares the protected fields directly and treats a missing context as unauthorized. The workflow publication guard applies the same fail-closed rule.
+- Rollback-only tests confirmed direct client status mutation is rejected and direct draft workflow publication is rejected. The end-to-end sequential approval test still passes after the creation and identity guards: PM submission, out-of-order Team Lead denial, Finance approval, Team Lead approval, final Approved state, two approval records and three history events.
+- All rollback-only test users/projects/CR records were removed by transaction rollback; a follow-up count returned zero.
+- Final Security Advisor check: no new findings. Two pre-existing public lifecycle SECURITY DEFINER warnings and the intentional private formula-template INFO remain. CR privileged implementations remain in private behind public SECURITY INVOKER wrappers.
+- Final Performance Advisor check: 19 unindexed-FK findings remain on pre-existing lifecycle/financial tables; no new unindexed-FK finding on CR/workflow module tables. Unused-index notices are informational while the database has no operational data.
+- Total applied migration count: 79. The last two migration files were compared against their live ledger SQL hashes and matched; all migration sources were archived directly from the live migration ledger.
+- Full clean-environment replay and real signed-JWT/Storage tests remain pending. No merge or deployment. Staff Time & Performance remains untouched.
+
+
+## Atomic CR application to contract variations and schedule — 21 November 2026
+
+- Added migrations 080–084 (20261121100528 through 20261121100846). Exact SQL source for all five new migrations was hash-compared against the live Supabase ledger; all matched.
+- Added configurable workflow decision outcome (approved/rejected) independently of terminal status. This allows the CR to enter an approved decision stage, apply approved changes, and continue through implementation/closure stages.
+- Added CR decision actor and approval decision actor stamps.
+- Financially impactful CRs now require a contract, matching CR-linked draft contract variation, one consistent currency matching contract/project financial terms, and a configured Finance/Finance Admin approval stage.
+- Added public RPC create_change_request_contract_variation (SECURITY INVOKER wrapper over private implementation). It creates a single linked draft variation from the CR's assessed net financial impact.
+- CR-linked variations cannot be independently submitted or approved. They are approved only inside the CR application transaction after all latest approval rounds complete and a Finance approval actor is recorded. Existing standalone variation workflow remains in place.
+- Added typed CR schedule-change records targeting project activities or milestones. Proposed dates and reasons are locked after CR submission. Approved CR application updates only approved_revised_start_date / approved_revised_due_date; original baseline dates remain unchanged.
+- Direct client updates to approved revised schedule dates are blocked. Only approved CR application or the separate milestone re-baseline context can update them.
+- Added one application record per CR with actor/time, variation link, financial amount/currency, schedule count and audit payload. Application of the variation, financial rollup, schedule changes and history event occurs in one transaction; any failure rolls back the whole approval transition. Duplicate application is prevented.
+- Finance can read CR decision history and financial application records. Team Leads can read schedule changes but not financial application records.
+- Rollback-only end-to-end test passed: PM created CR and USD 100 variation, assessed required dimensions, submitted; out-of-order Team Lead approval denied; Finance then Team Lead approvals succeeded; CR entered Approved decision stage; variation became Approved with Finance as decision actor; financial terms reflected USD 100 approved variations; activity due date updated to 2026-12-05; milestone due date updated to 2026-12-15; one application record and two applied schedule records were created. All fixtures were rolled back and post-test counts returned zero temporary Auth users/projects/CRs.
+- Test used simulated claim subjects, not signed-JWT HTTP. Parallel approval, rejection/return, real Auth/API and Storage tests remain outstanding.
+- Total live migrations: 84. Security Advisor still shows only two pre-existing public lifecycle SECURITY DEFINER warnings and the intentional private formula-template INFO. Performance Advisor still shows 19 unindexed-FK notices on pre-existing lifecycle/financial tables; none on the new CR module tables. Clean replay of all 84 migrations remains outstanding.
+- CR screens, schedule impact UI, linked variation UI, approval inbox, SLA/notification wiring, deliverable submission/review actions and milestone re-baseline execution remain outstanding. No merge or deployment. Staff Time & Performance remains untouched.
+- Detailed record: docs/database/CR_DELIVERABLES_MILESTONES_NOTIFICATIONS_BACKEND_FOUNDATION.md.
+
+
+## Deliverable submission, review and PM acceptance actions — 21 November 2026
+
+- Added migrations 085–087 (20261121101154, 20261121101202, 20261121101233) and archived their exact applied SQL sources in GitHub.
+- Added public SECURITY INVOKER RPC wrappers with private-schema implementations:
+  - submit_contract_deliverable: assigned owner or active PM submits a numbered version with notes and optional document/version. Document references are checked for same-project scope, active status, uploaded version and the user's classification read permission.
+  - review_contract_deliverable_submission: assigned reviewer or active PM records accepted, changes_required or rejected; rejection requires a reason. One review decision per submission.
+  - accept_contract_deliverable: only active PM for the project may accept, and only after the latest submission receives an accepted review outcome.
+- A reviewer outcome of accepted does not formally accept the deliverable. acceptance_status remains unaccepted until the separate PM acceptance action stamps accepted_by and accepted_at.
+- Direct client writes to submission/review records are revoked. Direct client changes to deliverable submission/review/acceptance lifecycle fields are blocked. PM acceptance is enforced through a transaction-local action context and the existing database acceptance guard.
+- Submission and review audit events are recorded; deliverable operational history captures state changes.
+- Rollback-only test passed: Team Lead submitted version 1; assigned reviewer accepted the submission; deliverable remained unaccepted; direct PM table acceptance was rejected; PM acceptance RPC succeeded and stamped actor/time. Test transaction rolled back; no fixture records remain.
+- This is SQL-level simulation, not signed-JWT HTTP/API or actual Storage upload/download testing. Document classification checks are implemented; document-linked submission and Storage E2E remain pending.
+- Total live migration count: 87. Clean-environment replay of 84 migrations passed before migrations 085–087 were added; full replay of all 87 migrations must be rerun. Frontend build also passed at the earlier commit; rerun both pipelines at the latest branch head.
+- Deliverable screens/actions, CR screens, approval inbox, workflow configuration UI and notification event processing remain outstanding. No merge or deployment. Staff Time & Performance remains untouched.
+- Detailed implementation: docs/database/CR_DELIVERABLES_MILESTONES_NOTIFICATIONS_BACKEND_FOUNDATION.md.
+
+
+## Event-driven in-app notifications — 21 November 2026
+
+- Added migrations 088–090 (20261121101519, 20261121101556, 20261121101623) and archived the exact applied SQL sources.
+- Added Platform Administrator-managed notification rules with supported recipient roles, target users, actor exclusion, severity, effective dates and acknowledgement requirement. Rule changes increment version_no and archive the prior configuration in ppm_notification_rule_history.
+- Added private event delivery helper and database triggers for CR submitted, approval-needed, approved/rejected, deliverable submitted, review accepted/changes-required/rejected and formal PM acceptance events.
+- Sequential CR approval notifications route only to the next actionable approver; the next person is notified after the prior approver completes. Parallel stages notify all pending approvers.
+- Recipient resolution requires active profiles and effective project/global role assignments. Inbox rows are recipient-scoped and deduplicated by rule version, event instance, source and recipient.
+- Read and acknowledgement actions stamp timestamps in the database; acknowledgement is permitted only where the rule requires it and is immutable once recorded.
+- Rule configuration is validated for the supported immediate-event schema. Scheduled reminders, lead-time processing, repeats, quiet hours and escalations are explicitly not enabled; no email integration.
+- Rollback-only notification test passed: PM received CR submitted notification; Finance received first sequential approval notification; Team Lead received it only after Finance approval; Finance marked read and acknowledged with timestamps stamped; updating a rule incremented its version and archived the previous snapshot. CR reached Approved stage; transaction rolled back.
+- No test users/projects/CRs/rules/notifications persisted. Deliverable notification triggers are installed but require a separate event-specific integration test. Test used simulated claims, not signed-JWT HTTP.
+- Security Advisor remains at two pre-existing public lifecycle SECURITY DEFINER warnings and one intentional private formula-template INFO. Performance Advisor returned to 19 unindexed-FK notices, all on pre-existing lifecycle/financial tables; no duplicate index warning remains. Unused-index notices are expected on the empty application database.
+- Total live migration count: 90. The clean replay of 87 migrations and frontend build passed before migrations 088–090. Full replay and build must be rerun at the latest branch head.
+- Notification inbox/rule screens, CR/deliverable screens, scheduled reminders/escalations, email, milestone re-baseline approval/application and real signed-JWT/API/Storage tests remain outstanding. No merge or deployment. Staff Time & Performance remains untouched.
+- Detailed implementation: docs/database/CR_DELIVERABLES_MILESTONES_NOTIFICATIONS_BACKEND_FOUNDATION.md.
+
+
+## PM-only Change Request decision model — 21 November 2026
+
+- User decision confirmed: the assigned Project Manager is the sole CR decision-maker. No CR route approval, Finance approval, Team Lead approval, or sequential/parallel approval stages.
+- Applied migrations 091–093: 20261121123154_cr_project_manager_only_decision_model, 20261121123213_remove_legacy_cr_finance_approval_gate, 20261121123320_cr_pm_only_variation_guard_and_assignment_lock.
+- New RPCs: submit_project_change_request and decide_project_change_request. Submission validates required impact assessments and an active assigned PM. Only that assigned PM may accept/reject; requester self-decision is blocked; decision reason, actor and timestamp are recorded.
+- Legacy CR transition RPC disabled; approval-assignment and self-approval triggers removed; approval table retained as historical-only with client writes revoked. Approval-needed routing removed from CR notifications.
+- Finance/technical impact remain assessment information. Removed Finance approval requirement from CR submission and CR-linked contract variation application. Contract/currency/variation matching and atomic financial/schedule application remain enforced.
+- Assigned PM is immutable after submission. PM acceptance applies linked variation and schedule changes atomically; original baseline remains preserved.
+- Exact SQL source matched live ledger for migrations 091–093. Security Advisor introduced no new CR-related warnings; two pre-existing public lifecycle SECURITY DEFINER warnings and one intentional private formula-template INFO remain. Performance Advisor retains 19 pre-existing lifecycle/financial unindexed-FK notices.
+- No Auth users, projects or CRs exist in the database, so signed-JWT role journey tests and real fixture-based positive/negative tests remain outstanding. Do not claim end-to-end verification.
+- Full clean replay of all 96 migrations and latest frontend build remain outstanding. No merge, no deployment. Staff Time & Performance remains untouched.
+- Detailed implementation: docs/database/CR_DELIVERABLES_MILESTONES_NOTIFICATIONS_BACKEND_FOUNDATION.md.
+
+
+### Migration ledger correction — 21 November 2026
+
+- A subsequent live-ledger count confirmed 96 applied migrations (including the already-applied milestone re-baseline migration and the four PM-only CR refactor migrations). This count supersedes earlier migration-count references in this checkpoint sequence.
+- Added migration 20261121123531_revoke_legacy_cr_approval_helpers to revoke authenticated/service-role execution of obsolete approval and Finance trigger helpers. Its SQL source matches the live migration ledger exactly.
+- Catalog verification confirms the legacy CR transition RPC and obsolete approval helper functions are not executable by authenticated users. The only active CR submission/decision API wrappers are the new PM-only SECURITY INVOKER RPCs.
+
+
+### Final approval-register lock — 21 November 2026
+
+- Added migration 20261121123623_lock_legacy_cr_approval_register_read_only. The historical CR approval register remains available for audit/history but INSERT, UPDATE and DELETE are revoked from anon, authenticated and service_role.
+- Privilege verification returned false for service_role and authenticated INSERT/UPDATE/DELETE. Approval rows remain zero; no historical records were removed.
+- Live Supabase migration ledger count is now 96. Exact migration SQL archive for 20261121123623 matches the applied ledger statement.
+- Security Advisor remains unchanged: no new CR-related findings; two existing public lifecycle SECURITY DEFINER warnings and one private formula-template INFO remain.
+
+
+### Final migration count and CR variation dependency check — 21 November 2026
+
+- The live migration ledger now contains 98 applied migrations. The latest live ledger is authoritative; earlier checkpoint counts are superseded.
+- Added 20261121123623_lock_legacy_cr_approval_register_read_only. The approval table remains for historical traceability only and is read-only for anon, authenticated and service_role.
+- PostgreSQL catalog verification confirms CR-linked contract variation enforcement no longer references CR approval rows or workflow stages. The separate standalone contract-variation workflow retains its own Finance decision rule; this is not a CR approval gate.
+- The latest Security Advisor still reports only the two pre-existing public lifecycle SECURITY DEFINER warnings and the private formula-template INFO; no new CR-related warning was introduced.
+
+
+## Frontend delivery update — Change Requests (21 November 2026)
+
+- Added `src/ChangeRequests.tsx` and wired it to the Change Requests navigation item in `src/App.tsx`.
+- Added a responsive register, project/status/search filters, record workspace, lifecycle indicator, impact-assessment editor for draft CRs, submission action, assigned-PM-only accept/reject actions, mandatory decision reason, decision outcome and audit history.
+- CR approval stages, approver assignments and approval actions are not present in the new frontend. Impact assessments are presented as PM decision inputs; the current draft editor captures assessment status, narrative, schedule impact and financial amount/currency. Contract selection and linked variation creation are implemented through the existing PM-only-compatible database function.
+- The UI uses the existing Supabase project and public RPCs `submit_project_change_request` and `decide_project_change_request`; authorization remains enforced by database RLS and RPC validation.
+- The UI is connected to real tables, but the project currently has no Auth users/projects/CR fixtures. Real role-journey tests and a production build are not yet verified. No GitHub Actions workflow was triggered for these commits.
+- No Supabase schema changes, merge or deployment were made. Existing Staff Time & Performance project remains untouched.
+
+
+## CR financial impact and linked variation UI — 21 November 2026
+
+- Extended `src/ChangeRequests.tsx` with draft financial impact amount and ISO currency code fields inside impact dimensions. Financial inputs remain disabled until the dimension is marked assessed, matching database constraints; the contract currency is prefilled when available.
+- Added contract selection to the new Change Request form and included the contract/linked-variation references in the register query.
+- Added linked variation creation through the existing `public.create_change_request_contract_variation(uuid)` RPC. The database function computes the net assessed cost impact, requires one consistent currency, and checks it against project financial terms and the selected contract before creating a linked draft variation.
+- Added a linked variation summary and responsive styles. No database schema change was made.
+- Verified in the live database that the authenticated role has EXECUTE on the public variation RPC, and reviewed its implementation and relevant RLS policies. The contract/variation tables currently contain no project fixtures, and there are no Auth users or CR fixtures, so the UI flow cannot yet be exercised end-to-end with real user sessions.
+- Frontend build and browser interaction tests have not yet been run/verified. The feature branch PR remains draft/unmerged; no deployment. Staff Time & Performance remains untouched.
+- Next: add structured schedule-change editor, then CR implementation/verification/closure actions. Follow with deliverables, milestone and notification screens, then signed-JWT role tests and build verification.
+
+
+## CR structured schedule-change UI — 21 November 2026
+
+- Added draft Change Request schedule-impact entry for existing project activities and milestones, with target type/selection, proposed start and due dates, and a mandatory reason.
+- Existing activity and milestone records are loaded read-only. The UI does not update baseline, approved revised, forecast or actual dates directly.
+- Schedule proposals are inserted into `project_change_request_schedule_changes`; database RLS restricts creation to active project PMs or Platform Administrators, and a trigger requires the parent CR to remain in draft and stamps the authenticated creator.
+- The register shows proposed schedule changes and their application state throughout the CR lifecycle. The backend applies approved date changes only as part of the PM's accepted CR transaction, preserving original baselines and recording previous approved revised dates.
+- Client-side validation requires at least one proposed date, start not later than due date, a reason of at least 8 characters, and prevents duplicate target entries within the same CR.
+- Live catalog verification confirmed authenticated INSERT and SELECT privileges on the schedule-change table and the applicable RLS/trigger protections. No Supabase schema changes were made in this UI slice.
+- End-to-end testing remains blocked by the absence of Auth users, project fixtures and CR fixtures. Frontend build/browser tests remain unverified; the PR remains draft/unmerged and no deployment occurred.
+
+
+## CR implementation, verification and closure — 21 November 2026
+
+- Applied Supabase migration `20261121134005_cr_implementation_verification_closure_actions` and archived its exact recorded SQL statement at `supabase/migrations/20261121134005_cr_implementation_verification_closure_actions.sql`.
+- Added three authenticated RPC actions: `update_project_change_request_implementation`, `verify_project_change_request`, and `close_project_change_request`.
+- Implementation tracking supports an active project-member owner, target completion date, and progress states `not_started`, `in_progress`, `blocked`, and `completed`. PM/Platform Admin can assign/reassign and manage due dates; the assigned implementation owner can update progress but cannot change ownership or due date.
+- Completing implementation moves the CR to `implemented`; only a project PM or Platform Admin can verify a completed implementation with mandatory evidence. Only a PM or Platform Admin can close a verified CR with mandatory closure evidence.
+- Each action requires an active application profile, validates the lifecycle state, records actor/reason/timestamp in the CR history, and emits notification events through the existing configurable notification-rule engine. No CR approver stages or Finance approval routes were added.
+- Frontend now provides implementation owner/date/progress controls, verification evidence, closure evidence and audit-history visibility. The membership lookup now loads active project members so implementation owners can be selected; PM decision controls still require the Project Manager role.
+- Verified live database grants: all three public RPCs are executable by `authenticated`, not `anon`; their private SECURITY DEFINER implementations are not executable by client roles. A direct unauthenticated verification call returned the expected `Authentication required` error.
+- Security Advisor shows the same two previously identified lifecycle SECURITY DEFINER warnings and the existing private formula-template INFO; no new CR-specific warning was introduced. There are still no Auth users or project/CR fixtures, so signed-JWT role tests and full UI journeys remain outstanding.
+- Frontend production build/browser tests remain unverified. PR #1 remains draft/unmerged; no deployment. Staff Time & Performance remains untouched.
+- Next: Deliverables submission/review/PM acceptance UI, then milestone re-baseline UI and notification inbox/rule management, followed by end-to-end role tests and build verification.
+
+
+## Deliverables register and workflow UI — 21 November 2026
+
+- Added `src/Deliverables.tsx` and routed the Deliverables navigation item to the live Supabase module.
+- Register supports project/status/search filtering and summary counts for total, awaiting review, awaiting PM acceptance and formally accepted deliverables.
+- PM/Platform Admin create form captures contract, deliverable code/name/type, description, due date, acceptance criteria, owner, reviewer, accepting authority and baseline submission/acceptance dates. New records start planned and unaccepted.
+- Detail workspace displays contract and ownership metadata, baseline dates, description and acceptance criteria.
+- Assigned owner or active PM can submit a new submission version with notes using the existing `submit_contract_deliverable` RPC. This UI currently does not attach a project document/version; that remains a follow-up integration.
+- Assigned reviewer or active PM can record accepted / changes-required / rejected review outcomes through `review_contract_deliverable_submission`; rejection requires a reason.
+- Formal acceptance is a separate action and is displayed only to an active project PM after the latest submission has an accepted review. It calls `accept_contract_deliverable`; a review acceptance alone never marks the contractual deliverable accepted.
+- Submission/review history and formal acceptance details are displayed. Existing backend triggers retain immutable submission/review records, operational audit events and notification events.
+- Verified live database grants: authenticated users have SELECT/INSERT on deliverables, SELECT on submissions, and EXECUTE on submit/review/accept RPCs; RLS and workflow guards remain responsible for row/role enforcement. No database schema changes were made in this frontend slice.
+- End-to-end tests remain blocked by no Auth users or project/deliverable fixtures. Frontend build/browser tests are not yet verified. PR remains draft/unmerged; no deployment. Staff Time & Performance remains untouched.
+- Next: milestone tracker and re-baseline action UI, followed by Notifications inbox/rule management and remaining verification.
+
+
+## Milestone register and re-baseline UI — 21 November 2026
+
+- Added `src/Milestones.tsx` and routed the Milestones navigation item to the live Supabase module.
+- Register supports project/status/search filters and portfolio counts for total, completed, critical-open and pending re-baseline milestones.
+- PM/Platform Admin create form captures milestone code/name/type, description, sequence, weight, initial baseline dates, owner and criticality. Initial baseline is set at creation; later baseline changes cannot be edited directly.
+- Detail workspace displays baseline, approved revised, forecast and actual date pairs, owner, weight, progress and completion evidence.
+- PM/Platform Admin can update progress/status, owner, forecast and actual dates. Completed milestones require 100% progress and completion evidence. Baseline fields are intentionally excluded from the direct update payload.
+- Controlled re-baseline requests use `request_milestone_rebaseline`; the request records the current baseline snapshot and proposed dates. A different active PM or Platform Admin must approve/reject with a reason through `decide_milestone_rebaseline`. Approval applies the new baseline and writes immutable baseline history; the existing backend checks that the baseline has not changed since request submission.
+- Request status, request reason, decision reason, proposed/current baseline dates and immutable baseline history are displayed in the workspace.
+- Verified live grants: authenticated role has SELECT/INSERT on milestones, SELECT on re-baseline requests and EXECUTE on both re-baseline RPCs. Existing RLS and baseline immutability triggers remain in force. No Supabase schema changes were made in this UI slice.
+- Live database currently has zero milestone records; there are no Auth users or project fixtures, so real user journeys cannot yet be exercised. Frontend production build/browser tests remain unverified. PR #1 remains draft/unmerged; no deployment. Staff Time & Performance remains untouched.
+- Next: Notifications inbox and rule-management UI, then finish role-based testing and build verification.
+
+
+## Notifications inbox and rule-management UI — 21 November 2026
+
+- Added `src/Notifications.tsx` and connected the Notifications navigation route. The top navigation badge now reflects the signed-in user's live unread count; the previous static demo count was removed.
+- Inbox is recipient-scoped through existing RLS and displays title, message, severity, project, event code, timestamp, expiry and acknowledgement state. Supports unread/read/all and severity filters, mark-read, mark-all-read and required acknowledgement actions.
+- Added Platform Administrator-only notification rule management. Admins can create and edit immediate event rules with rule code/name, module/event code, enabled state, severity, project/global recipient roles, explicit target-user inclusion, actor exclusion and acknowledgement requirement.
+- Existing database version trigger increments rule versions and snapshots the previous configuration in `ppm_notification_rule_history`; the UI displays prior versions.
+- Backend scope is explicitly respected: only immediate event rules are configured. Trigger conditions must remain empty; lead time, repeat intervals, quiet hours and escalation rules remain at safe defaults because the current database guard rejects scheduled/quiet-hour/escalation configuration. No unsupported scheduler behavior is represented in the UI.
+- Found and fixed a pre-existing inbox permission gap: RLS already restricted updates to each recipient's own rows, but authenticated had no UPDATE column grant. Applied migration `20261121134630_notification_inbox_recipient_update_grants`, granting UPDATE only on `is_read` and `acknowledged_at`. Archived exact SQL at `supabase/migrations/20261121134630_notification_inbox_recipient_update_grants.sql`.
+- Verified column privileges: authenticated can update `is_read` and `acknowledged_at`, but cannot update notification `title`; the existing row-level policy and update guard still enforce recipient scope and immutable content.
+- Security Advisor remains at the same existing findings: two known public lifecycle SECURITY DEFINER warnings and one private formula-template INFO; no new notification-related warning.
+- There are currently no notification rules or inbox records, and no Auth users/project fixtures. Real role-based inbox/rule tests remain outstanding. Frontend build/browser tests are not verified. PR #1 remains draft/unmerged; no deployment. Staff Time & Performance remains untouched.
+- Next: scheduled SLA/reminder/escalation processing requires a separate supported backend design; then perform signed-JWT role tests, clean migration replay and frontend build verification.
+
+- Rule editor includes the supported event codes confirmed from the live database trigger functions for Change Requests, Deliverables and Milestone re-baselining, reducing the risk of configuring a rule against a non-emitted event.
+
+
+## Delegated execution update — 21 November 2026 (current status supersedes earlier verification notes)
+
+- Current GitHub head: `5746677e9c43d2694533a4c11dd8ce7d17854b79` on `feature/ppm-frontend-foundation`. PR #1 remains open, draft and unmerged.
+- Live Supabase project `oihawkpbtgqxxliaamxs` is `ACTIVE_HEALTHY`; its migration ledger contains 98 applied migrations.
+- Frontend build workflow run 395 passed on the current head. The earlier failure was caused by four TypeScript issues in navigation, Deliverables and Notifications; all four were corrected.
+- Full clean migration replay run 172 passed on commit `9f0e7852442e9df86aa2d7d70e5e86d77e528f39`. Run 174 is re-running the same migration chain for the current head; no database migration files changed after the successful replay.
+- Deliverables now supports optional versioned document attachments. The UI creates a project document and pending version, uploads to the existing private `project-documents` bucket, finalizes the version as uploaded, and links both document IDs to the submission RPC. It enforces the existing 50 MB limit and approved MIME types. The attachment is displayed in submission history and opened through a 60-second signed URL.
+- Attachment authorization deliberately reuses the existing document classification and Storage RLS policies. Project-classified uploads require an authorized Project Manager, Team Lead or Platform Administrator; document reads/downloads remain subject to the existing project membership and classification rules. No new bucket, public URL or service-role client exposure was introduced.
+- Live database inspection confirmed the private bucket, file-size/MIME constraints, version state guard, storage-object insert/read policies and authenticated table/column grants. Actual upload/download execution is not yet verified because the project has no Auth users or project/deliverable fixtures.
+- Security Advisor findings remain limited to the two previously known public lifecycle SECURITY DEFINER RPC warnings and the private formula-template RLS INFO. The two RPC definitions were reviewed: both require an authenticated user and active authorized application role/membership; anon execution is denied. The private formula registry is in a non-exposed schema. Performance Advisor still reports 19 unindexed foreign-key INFO notices.
+- Remaining release gates: create a separate controlled test environment or otherwise provision approved test identities, run positive/negative signed-JWT role journeys, exercise browser flows including attachment upload/download, and complete the latest clean migration replay.
+- No merge, deployment or change to the separate Staff Time & Performance repository/project has been made.
+
+
+## Administrator-managed shared dashboard layout — 21 November 2026
+
+- Applied migration `20261121135905_ppm_dashboard_layout_configuration` and archived its SQL in `supabase/migrations/20261121135905_ppm_dashboard_layout_configuration.sql`.
+- Added migration `20261121140231_ppm_dashboard_layout_fk_indexes` and archived its SQL. The three new actor foreign keys are indexed; the Performance Advisor returned to the previous 19 unindexed-FK INFO findings rather than adding new layout-related FK warnings.
+- Added `public.ppm_dashboard_layouts` with one seeded `executive_overview` layout. The JSON configuration stores `visible_widgets` and `widget_order`; database validation rejects unknown/duplicate widget IDs, missing order entries and an empty visible-widget selection.
+- Added `public.ppm_dashboard_layout_history`. Insert/update triggers version every meaningful change and record immutable snapshots with actor and timestamp. Authenticated users with active profiles can read the shared current layout; only active Platform Administrators can update it. Only Platform Administrators can read layout history. Client-side DELETE is not granted.
+- Updated `src/App.tsx` so the Platform Administrator-only editor loads the saved layout, supports show/hide and ordering of implemented dashboard sections, saves changes to Supabase for all users, and restores the default layout through a persisted update.
+- Updated `src/LivePortfolioOverview.tsx` to apply the shared widget visibility and order to the actual live dashboard. Supported configurable sections are Portfolio Summary, Latest Calculated Project Health, Project Phase Overview, Project Register and Data Quality / Not Reported Metrics. This release configures these implemented sections; it is not an arbitrary custom-widget builder.
+- Verified the migration created the default version-1 layout and history snapshot. A transactional update test exercised the version/history trigger and was rolled back; the live default row and single initial history snapshot remain unchanged.
+- Latest frontend build workflow run 409 passed on commit `b82111cbc292c256ac2b11ccfb429cc4a3bbe05d`. Full clean migration replay run 183 was still in progress at the time of this checkpoint; the previous 99-migration replay had passed before the dashboard-layout migrations were added.
+- Supabase Security Advisor still reports the same two reviewed public lifecycle SECURITY DEFINER warnings and the private formula-template INFO; no new dashboard-layout finding. Health Advisor returned no findings.
+- Runtime save/role tests remain outstanding because there are no Auth users or project fixtures. PR #1 remains draft/unmerged; no deployment; Staff Time & Performance remains untouched.
+
+
+## Project register operational editors and project-scoped authorization — 21 November 2026
+
+- Integrated the existing governed `ProjectOperationsEditor` into the Project Profile Schedule and Risk tabs. The schedule workspace now supports PM/Platform Admin activity creation and management, while Team Leads can view and update only activities assigned to their own user ID. Baseline dates are captured on creation and are not editable on update; approved revised dates remain under governed change control.
+- The Risk tab now provides full risk and license registers with PM/Platform Admin create/edit actions. Risk fields include category, cause, consequence, response, mitigation, contingency, probability/impact, owner, review/resolution dates, trend and escalation. Risk score is protected from manual edits, but the current schema has no writer that populates project_risks.risk_score. The Top 5 panel therefore remains Not Reported until a configurable per-risk scoring process is implemented. License fields include provider, type, quantity/unit, start/expiry/renewal dates, cost/currency, owner and status.
+- Operational status values are editable text rather than fixed frontend enums. Risk trend remains constrained to the supported database values. The UI does not hardcode a 1–5 probability/impact scale; levels must be positive and the governed reporting configuration determines scoring.
+- Integrated role-aware contractual and financial terms editors in the Project Profile. Contract changes are PM/Platform Admin controlled; financial terms are restricted to project Finance, Finance Admin and Platform Admin according to the existing database policies. Original contract value/currency and approved variation totals are protected by the existing database integrity rules.
+- Corrected Change Request permissions to evaluate the active user's role on the selected project. Impact assessments are editable by project PM/Finance or the corresponding global administrator roles; schedule proposals and linked variations are PM/Platform Admin controlled; assigned implementation owners can update progress, while PM/Admin controls assignment, verification and closure. Schedule proposal inserts now include the authenticated creator ID required by the table.
+- Corrected Deliverables and Milestones create permissions to filter projects and actions by the user's actual project PM membership or Platform Admin role. Document upload access no longer treats a PM role in an unrelated project as sufficient.
+- CR financial impact fields, currency, linked contract variation and structured activity/milestone schedule proposals were already present in the CR workspace; this pass corrected role visibility and save behavior, including clearing optional impact values.
+- Frontend build workflow run 536 passed on commit `e50682cbafab288ca083d9d344a9dcfc860d73ec` (TypeScript type-check and Vite production build).
+- Historical checkpoint note: the ledger was at 109 migrations and replay run 246 was in progress at that time. This is superseded by the current 112-migration ledger and successful clean replay run 305.
+- No Auth users, projects or operational test fixtures currently exist in the live project. Therefore authenticated end-to-end role journeys and real record create/update flows remain unverified. Existing RLS is retained as the enforcement layer; UI gating is not treated as a substitute.
+- PR #1 remains draft and unmerged. No deployment. Staff Time & Performance remains untouched.
+
+
+## Reporting configuration and weekly snapshot archive — 21 November 2026
+
+- Added a Configuration Center with separate Lifecycle and Reporting Rules/KPIs workspaces. Platform Administrators can access both; Configuration Stewards can create/edit/submit drafts; Configuration Approvers can approve, publish and supersede.
+- Reporting Configuration UI uses the existing `reporting-config-governance` Edge Function and the governed database RPC. It supports global and project-scoped configuration sets, draft versions, dimensions, KPI definitions, allowlisted formula templates, source mappings, parameters, weights, thresholds, date basis and missing-data status.
+- Draft rule arrays are editable through structured JSON editors because the backend validates the full versioned rule schema. Published versions are read-only. Creating a successor version from the latest published/superseded version copies the prior dimensions, KPI definitions and rule parameters into the new draft.
+- Added version metadata in the UI: change summary, creator, submitter, approver, publisher and their timestamps. Every create/save/submit/approve/publish/supersede action goes through the existing audited governance function.
+- Added Reports & Snapshots workspace. Platform Administrators can create reporting cycles, close cycles after cutoff, build snapshots only when an effective published global reporting configuration exists, and finalize building snapshots. Executive Viewers receive read-only access to available snapshot history.
+- Snapshot UI reads only the existing restricted `portfolio_snapshot_index` and `project_snapshot_index` security-invoker views. It does not query protected raw portfolio/project snapshot payloads or expose restricted metric-value tables. Summary counts are derived from the authorized index rows.
+- Added migration `20261121205801_reporting_cycles_platform_admin_read_access.sql` so Platform Administrators can read open reporting cycles before a snapshot exists. No direct cycle write permissions were granted; create/close/build/finalize remain guarded Edge Function/RPC actions.
+- Live Supabase migration ledger now contains 112 applied migrations. Clean-environment replay run 305 passed; all 112 archived migrations replayed successfully.
+- Frontend build workflow run 642 passed on commit `e7391ab2ef9e2583f6a229de78e914d9b73015a1` (TypeScript check and Vite production build).
+- Authenticated reporting configuration and snapshot workflows remain unverified because the live project has no Auth users, projects or published reporting configuration. Do not create a real weekly cycle or publish default KPI assumptions without explicit business decisions.
+- Added migration `20261121210429_reporting_cycles_merge_read_policy.sql` to combine the reporting-cycle read conditions into one policy. Platform Administrators can read open cycles; Executive Viewers can read cycles only when a portfolio snapshot exists. This removes the multiple-permissive-policy warning introduced by the initial Admin read policy.
+- Live security advisor after the policy merge shows no new security warnings. Remaining findings are the intentional private formula-template table with no client policies (INFO) and two pre-existing lifecycle SECURITY DEFINER RPC warnings. Performance advisor retains 19 unindexed foreign-key notices and 83 unused-index notices; no new reporting-cycle policy warning remains.
+
+- Per-risk score population is now implemented through versioned `risk_scoring` parameters and the allowlisted `weighted_sum_v1` formula. The Top 5 Risk Watchlist ranks calculated scores only; no frontend fallback formula is used.

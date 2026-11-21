@@ -1,0 +1,5 @@
+drop index public.ppm_user_notifications_recipient_dedupe_uq;
+create index ppm_notification_rule_history_changed_by_idx
+  on public.ppm_notification_rule_history(changed_by);
+create index ppm_notification_rules_updated_by_idx
+  on public.ppm_notification_rules(updated_by);

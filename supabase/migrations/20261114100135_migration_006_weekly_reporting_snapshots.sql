@@ -8,7 +8,8 @@ create table public.reporting_cycles (
   cutoff_at timestamptz not null,
   as_of_date date not null,
   timezone text not null,
-  status text not null default 'draft' check (status in ('draft','open','closed','snapshotted','cancelled')),
+  status text not null default 'draft'
+    check (status in ('draft','open','closed','snapshotted','cancelled')),
   created_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -21,9 +22,11 @@ create table public.portfolio_snapshots (
   reporting_cycle_id uuid not null unique references public.reporting_cycles(id) on delete restrict,
   generated_at timestamptz not null default now(),
   generated_by uuid references auth.users(id) on delete set null,
-  snapshot_status text not null default 'building' check (snapshot_status in ('building','finalized')),
+  snapshot_status text not null default 'building'
+    check (snapshot_status in ('building','finalized')),
   source_watermark timestamptz,
-  portfolio_summary jsonb not null default '{}'::jsonb check (jsonb_typeof(portfolio_summary) = 'object'),
+  portfolio_summary jsonb not null default '{}'::jsonb
+    check (jsonb_typeof(portfolio_summary) = 'object'),
   created_at timestamptz not null default now()
 );
 
@@ -34,7 +37,8 @@ create table public.project_snapshots (
   source_updated_at timestamptz,
   calculated_health text,
   reported_health text,
-  snapshot_payload jsonb not null default '{}'::jsonb check (jsonb_typeof(snapshot_payload) = 'object'),
+  snapshot_payload jsonb not null default '{}'::jsonb
+    check (jsonb_typeof(snapshot_payload) = 'object'),
   created_at timestamptz not null default now(),
   unique (portfolio_snapshot_id, project_id)
 );
@@ -47,7 +51,8 @@ create table public.snapshot_metric_values (
   text_value text,
   unit text,
   status text not null check (length(btrim(status)) > 0),
-  source_lineage jsonb not null default '[]'::jsonb check (jsonb_typeof(source_lineage) = 'array'),
+  source_lineage jsonb not null default '[]'::jsonb
+    check (jsonb_typeof(source_lineage) = 'array'),
   created_at timestamptz not null default now(),
   unique (project_snapshot_id, kpi_code),
   check (numeric_value is null or text_value is null)
@@ -60,7 +65,10 @@ create table public.snapshot_config_links (
   scope_type text not null check (scope_type in ('global','project')),
   scope_entity_id uuid,
   created_at timestamptz not null default now(),
-  check ((scope_type = 'global' and scope_entity_id is null) or (scope_type = 'project' and scope_entity_id is not null)),
+  check (
+    (scope_type = 'global' and scope_entity_id is null) or
+    (scope_type = 'project' and scope_entity_id is not null)
+  ),
   unique (portfolio_snapshot_id, configuration_version_id, scope_type, scope_entity_id)
 );
 
@@ -80,6 +88,7 @@ create index project_snapshots_project_idx on public.project_snapshots(project_i
 create index snapshot_metric_values_kpi_idx on public.snapshot_metric_values(kpi_code, status);
 create index snapshot_config_links_version_idx on public.snapshot_config_links(configuration_version_id);
 
+-- Keep reporting-cycle changes controlled once a snapshot exists.
 create or replace function private.guard_reporting_cycle_mutation()
 returns trigger language plpgsql set search_path = ''
 as $$
@@ -97,11 +106,14 @@ create trigger reporting_cycles_guard_update
 before update or delete on public.reporting_cycles
 for each row execute function private.guard_reporting_cycle_mutation();
 
+-- A snapshot may be assembled only while building, then finalized exactly once.
 create or replace function private.guard_portfolio_snapshot_mutation()
 returns trigger language plpgsql set search_path = ''
 as $$
 begin
-  if tg_op = 'DELETE' then raise exception 'Portfolio snapshots are append-only'; end if;
+  if tg_op = 'DELETE' then
+    raise exception 'Portfolio snapshots are append-only';
+  end if;
   if old.snapshot_status <> 'building'
      or new.snapshot_status <> 'finalized'
      or (to_jsonb(new) - 'snapshot_status') <> (to_jsonb(old) - 'snapshot_status') then
@@ -115,6 +127,7 @@ create trigger portfolio_snapshots_immutable
 before update or delete on public.portfolio_snapshots
 for each row execute function private.guard_portfolio_snapshot_mutation();
 
+-- Child records can be inserted only while the parent snapshot is building.
 create or replace function private.guard_snapshot_child_insert()
 returns trigger language plpgsql set search_path = ''
 as $$
@@ -146,19 +159,29 @@ begin
 end;
 $$;
 
-create trigger project_snapshots_insert_guard before insert on public.project_snapshots
+create trigger project_snapshots_insert_guard
+before insert on public.project_snapshots
 for each row execute function private.guard_snapshot_child_insert();
-create trigger project_snapshots_no_mutation before update or delete on public.project_snapshots
+create trigger project_snapshots_no_mutation
+before update or delete on public.project_snapshots
 for each row execute function private.reject_snapshot_child_mutation();
-create trigger snapshot_metric_values_insert_guard before insert on public.snapshot_metric_values
+
+create trigger snapshot_metric_values_insert_guard
+before insert on public.snapshot_metric_values
 for each row execute function private.guard_snapshot_child_insert();
-create trigger snapshot_metric_values_no_mutation before update or delete on public.snapshot_metric_values
+create trigger snapshot_metric_values_no_mutation
+before update or delete on public.snapshot_metric_values
 for each row execute function private.reject_snapshot_child_mutation();
-create trigger snapshot_config_links_insert_guard before insert on public.snapshot_config_links
+
+create trigger snapshot_config_links_insert_guard
+before insert on public.snapshot_config_links
 for each row execute function private.guard_snapshot_child_insert();
-create trigger snapshot_config_links_no_mutation before update or delete on public.snapshot_config_links
+create trigger snapshot_config_links_no_mutation
+before update or delete on public.snapshot_config_links
 for each row execute function private.reject_snapshot_child_mutation();
-create trigger snapshot_corrections_no_mutation before update or delete on public.snapshot_corrections
+
+create trigger snapshot_corrections_no_mutation
+before update or delete on public.snapshot_corrections
 for each row execute function private.reject_snapshot_child_mutation();
 
 alter table public.reporting_cycles enable row level security;
@@ -170,12 +193,16 @@ alter table public.snapshot_corrections enable row level security;
 
 create policy reporting_cycles_read_authorized on public.reporting_cycles
 for select to authenticated using (
-  exists (select 1 from public.portfolio_snapshots ps
+  exists (
+    select 1 from public.portfolio_snapshots ps
     where ps.reporting_cycle_id = reporting_cycles.id
-      and exists (select 1 from public.user_global_role_assignments ura
-        where ura.user_id = (select auth.uid()) and ura.role_code in ('platform_admin','executive_viewer')
-          and ura.status = 'active' and ura.effective_from <= now()
-          and (ura.effective_to is null or ura.effective_to > now())))
+      and (
+        exists (select 1 from public.user_global_role_assignments ura
+          where ura.user_id = (select auth.uid()) and ura.role_code in ('platform_admin','executive_viewer')
+            and ura.status = 'active' and ura.effective_from <= now()
+            and (ura.effective_to is null or ura.effective_to > now()))
+      )
+  )
 );
 
 create policy portfolio_snapshots_read_executives on public.portfolio_snapshots
@@ -238,10 +265,13 @@ for select to authenticated using (
 );
 
 revoke all on public.reporting_cycles, public.portfolio_snapshots, public.project_snapshots,
-  public.snapshot_metric_values, public.snapshot_config_links, public.snapshot_corrections from anon, authenticated;
+  public.snapshot_metric_values, public.snapshot_config_links, public.snapshot_corrections
+  from anon, authenticated;
 grant select on public.reporting_cycles, public.portfolio_snapshots, public.project_snapshots,
-  public.snapshot_metric_values, public.snapshot_config_links, public.snapshot_corrections to authenticated;
+  public.snapshot_metric_values, public.snapshot_config_links, public.snapshot_corrections
+  to authenticated;
 grant all on public.reporting_cycles, public.portfolio_snapshots, public.project_snapshots,
-  public.snapshot_metric_values, public.snapshot_config_links, public.snapshot_corrections to service_role;
+  public.snapshot_metric_values, public.snapshot_config_links, public.snapshot_corrections
+  to service_role;
 
 commit;
