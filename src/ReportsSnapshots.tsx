@@ -12,7 +12,6 @@ const dateLabel = (value: string | null) => value ? new Intl.DateTimeFormat(unde
 const dateTime = (value: string | null) => value ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : "Not recorded";
 const label = (value: string) => value.replace(/_/g, " ").replace(/\b\w/g, (s) => s.toUpperCase());
 const statusClass = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-const asObject = (value: unknown): Record<string, unknown> => value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 const dateTimeToUtc = (value: string, timeZone: string) => {
   const [datePart, timePart] = value.split("T");
   const [year, month, day] = datePart.split("-").map(Number);
