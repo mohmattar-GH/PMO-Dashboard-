@@ -1,6 +1,6 @@
-# Project Checkpoint — 14 November 2026 (updated)
+# Project Checkpoint — 21 November 2026 (updated)
 
-## Confirmed infrastructure
+## Current verified state — 21 November 2026\n- 112 live Supabase migrations; clean-environment replay run 305 passed all 112 archived migrations.\n- Frontend build run 642 passed TypeScript and Vite production build.\n- PR #1 remains draft/unmerged; no deployment.\n- No Auth users, projects or business records exist yet, so authenticated role journeys remain untested.\n\n## Confirmed infrastructure
 - GitHub repository: `mohmattar-GH/PMO-Dashboard-`, default branch `main`.
 - Dedicated Supabase project: `Executive PPM Platform`, ref `oihawkpbtgqxxliaamxs`, organization `My Own`, region `eu-central-1`, PostgreSQL 17.
 - Existing Staff Time & Performance repository `mohmattar-GH/project-draft` and Supabase project `nwxwszwcdnczaurhjqke` are separate and must not be modified.
@@ -1155,7 +1155,7 @@ Remaining backend validation is unchanged: provision test Auth users and members
 - Corrected Deliverables and Milestones create permissions to filter projects and actions by the user's actual project PM membership or Platform Admin role. Document upload access no longer treats a PM role in an unrelated project as sufficient.
 - CR financial impact fields, currency, linked contract variation and structured activity/milestone schedule proposals were already present in the CR workspace; this pass corrected role visibility and save behavior, including clearing optional impact values.
 - Frontend build workflow run 536 passed on commit `e50682cbafab288ca083d9d344a9dcfc860d73ec` (TypeScript type-check and Vite production build).
-- Live Supabase migration ledger currently contains 109 applied migrations. Clean-environment replay run 246 is still in progress; do not claim replay success until its workflow completes.
+- Historical checkpoint note: the ledger was at 109 migrations and replay run 246 was in progress at that time. This is superseded by the current 112-migration ledger and successful clean replay run 305.
 - No Auth users, projects or operational test fixtures currently exist in the live project. Therefore authenticated end-to-end role journeys and real record create/update flows remain unverified. Existing RLS is retained as the enforcement layer; UI gating is not treated as a substitute.
 - PR #1 remains draft and unmerged. No deployment. Staff Time & Performance remains untouched.
 
