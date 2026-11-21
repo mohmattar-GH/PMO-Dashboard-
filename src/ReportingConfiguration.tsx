@@ -18,7 +18,7 @@ const formulaCatalog = [
   { code: "weighted_sum_v1", method: "weighted_sum", description: "Weighted aggregation of validated source values", required: ["values", "weights"] }
 ];
 
-const pretty = (value: unknown) => JSON.stringify(value, null, 2);
+const pretty = (value: unknown) => JSON.stringify(value, null, 2) ?? "[]";
 const parseArray = (value: string, label: string) => {
   const parsed = JSON.parse(value);
   if (!Array.isArray(parsed)) throw new Error(label + " must be a JSON array.");
