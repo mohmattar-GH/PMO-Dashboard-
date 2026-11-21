@@ -885,3 +885,15 @@ Remaining backend validation is unchanged: provision test Auth users and members
 - Migration application and catalog checks succeeded. All 14 new tables have RLS enabled and policies. No new test users or sample business data were created.
 - Clean-environment replay of the complete 66-migration chain is not yet verified. GitHub's available workflow-run fetch did not return a PR-triggered run for the latest branch commit, so no CI pass is claimed for these commits.
 - The backend workflow engine and user-facing module actions remain incomplete as detailed in docs/database/CR_DELIVERABLES_MILESTONES_NOTIFICATIONS_BACKEND_FOUNDATION.md. No frontend changes, merge or deployment occurred. Staff Time & Performance remains untouched.
+
+
+## PM-only deliverable acceptance enforcement — 21 November 2026
+
+- Added and applied migration 067, 20261121095042_contract_deliverable_pm_acceptance_guard.
+- Strengthened the deliverable acceptance constraint so status='accepted' and acceptance_status='accepted' must agree, with accepted_by and accepted_at required.
+- Added a SECURITY INVOKER trigger with empty search_path. Only an active Project Manager with an active, effective project membership can transition a deliverable to accepted. The trigger stamps accepted_by and accepted_at from the authenticated actor and current database time; clients cannot supply or backdate those values.
+- A recorded acceptance cannot be reversed or have its accepting actor/time rewritten. New deliverables cannot be inserted already accepted.
+- Trigger function EXECUTE is revoked from anon, authenticated and service_role; it runs only through the table trigger.
+- Catalog verification confirms the trigger, invoker mode, denied direct function execution, and strengthened check constraint. Positive signed-JWT acceptance testing remains pending because the PPM database has zero Auth users and zero project fixtures.
+- Matching migration source is archived as supabase/migrations/20261121095042_contract_deliverable_pm_acceptance_guard.sql.
+- Total live migration count is now 67. Clean-environment replay of all 67 migrations remains unverified. No frontend changes, merge or deployment. Staff Time & Performance remains untouched.
