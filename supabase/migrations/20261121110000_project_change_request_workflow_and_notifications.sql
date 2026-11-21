@@ -108,6 +108,9 @@ create table public.project_change_requests (
     references public.project_contract_variations(id) on delete restrict
 );
 
+alter table public.project_change_requests
+  add constraint project_change_requests_id_project_uq unique (id, project_id);
+
 create table public.project_change_request_impacts (
   id uuid primary key default gen_random_uuid(),
   change_request_id uuid not null references public.project_change_requests(id) on delete restrict,
@@ -133,9 +136,6 @@ create table public.project_change_request_impacts (
   constraint project_cr_impact_request_project_fk foreign key (change_request_id, project_id)
     references public.project_change_requests(id, project_id) on delete restrict
 );
-
-alter table public.project_change_requests
-  add constraint project_change_requests_id_project_uq unique (id, project_id);
 
 create table public.project_change_request_approvals (
   id uuid primary key default gen_random_uuid(),
@@ -412,7 +412,7 @@ for all to authenticated using (exists (
 create policy project_cr_read_project_members on public.project_change_requests
 for select to authenticated using (
   exists (select 1 from public.project_memberships pm
-    where pm.project_id = project_id and pm.user_id = (select auth.uid()) and pm.status = 'active'
+    where pm.project_id = project_change_requests.project_id and pm.user_id = (select auth.uid()) and pm.status = 'active'
       and pm.effective_from <= now() and (pm.effective_to is null or pm.effective_to > now()))
   or exists (select 1 from public.user_global_role_assignments ura
     where ura.user_id = (select auth.uid()) and ura.role_code = 'platform_admin'
@@ -422,7 +422,7 @@ for select to authenticated using (
 create policy project_cr_write_pm_admin on public.project_change_requests
 for all to authenticated using (
   exists (select 1 from public.project_memberships pm
-    where pm.project_id = project_id and pm.user_id = (select auth.uid()) and pm.project_role = 'project_manager'
+    where pm.project_id = project_change_requests.project_id and pm.user_id = (select auth.uid()) and pm.project_role = 'project_manager'
       and pm.status = 'active' and pm.effective_from <= now() and (pm.effective_to is null or pm.effective_to > now()))
   or exists (select 1 from public.user_global_role_assignments ura
     where ura.user_id = (select auth.uid()) and ura.role_code = 'platform_admin'
@@ -430,7 +430,7 @@ for all to authenticated using (
       and (ura.effective_to is null or ura.effective_to > now()))
 ) with check (
   exists (select 1 from public.project_memberships pm
-    where pm.project_id = project_id and pm.user_id = (select auth.uid()) and pm.project_role = 'project_manager'
+    where pm.project_id = project_change_request_impacts.project_id and pm.user_id = (select auth.uid()) and pm.project_role = 'project_manager'
       and pm.status = 'active' and pm.effective_from <= now() and (pm.effective_to is null or pm.effective_to > now()))
   or exists (select 1 from public.user_global_role_assignments ura
     where ura.user_id = (select auth.uid()) and ura.role_code = 'platform_admin'
@@ -442,7 +442,7 @@ for all to authenticated using (
 create policy project_cr_impacts_finance_read on public.project_change_request_impacts
 for select to authenticated using (
   exists (select 1 from public.project_memberships pm
-    where pm.project_id = project_id and pm.user_id = (select auth.uid()) and pm.project_role in ('project_manager','finance')
+    where pm.project_id = project_change_request_impacts.project_id and pm.user_id = (select auth.uid()) and pm.project_role in ('project_manager','finance')
       and pm.status = 'active' and pm.effective_from <= now() and (pm.effective_to is null or pm.effective_to > now()))
   or exists (select 1 from public.user_global_role_assignments ura
     where ura.user_id = (select auth.uid()) and ura.role_code in ('platform_admin','finance_admin')
@@ -452,7 +452,7 @@ for select to authenticated using (
 create policy project_cr_impacts_pm_finance_write on public.project_change_request_impacts
 for all to authenticated using (
   exists (select 1 from public.project_memberships pm
-    where pm.project_id = project_id and pm.user_id = (select auth.uid()) and pm.project_role in ('project_manager','finance')
+    where pm.project_id = project_change_request_approvals.project_id and pm.user_id = (select auth.uid()) and pm.project_role in ('project_manager','finance')
       and pm.status = 'active' and pm.effective_from <= now() and (pm.effective_to is null or pm.effective_to > now()))
   or exists (select 1 from public.user_global_role_assignments ura
     where ura.user_id = (select auth.uid()) and ura.role_code in ('platform_admin','finance_admin')
@@ -460,7 +460,7 @@ for all to authenticated using (
       and (ura.effective_to is null or ura.effective_to > now()))
 ) with check (
   exists (select 1 from public.project_memberships pm
-    where pm.project_id = project_id and pm.user_id = (select auth.uid()) and pm.project_role in ('project_manager','finance')
+    where pm.project_id = project_change_request_history.project_id and pm.user_id = (select auth.uid()) and pm.project_role in ('project_manager','finance')
       and pm.status = 'active' and pm.effective_from <= now() and (pm.effective_to is null or pm.effective_to > now()))
   or exists (select 1 from public.user_global_role_assignments ura
     where ura.user_id = (select auth.uid()) and ura.role_code in ('platform_admin','finance_admin')
@@ -471,7 +471,7 @@ for all to authenticated using (
 create policy project_cr_approvals_read on public.project_change_request_approvals
 for select to authenticated using (
   approver_user_id = (select auth.uid())
-  or exists (select 1 from public.project_memberships pm where pm.project_id = project_id
+  or exists (select 1 from public.project_memberships pm where pm.project_id = contract_deliverable_submissions.project_id
     and pm.user_id = (select auth.uid()) and pm.project_role = 'project_manager'
     and pm.status = 'active' and pm.effective_from <= now() and (pm.effective_to is null or pm.effective_to > now()))
   or exists (select 1 from public.user_global_role_assignments ura where ura.user_id = (select auth.uid())
@@ -493,7 +493,7 @@ for update to authenticated using (
 
 create policy project_cr_history_read on public.project_change_request_history
 for select to authenticated using (
-  exists (select 1 from public.project_memberships pm where pm.project_id = project_id
+  exists (select 1 from public.project_memberships pm where pm.project_id = contract_deliverable_reviews.project_id
     and pm.user_id = (select auth.uid()) and pm.project_role = 'project_manager'
     and pm.status = 'active' and pm.effective_from <= now() and (pm.effective_to is null or pm.effective_to > now()))
   or exists (select 1 from public.user_global_role_assignments ura where ura.user_id = (select auth.uid())
@@ -504,7 +504,7 @@ for select to authenticated using (
 -- Submission history is immutable from the client; PM/reviewer records are retained.
 create policy deliverable_submissions_read on public.contract_deliverable_submissions
 for select to authenticated using (
-  exists (select 1 from public.project_memberships pm where pm.project_id = project_id
+  exists (select 1 from public.project_memberships pm where pm.project_id = project_milestone_rebaseline_requests.project_id
     and pm.user_id = (select auth.uid()) and pm.status = 'active'
     and pm.effective_from <= now() and (pm.effective_to is null or pm.effective_to > now()))
   or exists (select 1 from public.user_global_role_assignments ura where ura.user_id = (select auth.uid())
@@ -514,7 +514,7 @@ for select to authenticated using (
 create policy deliverable_reviews_read on public.contract_deliverable_reviews
 for select to authenticated using (
   reviewer_user_id = (select auth.uid())
-  or exists (select 1 from public.project_memberships pm where pm.project_id = project_id
+  or exists (select 1 from public.project_memberships pm where pm.project_id = project_milestone_rebaseline_requests.project_id
     and pm.user_id = (select auth.uid()) and pm.project_role = 'project_manager'
     and pm.status = 'active' and pm.effective_from <= now() and (pm.effective_to is null or pm.effective_to > now()))
   or exists (select 1 from public.user_global_role_assignments ura where ura.user_id = (select auth.uid())
@@ -524,7 +524,7 @@ for select to authenticated using (
 
 create policy milestone_rebaseline_read on public.project_milestone_rebaseline_requests
 for select to authenticated using (
-  exists (select 1 from public.project_memberships pm where pm.project_id = project_id
+  exists (select 1 from public.project_memberships pm where pm.project_id = project_milestone_baseline_history.project_id
     and pm.user_id = (select auth.uid()) and pm.status = 'active'
     and pm.effective_from <= now() and (pm.effective_to is null or pm.effective_to > now()))
   or exists (select 1 from public.user_global_role_assignments ura where ura.user_id = (select auth.uid())
