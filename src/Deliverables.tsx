@@ -23,7 +23,7 @@ type Review = { id: string; submission_id: string; reviewer_user_id: string; out
 const label = (value: string) => value.replace(/_/g, " ").replace(/\\b\\w/g, (s) => s.toUpperCase());
 const dateTime = (value: string | null) => value ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : "Not recorded";
 
-export default function Deliverables({ canManage, isPlatformAdmin }: { canManage: boolean; isPlatformAdmin: boolean }) {
+export default function Deliverables({ canManage }: { canManage: boolean }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
