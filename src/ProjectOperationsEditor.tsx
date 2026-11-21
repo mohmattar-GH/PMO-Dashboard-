@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, FileCheck2, Pencil, Plus, ShieldAlert } from "lucide-react";
+import { FileCheck2, Pencil, Plus, ShieldAlert } from "lucide-react";
 import { supabase } from "./lib/supabase";
 
 type TeamMember = { user_id: string; project_role: string; display_name: string; job_title: string | null };
