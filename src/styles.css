@@ -482,3 +482,10 @@
 .project-top-risk-row strong{font-size:9px;color:#344a61}
 .project-top-risk-row small{font-size:8px;color:#8392a3}
 .project-top-risk-row>span{font-size:11px;font-weight:700;color:#344a61}
+
+
+.reporting-risk-scoring-guide{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;padding:12px;border:1px solid #e7edf3;border-radius:8px;background:#fbfcfd}
+.reporting-risk-scoring-guide>div{display:flex;flex-direction:column;gap:5px;min-width:0}
+.reporting-risk-scoring-guide strong{font-size:10px;color:#40566c}
+.reporting-risk-scoring-guide small{font-size:8px;line-height:1.5;color:#8392a3}
+@media(max-width:650px){.reporting-risk-scoring-guide{align-items:stretch;flex-direction:column}}
