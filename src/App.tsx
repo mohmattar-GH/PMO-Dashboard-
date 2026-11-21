@@ -3,6 +3,7 @@ import LivePortfolioOverview from "./LivePortfolioOverview";
 import ChangeRequests from "./ChangeRequests";
 import Deliverables from "./Deliverables";
 import Milestones from "./Milestones";
+import Notifications from "./Notifications";
 import {
   Activity, AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, Bell,
   CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
@@ -35,7 +36,7 @@ const navItems = [
   { label: "Change Requests", icon: FileClock },
   { label: "Deliverables", icon: FileCheck2 },
   { label: "Milestones", icon: Flag },
-  { label: "Notifications", icon: Bell, count: "4" },
+  { label: "Notifications", icon: Bell },
   { label: "Reports & Snapshots", icon: FileText },
 ];
 
@@ -78,6 +79,7 @@ function App({ displayName, roles, onSignOut }: AppProps) {
   const [showFinancial, setShowFinancial] = useState(false);
   const [toast, setToast] = useState("");
   const [section, setSection] = useState(0);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   const filteredProjects = useMemo(() => projects.filter((project) =>
     (phaseFilter === "All phases" || project.phase === phaseFilter) &&
@@ -107,7 +109,7 @@ function App({ displayName, roles, onSignOut }: AppProps) {
         <div className="nav-group-label">PORTFOLIO</div>
         {navItems.slice(0, 5).map(({ label, icon: Icon, count }) =>
           <button key={label} className={activeNav === label ? "nav-item active" : "nav-item"} onClick={() => { setActiveNav(label); setSidebarOpen(false); }}>
-            <Icon size={17}/><span>{label}</span>{count && <b>{count}</b>}
+            <Icon size={17}/><span>{label}</span>{label === "Notifications" && unreadNotifications > 0 && <b>{unreadNotifications}</b>}
           </button>
         )}
         <div className="nav-group-label nav-group-spaced">DELIVERY CONTROL</div>
@@ -132,7 +134,7 @@ function App({ displayName, roles, onSignOut }: AppProps) {
         <div className="topbar-left"><button className="icon-button mobile-menu" onClick={() => setSidebarOpen(true)}><Menu size={19}/></button><span className="breadcrumb">Portfolio <ChevronRight size={14}/> <strong>{activeNav}</strong></span></div>
         <div className="topbar-actions">
           <div className="global-search"><Search size={15}/><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search projects, records..." /><kbd>⌘ K</kbd></div>
-          <button className="icon-button notification-button" aria-label="Notifications" onClick={() => setActiveNav("Notifications")}><Bell size={18}/><i/></button>
+          <button className="icon-button notification-button" aria-label="Notifications" onClick={() => setActiveNav("Notifications")}><Bell size={18}/>{unreadNotifications > 0 && <i/>}</button>
           <button className="top-avatar" title="Sign out" onClick={() => void onSignOut()}>{displayName.split(/\s+/).map((part) => part[0]).slice(0,2).join("").toUpperCase()}</button>
         </div>
       </header>}
@@ -238,7 +240,7 @@ function App({ displayName, roles, onSignOut }: AppProps) {
             <div className="panel-heading"><div><h3>Recent phase changes</h3><span className="panel-subtitle">Lifecycle transitions recorded this month</span></div><button className="text-action" onClick={() => setActiveNav("Projects")}>Full phase history <ArrowRight size={13}/></button></div>
             <div className="phase-change-list"><div><strong>Customer Portal</strong><span>Testing <ArrowRight size={13}/> Deployment</span><small>18 Nov 2026 · 3 days in previous phase</small></div><div><strong>Document Management</strong><span>Execution <ArrowRight size={13}/> Testing</span><small>14 Nov 2026 · 21 days in previous phase</small></div><div><strong>Data Warehouse</strong><span>Deployment <ArrowRight size={13}/> Closure</span><small>12 Nov 2026 · 8 days in previous phase</small></div></div>
           </section>}
-        </>}</> : activeNav === "Change Requests" ? <ChangeRequests canManage={roles.includes("platform_admin") || roles.includes("project_manager")} /> : activeNav === "Deliverables" ? <Deliverables canManage={roles.includes("platform_admin") || roles.includes("project_manager")} /> : activeNav === "Milestones" ? <Milestones canManage={roles.includes("platform_admin") || roles.includes("project_manager")} isPlatformAdmin={roles.includes("platform_admin")} /> : <section className="module-placeholder panel">
+        </>}</> : activeNav === "Change Requests" ? <ChangeRequests canManage={roles.includes("platform_admin") || roles.includes("project_manager")} /> : activeNav === "Deliverables" ? <Deliverables canManage={roles.includes("platform_admin") || roles.includes("project_manager")} /> : activeNav === "Milestones" ? <Milestones canManage={roles.includes("platform_admin") || roles.includes("project_manager")} isPlatformAdmin={roles.includes("platform_admin")} /> : activeNav === "Notifications" ? <Notifications isAdmin={roles.includes("platform_admin")} onUnreadChange={setUnreadNotifications} /> : <section className="module-placeholder panel">
           <div className="placeholder-icon"><Command size={24}/></div><h2>{activeNav}</h2><p>The navigation and module entry point are in place. This screen will be implemented as the next delivery slice using the approved module wireframes and the existing governed backend.</p>
           <div className="placeholder-status"><span className="status-dot"/> UI foundation in progress</div>
           <button className="button-primary" onClick={() => setActiveNav("Executive Overview")}><ChevronLeft size={16}/> Back to Executive Overview</button>
