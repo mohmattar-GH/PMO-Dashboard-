@@ -922,3 +922,15 @@ Remaining backend validation is unchanged: provision test Auth users and members
 - Remaining CR work: atomic application to contract variations and schedule/milestone records, admin workflow authoring UI, CR screens/actions, SLA/escalation and notification event wiring.
 - Total live migration count: 77. Clean-environment replay of all 77 migrations remains unverified. No merge or deployment. Staff Time & Performance remains untouched.
 - Detailed implementation and test record: docs/database/CR_DELIVERABLES_MILESTONES_NOTIFICATIONS_BACKEND_FOUNDATION.md.
+
+
+## CR workflow guard corrections and final validation — 21 November 2026
+
+- Added migrations 078–079 (20261121100113 and 20261121100132) to correct workflow-field comparisons and make transaction-local authorization-context checks NULL-safe.
+- Important security correction: the original guard comparison could fail to detect direct lifecycle field changes when the custom transaction setting was absent. The final guard compares the protected fields directly and treats a missing context as unauthorized. The workflow publication guard applies the same fail-closed rule.
+- Rollback-only tests confirmed direct client status mutation is rejected and direct draft workflow publication is rejected. The end-to-end sequential approval test still passes after the creation and identity guards: PM submission, out-of-order Team Lead denial, Finance approval, Team Lead approval, final Approved state, two approval records and three history events.
+- All rollback-only test users/projects/CR records were removed by transaction rollback; a follow-up count returned zero.
+- Final Security Advisor check: no new findings. Two pre-existing public lifecycle SECURITY DEFINER warnings and the intentional private formula-template INFO remain. CR privileged implementations remain in private behind public SECURITY INVOKER wrappers.
+- Final Performance Advisor check: 19 unindexed-FK findings remain on pre-existing lifecycle/financial tables; no new unindexed-FK finding on CR/workflow module tables. Unused-index notices are informational while the database has no operational data.
+- Total applied migration count: 79. The last two migration files were compared against their live ledger SQL hashes and matched; all migration sources were archived directly from the live migration ledger.
+- Full clean-environment replay and real signed-JWT/Storage tests remain pending. No merge or deployment. Staff Time & Performance remains untouched.
