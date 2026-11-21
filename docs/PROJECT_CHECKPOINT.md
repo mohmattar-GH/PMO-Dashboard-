@@ -1024,3 +1024,13 @@ Remaining backend validation is unchanged: provision test Auth users and members
 - Added 20261121123623_lock_legacy_cr_approval_register_read_only. The approval table remains for historical traceability only and is read-only for anon, authenticated and service_role.
 - PostgreSQL catalog verification confirms CR-linked contract variation enforcement no longer references CR approval rows or workflow stages. The separate standalone contract-variation workflow retains its own Finance decision rule; this is not a CR approval gate.
 - The latest Security Advisor still reports only the two pre-existing public lifecycle SECURITY DEFINER warnings and the private formula-template INFO; no new CR-related warning was introduced.
+
+
+## Frontend delivery update — Change Requests (21 November 2026)
+
+- Added `src/ChangeRequests.tsx` and wired it to the Change Requests navigation item in `src/App.tsx`.
+- Added a responsive register, project/status/search filters, record workspace, lifecycle indicator, impact-assessment editor for draft CRs, submission action, assigned-PM-only accept/reject actions, mandatory decision reason, decision outcome and audit history.
+- CR approval stages, approver assignments and approval actions are not present in the new frontend. Impact assessments are presented as PM decision inputs.
+- The UI uses the existing Supabase project and public RPCs `submit_project_change_request` and `decide_project_change_request`; authorization remains enforced by database RLS and RPC validation.
+- The UI is connected to real tables, but the project currently has no Auth users/projects/CR fixtures. Real role-journey tests and a production build are not yet verified. No GitHub Actions workflow was triggered for these commits.
+- No Supabase schema changes, merge or deployment were made. Existing Staff Time & Performance project remains untouched.
