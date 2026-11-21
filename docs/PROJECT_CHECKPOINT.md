@@ -987,3 +987,17 @@ Remaining backend validation is unchanged: provision test Auth users and members
 - Total live migration count: 90. The clean replay of 87 migrations and frontend build passed before migrations 088–090. Full replay and build must be rerun at the latest branch head.
 - Notification inbox/rule screens, CR/deliverable screens, scheduled reminders/escalations, email, milestone re-baseline approval/application and real signed-JWT/API/Storage tests remain outstanding. No merge or deployment. Staff Time & Performance remains untouched.
 - Detailed implementation: docs/database/CR_DELIVERABLES_MILESTONES_NOTIFICATIONS_BACKEND_FOUNDATION.md.
+
+
+## PM-only Change Request decision model — 21 November 2026
+
+- User decision confirmed: the assigned Project Manager is the sole CR decision-maker. No CR route approval, Finance approval, Team Lead approval, or sequential/parallel approval stages.
+- Applied migrations 091–093: 20261121123154_cr_project_manager_only_decision_model, 20261121123213_remove_legacy_cr_finance_approval_gate, 20261121123320_cr_pm_only_variation_guard_and_assignment_lock.
+- New RPCs: submit_project_change_request and decide_project_change_request. Submission validates required impact assessments and an active assigned PM. Only that assigned PM may accept/reject; requester self-decision is blocked; decision reason, actor and timestamp are recorded.
+- Legacy CR transition RPC disabled; approval-assignment and self-approval triggers removed; approval table retained as historical-only with client writes revoked. Approval-needed routing removed from CR notifications.
+- Finance/technical impact remain assessment information. Removed Finance approval requirement from CR submission and CR-linked contract variation application. Contract/currency/variation matching and atomic financial/schedule application remain enforced.
+- Assigned PM is immutable after submission. PM acceptance applies linked variation and schedule changes atomically; original baseline remains preserved.
+- Exact SQL source matched live ledger for migrations 091–093. Security Advisor introduced no new CR-related warnings; two pre-existing public lifecycle SECURITY DEFINER warnings and one intentional private formula-template INFO remain. Performance Advisor retains 19 pre-existing lifecycle/financial unindexed-FK notices.
+- No Auth users, projects or CRs exist in the database, so signed-JWT role journey tests and real fixture-based positive/negative tests remain outstanding. Do not claim end-to-end verification.
+- Full clean replay of all 93 migrations and latest frontend build remain outstanding. No merge, no deployment. Staff Time & Performance remains untouched.
+- Detailed implementation: docs/database/CR_DELIVERABLES_MILESTONES_NOTIFICATIONS_BACKEND_FOUNDATION.md.
