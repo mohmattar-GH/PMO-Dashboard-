@@ -25,12 +25,6 @@ type Cash = { id: string; transaction_reference: string; transaction_type: strin
 
 const label = (value: string | null | undefined) => value ? value.replace(/_/g, " ").replace(/\b\w/g, (s) => s.toUpperCase()) : "Not Reported";
 const dateLabel = (value: string | null | undefined) => value ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(value + (value.length === 10 ? "T00:00:00" : ""))) : "Not Reported";
-const amount = (value: number | null | undefined, currency: string | null | undefined) => {
-  if (value === null || value === undefined) return "Not Reported";
-  if (!currency) return Number(value).toLocaleString() + " · Currency not reported";
-  try { return new Intl.NumberFormat(undefined, { style: "currency", currency: currency.trim() }).format(Number(value)); }
-  catch { return Number(value).toLocaleString() + " " + (currency || ""); }
-};
 const statusClass = (status: string | null | undefined) => (status || "not-reported").toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
 export default function Projects({ isPlatformAdmin, globalRoles }: { isPlatformAdmin: boolean; globalRoles: string[] }) {
