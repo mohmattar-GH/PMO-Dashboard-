@@ -3,7 +3,7 @@ import { CircleDollarSign, FilePlus2, Plus } from "lucide-react";
 import { supabase } from "./lib/supabase";
 
 type Contract = { id: string; contract_reference: string; contract_title: string; currency_code: string | null };
-type Invoice = { id: string; contract_id?: string | null; invoice_reference: string; invoice_type: string; status: string; issue_date: string | null; submission_date: string | null; due_date: string | null; currency_code: string; total_amount: number; disputed_reason: string | null; contract_id?: string | null };
+type Invoice = { id: string; contract_id?: string | null; invoice_reference: string; invoice_type: string; status: string; issue_date: string | null; submission_date: string | null; due_date: string | null; currency_code: string; total_amount: number; disputed_reason: string | null };
 type Balance = { invoice_id: string; applied_amount: number; outstanding_amount: number; is_settled: boolean };
 type Cash = { id: string; transaction_reference: string; transaction_type: string; status: string; transaction_date: string; currency_code: string; amount: number; payer_payee: string | null; bank_reference?: string | null };
 const label = (value: string | null | undefined) => value ? value.replace(/_/g, " ").replace(/\b\w/g, (s) => s.toUpperCase()) : "Not Reported";
