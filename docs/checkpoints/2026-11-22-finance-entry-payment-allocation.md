@@ -27,7 +27,7 @@
 - The database migration replay workflow is configured to rebuild an isolated local Supabase stack and apply all archived migrations from scratch.
 
 ## Remaining release gates
-1. Confirm frontend build run 660 and clean migration replay run 312 succeed.
+1. Keep the passing frontend build and 112-migration replay as release evidence; repeat after any further source or migration changes.
 2. Provision controlled test identities and isolated project fixtures; then run Finance, PM, Team Lead, Platform Admin and Executive Viewer signed-JWT tests.
 3. Browser-test invoice creation, cash transaction creation, same-currency allocation, over-allocation rejection, and allocation reversal.
 4. Continue remaining general project-profile editing and any separately approved dashboard/notification enhancements.
