@@ -55,7 +55,7 @@ The repository root currently contains documentation and the `supabase/` source 
 
 ### UI and delivery gate
 
-The dashboard and operational screen specifications remain subject to the user's review of the complete screen structure and interaction approach. Do not begin frontend implementation or select a frontend framework/component library until that review is explicitly approved.
+The approved primary navigation and the full first-round screen blueprint are documented in `docs/UI_REVIEW_ROUND_1_2026-11-22.md`. The navigation approval does not yet constitute approval of every screen interaction. Do not begin frontend implementation or select a frontend framework/component library until the user approves the complete screen structure and interaction approach.
 
 Production publishing/deployment remains reserved for explicit user approval.
 
@@ -67,4 +67,4 @@ Production publishing/deployment remains reserved for explicit user approval.
 4. Complete end-to-end, security, regression, and acceptance testing.
 5. Prepare operational documentation and handover.
 
-See `docs/requirements/PRD.md`, `docs/architecture/ARCHITECTURE.md`, `docs/UI_SCREEN_SPECIFICATIONS.md`, and `docs/PROJECT_CHECKPOINT.md`.
+See `docs/requirements/PRD.md`, `docs/architecture/ARCHITECTURE.md`, `docs/UI_SCREEN_SPECIFICATIONS.md`, `docs/UI_REVIEW_ROUND_1_2026-11-22.md`, and `docs/PROJECT_CHECKPOINT_2026-11-22.md`.
