@@ -3,6 +3,7 @@ import { AlertTriangle, ArrowLeft, BriefcaseBusiness, CheckCircle2, Layers3, Plu
 import { supabase } from "./lib/supabase";
 import ProjectCommercialEditor from "./ProjectCommercialEditor";
 import ProjectOperationsEditor from "./ProjectOperationsEditor";
+import ProjectPaymentsEditor from "./ProjectPaymentsEditor";
 
 type Project = {
   id: string; project_code: string; name: string; client_id: string | null; portfolio_id: string | null;
@@ -232,10 +233,12 @@ export default function Projects({ isPlatformAdmin, globalRoles }: { isPlatformA
           <ProjectOperationsEditor mode="activities" projectId={selected.id} activities={activities} risks={risks} licenses={licenses} milestones={milestones} teamMembers={teamDirectory.filter((member) => member.project_id === selected.id)} currentUserId={currentUserId} canManageProject={isPlatformAdmin || teamDirectory.some((member) => member.project_id === selected.id && member.user_id === currentUserId && member.project_role === "project_manager")} onSaved={async () => { await loadDetail(selected); }}/>
         </div>}
         {activeTab === "risk" && <ProjectOperationsEditor mode="risks" projectId={selected.id} activities={activities} risks={risks} licenses={licenses} milestones={milestones} teamMembers={teamDirectory.filter((member) => member.project_id === selected.id)} currentUserId={currentUserId} canManageProject={isPlatformAdmin || teamDirectory.some((member) => member.project_id === selected.id && member.user_id === currentUserId && member.project_role === "project_manager")} onSaved={async () => { await loadDetail(selected); }}/>}
-        {activeTab === "payments" && <div className="project-detail-grid">
-          <article className="panel project-info-panel"><div className="project-panel-heading"><h3>Invoices & Receivables</h3><span>Financial access controlled by RLS</span></div>{invoices.length ? <div className="project-invoice-list">{invoices.map((invoice) => { const balance = balances[invoice.id]; return <div className="project-invoice-row" key={invoice.id}><div><strong>{invoice.invoice_reference}</strong><small>{label(invoice.invoice_type)} · {label(invoice.status)} · Issued {dateLabel(invoice.issue_date)} · Due {dateLabel(invoice.due_date)}</small>{invoice.disputed_reason && <small className="project-dispute">Dispute: {invoice.disputed_reason}</small>}</div><div><strong>{amount(invoice.total_amount, invoice.currency_code)}</strong><small>Applied {amount(balance?.applied_amount, invoice.currency_code)}</small><small>Outstanding {amount(balance?.outstanding_amount, invoice.currency_code)}</small></div></div>; })}</div> : <p className="project-empty-inline">No accessible invoice records. They may be unreported or restricted by the current financial access grant.</p>}</article>
-          <article className="panel project-info-panel"><div className="project-panel-heading"><h3>Cash Transactions</h3><span>Finance-controlled records</span></div>{cash.length ? cash.map((transaction) => <div className="project-invoice-row" key={transaction.id}><div><strong>{transaction.transaction_reference}</strong><small>{label(transaction.transaction_type)} · {label(transaction.status)} · {dateLabel(transaction.transaction_date)}</small><small>{transaction.payer_payee || "Counterparty not reported"}</small></div><strong>{amount(transaction.amount, transaction.currency_code)}</strong></div>) : <p className="project-empty-inline">No accessible cash transactions. They may be unreported or restricted by the current financial access grant.</p>}</article>
-        </div>}
+        {activeTab === "payments" && <ProjectPaymentsEditor
+          projectId={selected.id} contracts={contracts} invoices={invoices} balances={balances} cash={cash}
+          defaultCurrency={finance?.currency_code ?? selected.currency_code}
+          canManageFinance={isPlatformAdmin || globalRoles.includes("finance_admin") || teamDirectory.some((member) => member.project_id === selected.id && member.user_id === currentUserId && member.project_role === "finance")}
+          onSaved={async () => { await loadDetail(selected); }}
+        />}
       </>}
     </>}
   </section>;
