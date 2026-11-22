@@ -3,7 +3,7 @@ do $patch$
 declare
  d text;
  start_marker text := ' dimension_metrics as (';
- end_marker text := E'\n )\n select count(*),';
+ end_marker text := E' from dimension_metrics;';
  s integer; e integer; replacement text;
 begin
  d:=pg_get_functiondef('private.calculate_project_health_v1(uuid,jsonb,timestamp with time zone,date)'::regprocedure);

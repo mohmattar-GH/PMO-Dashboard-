@@ -1,10 +1,10 @@
 begin;
 
-CREATE OR REPLACE FUNCTION private.guard_reporting_cycle_mutation()
- RETURNS trigger
- LANGUAGE plpgsql
- SET search_path TO ''
-AS $function$
+create or replace function private.guard_reporting_cycle_mutation()
+returns trigger
+language plpgsql
+set search_path = ''
+as $function$
 begin
   if tg_op = 'DELETE' then
     if exists (select 1 from public.portfolio_snapshots ps where ps.reporting_cycle_id = old.id) then
@@ -22,14 +22,109 @@ begin
   new.updated_at := now();
   return new;
 end;
-$function$
+$function$;
 
+create or replace function public.create_reporting_cycle(
+  p_actor_user_id uuid,
+  p_cycle_code text,
+  p_period_start date,
+  p_period_end date,
+  p_cutoff_at timestamptz,
+  p_as_of_date date,
+  p_timezone text,
+  p_reason text
+)
+returns jsonb
+language plpgsql
+security invoker
+set search_path = ''
+as $function$
+declare
+  v_cycle public.reporting_cycles%rowtype;
+begin
+  if coalesce(current_setting('request.jwt.claims',true)::jsonb->>'role','') <> 'service_role' then
+    raise exception 'Service role required';
+  end if;
+  if p_actor_user_id is null then raise exception 'Actor is required'; end if;
+  if p_reason is null or length(btrim(p_reason)) not between 8 and 1000 then raise exception 'A reason of 8–1000 characters is required'; end if;
+  if not exists (
+    select 1 from public.user_global_role_assignments ura
+    where ura.user_id=p_actor_user_id and ura.role_code='platform_admin'
+      and ura.status='active' and ura.effective_from<=now()
+      and (ura.effective_to is null or ura.effective_to>now())
+  ) then raise exception 'Forbidden: platform administrator permission required'; end if;
+  if p_period_start is null or p_period_end is null or p_period_end<p_period_start then
+    raise exception 'A valid reporting period is required';
+  end if;
+  if p_as_of_date is null or p_as_of_date not between p_period_start and p_period_end then
+    raise exception 'as_of_date must fall within the reporting period';
+  end if;
+  if p_cutoff_at is null then raise exception 'cutoff_at is required'; end if;
+  if nullif(btrim(p_cycle_code),'') is null then raise exception 'cycle_code is required'; end if;
+  if not exists(select 1 from pg_catalog.pg_timezone_names where name=p_timezone) then
+    raise exception 'A valid IANA timezone is required';
+  end if;
 
-CREATE OR REPLACE FUNCTION public.build_weekly_portfolio_snapshot(p_reporting_cycle_id uuid, p_actor_user_id uuid DEFAULT NULL::uuid)
- RETURNS jsonb
- LANGUAGE plpgsql
- SET search_path TO ''
-AS $function$
+  insert into public.reporting_cycles(cycle_code,period_start,period_end,cutoff_at,as_of_date,timezone,status,created_by)
+  values(btrim(p_cycle_code),p_period_start,p_period_end,p_cutoff_at,p_as_of_date,p_timezone,'open',p_actor_user_id)
+  returning * into v_cycle;
+
+  insert into private.security_audit_events(actor_user_id,action,entity_schema,entity_table,entity_id,reason,after_data)
+  values(p_actor_user_id,'reporting_cycle_created','public','reporting_cycles',v_cycle.id,btrim(p_reason),
+    jsonb_build_object('cycle_code',v_cycle.cycle_code,'period_start',v_cycle.period_start,'period_end',v_cycle.period_end,
+      'cutoff_at',v_cycle.cutoff_at,'as_of_date',v_cycle.as_of_date,'timezone',v_cycle.timezone,'status',v_cycle.status));
+
+  return jsonb_build_object('reporting_cycle_id',v_cycle.id,'cycle_code',v_cycle.cycle_code,'status',v_cycle.status);
+end;
+$function$;
+
+create or replace function public.close_reporting_cycle(
+  p_actor_user_id uuid,
+  p_reporting_cycle_id uuid,
+  p_reason text
+)
+returns jsonb
+language plpgsql
+security invoker
+set search_path = ''
+as $function$
+declare
+  v_cycle public.reporting_cycles%rowtype;
+begin
+  if coalesce(current_setting('request.jwt.claims',true)::jsonb->>'role','') <> 'service_role' then
+    raise exception 'Service role required';
+  end if;
+  if p_actor_user_id is null then raise exception 'Actor is required'; end if;
+  if p_reason is null or length(btrim(p_reason)) not between 8 and 1000 then raise exception 'A reason of 8–1000 characters is required'; end if;
+  if not exists (
+    select 1 from public.user_global_role_assignments ura
+    where ura.user_id=p_actor_user_id and ura.role_code='platform_admin'
+      and ura.status='active' and ura.effective_from<=now()
+      and (ura.effective_to is null or ura.effective_to>now())
+  ) then raise exception 'Forbidden: platform administrator permission required'; end if;
+
+  select * into v_cycle from public.reporting_cycles where id=p_reporting_cycle_id for update;
+  if not found then raise exception 'Reporting cycle not found'; end if;
+  if v_cycle.status<>'open' then raise exception 'Only open reporting cycles can be closed'; end if;
+  if v_cycle.cutoff_at>now() then raise exception 'Reporting cutoff has not been reached'; end if;
+
+  update public.reporting_cycles set status='closed' where id=v_cycle.id;
+  insert into private.security_audit_events(actor_user_id,action,entity_schema,entity_table,entity_id,reason,before_data,after_data)
+  values(p_actor_user_id,'reporting_cycle_closed','public','reporting_cycles',v_cycle.id,btrim(p_reason),
+    jsonb_build_object('status','open'),jsonb_build_object('status','closed','cutoff_at',v_cycle.cutoff_at));
+  return jsonb_build_object('reporting_cycle_id',v_cycle.id,'status','closed');
+end;
+$function$;
+
+create or replace function public.build_weekly_portfolio_snapshot(
+  p_reporting_cycle_id uuid,
+  p_actor_user_id uuid default null
+)
+returns jsonb
+language plpgsql
+security invoker
+set search_path = ''
+as $function$
 declare
   v_cycle public.reporting_cycles%rowtype;
   v_snapshot_id uuid;
@@ -140,93 +235,17 @@ begin
     'snapshot_status','building','project_count',v_project_count,'global_configuration_version_count',v_global_count,
     'kpi_calculation_status','not_implemented');
 end;
-$function$
+$function$;
 
-
-CREATE OR REPLACE FUNCTION public.close_reporting_cycle(p_actor_user_id uuid, p_reporting_cycle_id uuid, p_reason text)
- RETURNS jsonb
- LANGUAGE plpgsql
- SET search_path TO ''
-AS $function$
-declare
-  v_cycle public.reporting_cycles%rowtype;
-begin
-  if coalesce(current_setting('request.jwt.claims',true)::jsonb->>'role','') <> 'service_role' then
-    raise exception 'Service role required';
-  end if;
-  if p_actor_user_id is null then raise exception 'Actor is required'; end if;
-  if p_reason is null or length(btrim(p_reason)) not between 8 and 1000 then raise exception 'A reason of 8–1000 characters is required'; end if;
-  if not exists (
-    select 1 from public.user_global_role_assignments ura
-    where ura.user_id=p_actor_user_id and ura.role_code='platform_admin'
-      and ura.status='active' and ura.effective_from<=now()
-      and (ura.effective_to is null or ura.effective_to>now())
-  ) then raise exception 'Forbidden: platform administrator permission required'; end if;
-
-  select * into v_cycle from public.reporting_cycles where id=p_reporting_cycle_id for update;
-  if not found then raise exception 'Reporting cycle not found'; end if;
-  if v_cycle.status<>'open' then raise exception 'Only open reporting cycles can be closed'; end if;
-  if v_cycle.cutoff_at>now() then raise exception 'Reporting cutoff has not been reached'; end if;
-
-  update public.reporting_cycles set status='closed' where id=v_cycle.id;
-  insert into private.security_audit_events(actor_user_id,action,entity_schema,entity_table,entity_id,reason,before_data,after_data)
-  values(p_actor_user_id,'reporting_cycle_closed','public','reporting_cycles',v_cycle.id,btrim(p_reason),
-    jsonb_build_object('status','open'),jsonb_build_object('status','closed','cutoff_at',v_cycle.cutoff_at));
-  return jsonb_build_object('reporting_cycle_id',v_cycle.id,'status','closed');
-end;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.create_reporting_cycle(p_actor_user_id uuid, p_cycle_code text, p_period_start date, p_period_end date, p_cutoff_at timestamp with time zone, p_as_of_date date, p_timezone text, p_reason text)
- RETURNS jsonb
- LANGUAGE plpgsql
- SET search_path TO ''
-AS $function$
-declare
-  v_cycle public.reporting_cycles%rowtype;
-begin
-  if coalesce(current_setting('request.jwt.claims',true)::jsonb->>'role','') <> 'service_role' then
-    raise exception 'Service role required';
-  end if;
-  if p_actor_user_id is null then raise exception 'Actor is required'; end if;
-  if p_reason is null or length(btrim(p_reason)) not between 8 and 1000 then raise exception 'A reason of 8–1000 characters is required'; end if;
-  if not exists (
-    select 1 from public.user_global_role_assignments ura
-    where ura.user_id=p_actor_user_id and ura.role_code='platform_admin'
-      and ura.status='active' and ura.effective_from<=now()
-      and (ura.effective_to is null or ura.effective_to>now())
-  ) then raise exception 'Forbidden: platform administrator permission required'; end if;
-  if p_period_start is null or p_period_end is null or p_period_end<p_period_start then
-    raise exception 'A valid reporting period is required';
-  end if;
-  if p_as_of_date is null or p_as_of_date not between p_period_start and p_period_end then
-    raise exception 'as_of_date must fall within the reporting period';
-  end if;
-  if p_cutoff_at is null then raise exception 'cutoff_at is required'; end if;
-  if nullif(btrim(p_cycle_code),'') is null then raise exception 'cycle_code is required'; end if;
-  if not exists(select 1 from pg_catalog.pg_timezone_names where name=p_timezone) then
-    raise exception 'A valid IANA timezone is required';
-  end if;
-
-  insert into public.reporting_cycles(cycle_code,period_start,period_end,cutoff_at,as_of_date,timezone,status,created_by)
-  values(btrim(p_cycle_code),p_period_start,p_period_end,p_cutoff_at,p_as_of_date,p_timezone,'open',p_actor_user_id)
-  returning * into v_cycle;
-
-  insert into private.security_audit_events(actor_user_id,action,entity_schema,entity_table,entity_id,reason,after_data)
-  values(p_actor_user_id,'reporting_cycle_created','public','reporting_cycles',v_cycle.id,btrim(p_reason),
-    jsonb_build_object('cycle_code',v_cycle.cycle_code,'period_start',v_cycle.period_start,'period_end',v_cycle.period_end,
-      'cutoff_at',v_cycle.cutoff_at,'as_of_date',v_cycle.as_of_date,'timezone',v_cycle.timezone,'status',v_cycle.status));
-
-  return jsonb_build_object('reporting_cycle_id',v_cycle.id,'cycle_code',v_cycle.cycle_code,'status',v_cycle.status);
-end;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.finalize_weekly_portfolio_snapshot(p_portfolio_snapshot_id uuid, p_actor_user_id uuid DEFAULT NULL::uuid)
- RETURNS jsonb
- LANGUAGE plpgsql
- SET search_path TO ''
-AS $function$
+create or replace function public.finalize_weekly_portfolio_snapshot(
+  p_portfolio_snapshot_id uuid,
+  p_actor_user_id uuid default null
+)
+returns jsonb
+language plpgsql
+security invoker
+set search_path = ''
+as $function$
 declare
   v_snapshot public.portfolio_snapshots%rowtype;
   v_cycle public.reporting_cycles%rowtype;
@@ -270,14 +289,19 @@ begin
   return jsonb_build_object('portfolio_snapshot_id',v_snapshot.id,'reporting_cycle_id',v_cycle.id,
     'snapshot_status','finalized','project_count',v_actual_projects,'kpi_calculation_status','not_implemented');
 end;
-$function$
+$function$;
 
-
-CREATE OR REPLACE FUNCTION public.record_snapshot_correction(p_actor_user_id uuid, p_original_snapshot_id uuid, p_replacement_snapshot_id uuid, p_reason text)
- RETURNS jsonb
- LANGUAGE plpgsql
- SET search_path TO ''
-AS $function$
+create or replace function public.record_snapshot_correction(
+  p_actor_user_id uuid,
+  p_original_snapshot_id uuid,
+  p_replacement_snapshot_id uuid,
+  p_reason text
+)
+returns jsonb
+language plpgsql
+security invoker
+set search_path = ''
+as $function$
 declare
   v_original public.portfolio_snapshots%rowtype;
   v_replacement public.portfolio_snapshots%rowtype;
@@ -324,14 +348,14 @@ begin
   return jsonb_build_object('correction_id',v_correction_id,'original_snapshot_id',v_original.id,
     'replacement_snapshot_id',v_replacement.id,'status','recorded');
 end;
-$function$
-
+$function$;
 
 revoke all on function public.create_reporting_cycle(uuid,text,date,date,timestamptz,date,text,text) from public,anon,authenticated;
 revoke all on function public.close_reporting_cycle(uuid,uuid,text) from public,anon,authenticated;
 revoke all on function public.build_weekly_portfolio_snapshot(uuid,uuid) from public,anon,authenticated;
 revoke all on function public.finalize_weekly_portfolio_snapshot(uuid,uuid) from public,anon,authenticated;
 revoke all on function public.record_snapshot_correction(uuid,uuid,uuid,text) from public,anon,authenticated;
+
 grant execute on function public.create_reporting_cycle(uuid,text,date,date,timestamptz,date,text,text) to service_role;
 grant execute on function public.close_reporting_cycle(uuid,uuid,text) to service_role;
 grant execute on function public.build_weekly_portfolio_snapshot(uuid,uuid) to service_role;

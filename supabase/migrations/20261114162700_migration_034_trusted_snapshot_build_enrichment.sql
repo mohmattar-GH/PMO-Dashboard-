@@ -32,6 +32,7 @@ begin
  if tg_op='DELETE' then
   raise exception 'Portfolio snapshots are append-only';
  end if;
+
  if old.snapshot_status='building'
     and new.snapshot_status='building'
     and current_user='service_role'
@@ -39,11 +40,13 @@ begin
     and new.portfolio_summary @> old.portfolio_summary then
   return new;
  end if;
+
  if old.snapshot_status='building'
     and new.snapshot_status='finalized'
     and (to_jsonb(new)-'snapshot_status')=(to_jsonb(old)-'snapshot_status') then
   return new;
  end if;
+
  raise exception 'Only trusted build-time summary enrichment and the building-to-finalized transition are permitted';
 end;
 $function$;

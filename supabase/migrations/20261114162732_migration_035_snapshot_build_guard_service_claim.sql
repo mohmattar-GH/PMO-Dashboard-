@@ -21,17 +21,26 @@ begin
  raise exception 'Snapshot records are immutable; create a replacement snapshot instead';
 end;
 $function$;
+
 create or replace function private.guard_portfolio_snapshot_mutation()
-returns trigger language plpgsql set search_path=''
+returns trigger
+language plpgsql
+set search_path=''
 as $function$
 begin
  if tg_op='DELETE' then raise exception 'Portfolio snapshots are append-only'; end if;
- if old.snapshot_status='building' and new.snapshot_status='building'
+ if old.snapshot_status='building'
+    and new.snapshot_status='building'
     and coalesce(current_setting('request.jwt.claims',true)::jsonb->>'role','')='service_role'
     and (to_jsonb(new)-'portfolio_summary')=(to_jsonb(old)-'portfolio_summary')
-    and new.portfolio_summary @> old.portfolio_summary then return new; end if;
- if old.snapshot_status='building' and new.snapshot_status='finalized'
-    and (to_jsonb(new)-'snapshot_status')=(to_jsonb(old)-'snapshot_status') then return new; end if;
+    and new.portfolio_summary @> old.portfolio_summary then
+  return new;
+ end if;
+ if old.snapshot_status='building'
+    and new.snapshot_status='finalized'
+    and (to_jsonb(new)-'snapshot_status')=(to_jsonb(old)-'snapshot_status') then
+  return new;
+ end if;
  raise exception 'Only trusted build-time summary enrichment and the building-to-finalized transition are permitted';
 end;
 $function$;

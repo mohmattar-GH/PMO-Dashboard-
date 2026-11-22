@@ -40,6 +40,10 @@ A standalone, enterprise-oriented Project Portfolio Management (PPM) platform fo
 
 See [Product Requirements](docs/requirements/PRD.md) and [Architecture](docs/architecture/ARCHITECTURE.md).
 
-## Status
+## Current implementation status
 
-Repository initialized with the project charter and baseline requirements. Application implementation and Supabase schema are not yet represented as completed work.
+- Backend foundation and migrations are documented in the project checkpoint.
+- The initial React/TypeScript frontend foundation is being developed on `feature/ppm-frontend-foundation`.
+- The first UI slice uses clearly labelled demo data; authentication, live Supabase integration, operational CRUD and full module workflows remain in progress.
+- See [Frontend Implementation Status](docs/FRONTEND_IMPLEMENTATION_STATUS.md) and the [20 November 2026 frontend checkpoint](docs/checkpoints/2026-11-20-frontend-foundation.md).
+- No production deployment or publishing has been performed.

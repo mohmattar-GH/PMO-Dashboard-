@@ -33,7 +33,7 @@ begin
  ) into v_critical_dimensions;$new$);
  d:=replace(d,'select u->>''reported_health_status''','select lower(u->>''reported_health_status'')');
  if position('where configuration_version_id=v_project_version and rule_code=''overall_health''' in d)=0
-  or position('lower(u->>''reported_health_status'')' in d)=0 then
+   or position('lower(u->>''reported_health_status'')' in d)=0 then
   raise exception 'Global/project health configuration fallback patch validation failed';
  end if;
  execute d;

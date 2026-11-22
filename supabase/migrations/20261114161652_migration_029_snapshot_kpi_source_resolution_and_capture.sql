@@ -1,17 +1,44 @@
--- Reconstructed from live definitions applied as migration 029 (version 20261114161652).
--- Migration 030 subsequently extends the calculator with portfolio-level KPI rollups.
 begin;
-alter table public.snapshot_metric_values
- add column if not exists configuration_version_id uuid references public.reporting_configuration_versions(id) on delete restrict;
-alter table public.snapshot_metric_values add column if not exists formula_template_code text;
-alter table public.snapshot_metric_values add column if not exists source_cutoff timestamptz;
 
-CREATE OR REPLACE FUNCTION private.resolve_kpi_inputs_v1(p_project_id uuid, p_cutoff timestamp with time zone, p_template_code text, p_parameters jsonb, p_source_mapping jsonb)
- RETURNS jsonb
- LANGUAGE plpgsql
- STABLE
- SET search_path TO ''
-AS $function$
+create or replace function private.kpi_source_has_post_cutoff_changes_v1(
+ p_project_id uuid,p_source text,p_cutoff timestamptz
+)
+returns boolean
+language plpgsql
+stable
+security invoker
+set search_path=''
+as $$
+declare v_changed boolean:=false;
+begin
+ case p_source
+  when 'projects' then select exists(select 1 from public.projects t where t.id=p_project_id and t.created_at<=p_cutoff and t.updated_at>p_cutoff) into v_changed;
+  when 'activities' then select exists(select 1 from public.project_activities t where t.project_id=p_project_id and t.created_at<=p_cutoff and t.updated_at>p_cutoff) into v_changed;
+  when 'milestones' then select exists(select 1 from public.project_milestones t where t.project_id=p_project_id and t.created_at<=p_cutoff and t.updated_at>p_cutoff) into v_changed;
+  when 'invoices' then select exists(select 1 from public.project_invoices t where t.project_id=p_project_id and t.created_at<=p_cutoff and t.updated_at>p_cutoff) into v_changed;
+  when 'cash_transactions' then v_changed:=false;
+  when 'risks' then select exists(select 1 from public.project_risks t where t.project_id=p_project_id and t.created_at<=p_cutoff and t.updated_at>p_cutoff) into v_changed;
+  when 'licenses' then select exists(select 1 from public.project_licenses t where t.project_id=p_project_id and t.created_at<=p_cutoff and t.updated_at>p_cutoff) into v_changed;
+  when 'weekly_updates' then select exists(select 1 from public.project_weekly_updates t where t.project_id=p_project_id and t.created_at<=p_cutoff and t.updated_at>p_cutoff) into v_changed;
+  when 'management_decisions' then select exists(select 1 from public.project_management_decisions t where t.project_id=p_project_id and t.created_at<=p_cutoff and t.updated_at>p_cutoff) into v_changed;
+  when 'contract_deliverables' then select exists(select 1 from public.contract_deliverables t where t.project_id=p_project_id and t.created_at<=p_cutoff and t.updated_at>p_cutoff) into v_changed;
+  when 'contracts' then select exists(select 1 from public.project_contracts t where t.project_id=p_project_id and t.created_at<=p_cutoff and t.updated_at>p_cutoff) into v_changed;
+  when 'financial_terms' then select exists(select 1 from public.project_financial_terms t where t.project_id=p_project_id and t.created_at<=p_cutoff and t.updated_at>p_cutoff) into v_changed;
+  else raise exception 'Unsupported KPI source: %',p_source using errcode='22023';
+ end case;
+ return v_changed;
+end;
+$$;
+
+create or replace function private.resolve_kpi_inputs_v1(
+ p_project_id uuid,p_cutoff timestamptz,p_template_code text,p_parameters jsonb,p_source_mapping jsonb
+)
+returns jsonb
+language plpgsql
+stable
+security invoker
+set search_path=''
+as $$
 declare
  v_inputs jsonb:='{}'::jsonb;
  v_lineage jsonb:='[]'::jsonb;
@@ -107,13 +134,19 @@ begin
  end loop;
  return jsonb_build_object('inputs',v_inputs,'source_lineage',v_lineage);
 end;
-$function$
+$$;
 
-CREATE OR REPLACE FUNCTION private.calculate_project_snapshot_kpis_v1(p_project_snapshot_id uuid)
- RETURNS jsonb
- LANGUAGE plpgsql
- SET search_path TO ''
-AS $function$
+alter table public.snapshot_metric_values
+ add column if not exists configuration_version_id uuid references public.reporting_configuration_versions(id) on delete restrict,
+ add column if not exists formula_template_code text,
+ add column if not exists source_cutoff timestamptz;
+
+create or replace function private.calculate_project_snapshot_kpis_v1(p_project_snapshot_id uuid)
+returns jsonb
+language plpgsql
+security invoker
+set search_path=''
+as $$
 declare
  v_ps public.project_snapshots%rowtype;
  v_portfolio public.portfolio_snapshots%rowtype;
@@ -220,32 +253,35 @@ begin
   'calculated_health_reason','Overall health aggregation requires a published configurable health mapping and complete dimension weights'
  )
  where id=v_ps.id;
-   return jsonb_build_object('project_snapshot_id',v_ps.id,'kpi_count',v_count,'not_reported',v_not_reported,
+ return jsonb_build_object('project_snapshot_id',v_ps.id,'kpi_count',v_count,'not_reported',v_not_reported,
   'insufficient_data',v_insufficient,'not_reconstructable',v_not_reconstructable,'dimensions',v_dimension_summary);
 end;
-$function$
+$$;
 
-CREATE OR REPLACE FUNCTION private.on_project_snapshot_calculate_kpis_v1()
- RETURNS trigger
- LANGUAGE plpgsql
- SET search_path TO ''
-AS $function$
+create or replace function private.on_project_snapshot_calculate_kpis_v1()
+returns trigger
+language plpgsql
+security invoker
+set search_path=''
+as $$
 begin
  perform private.calculate_project_snapshot_kpis_v1(new.id);
  return new;
 end;
-$function$
-
+$$;
 
 drop trigger if exists trg_project_snapshot_calculate_kpis_v1 on public.project_snapshots;
 create trigger trg_project_snapshot_calculate_kpis_v1
  after insert on public.project_snapshots
  for each row execute function private.on_project_snapshot_calculate_kpis_v1();
 
+revoke all on function private.kpi_source_has_post_cutoff_changes_v1(uuid,text,timestamptz) from public,anon,authenticated;
 revoke all on function private.resolve_kpi_inputs_v1(uuid,timestamptz,text,jsonb,jsonb) from public,anon,authenticated;
 revoke all on function private.calculate_project_snapshot_kpis_v1(uuid) from public,anon,authenticated;
 revoke all on function private.on_project_snapshot_calculate_kpis_v1() from public,anon,authenticated;
+grant execute on function private.kpi_source_has_post_cutoff_changes_v1(uuid,text,timestamptz) to service_role;
 grant execute on function private.resolve_kpi_inputs_v1(uuid,timestamptz,text,jsonb,jsonb) to service_role;
 grant execute on function private.calculate_project_snapshot_kpis_v1(uuid) to service_role;
 grant execute on function private.on_project_snapshot_calculate_kpis_v1() to service_role;
+
 commit;
