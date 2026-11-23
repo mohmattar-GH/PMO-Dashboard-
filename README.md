@@ -55,7 +55,7 @@ The repository root currently contains documentation and the `supabase/` source 
 
 ### UI and delivery gate
 
-The approved primary navigation and the full first-round screen blueprint are documented in `docs/UI_REVIEW_ROUND_1_2026-11-22.md`. The navigation approval does not yet constitute approval of every screen interaction. Do not begin frontend implementation or select a frontend framework/component library until the user approves the complete screen structure and interaction approach.
+The approved primary navigation and the full first-round screen blueprint are documented in `docs/UI_REVIEW_ROUND_1_2026-11-22.md`. The product owner accepted the complete first-round screen blueprint on 23 November 2026. The blueprint is the baseline for the first software release; post-release review may result in controlled UI changes.
 
 Production publishing/deployment remains reserved for explicit user approval.
 
