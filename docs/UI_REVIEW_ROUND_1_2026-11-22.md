@@ -1,6 +1,6 @@
 # UI Review Round 1 — Full Navigation and Screen Blueprint
 
-**Status:** Draft for product-owner review. The primary navigation was approved by the product owner on 22 November 2026. This approval authorizes continued design detailing only; it does not yet authorize frontend implementation.
+**Status:** Accepted baseline for first software release (product-owner approval: 23 November 2026). The product owner may request changes after reviewing the first release; such changes will be assessed and incorporated through controlled updates.
 
 ## 1. Approved primary navigation
 
