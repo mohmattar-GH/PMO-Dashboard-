@@ -2,6 +2,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import ProjectsRegister from "./projects-register";
 
 export type DashboardData = {
   profileName: string | null;
@@ -76,7 +77,7 @@ export default function DashboardShell({ email, data }: { email: string; data: D
           <div className="heading-meta"><span className="live-label"><i /> LIVE WORKSPACE</span><span className="as-of">Reporting snapshot <strong>{snapshotDate ?? "Not yet generated"}</strong></span></div>
         </div>
         {!data.hasPlatformAccess && <section className="setup-alert"><strong>Account access setup is incomplete.</strong><span>Your sign-in is valid, but no active PMO role/profile is assigned. A platform administrator must provision your user profile and role before project data becomes available. This is an access-control requirement, not a dashboard data issue.</span></section>}
-        {active === "Executive Overview" ? <Overview data={data} /> : <SectionPlaceholder title={active} />}
+        {active === "Executive Overview" ? <Overview data={data} /> : active === "Projects Register" ? <ProjectsRegister data={data} /> : <SectionPlaceholder title={active} />}
         <footer className="page-footer"><span>EXECUTIVE PPM PLATFORM</span><span>Data visibility is governed by assigned role and project access.</span></footer>
       </div>
     </main>
@@ -115,7 +116,7 @@ function Overview({ data }: { data: DashboardData }) {
       <section className="panel wide-panel"><div className="panel-heading"><div><span className="section-kicker">04 / DELIVERY CONFIDENCE</span><h2>Projects register</h2></div><span className="panel-menu">···</span></div>
         <div className="empty-table">
           <div className="empty-table-head"><span>PROJECT</span><span>CODE</span><span>STATUS</span><span>TARGET END</span></div>
-          {data.projects.length ? data.projects.map(project => <div className="project-table-row" key={project.id}><strong>{project.name}</strong><span>{project.project_code}</span><span>{project.lifecycle_status}</span><span>{project.target_end_date ?? "Not set"}</span></div>) : <div className="empty-table-body"><strong>{data.projectsError ? "Project data is unavailable" : "No project records are visible"}</strong><span>Once a project is registered and your account is authorized, it will appear here. Missing data is not classified as Green.</span></div>}
+          {data.projects.length ? data.projects.slice(0,8).map(project => <div className="project-table-row" key={project.id}><strong>{project.name}</strong><span>{project.project_code}</span><span>{project.lifecycle_status}</span><span>{project.target_end_date ?? "Not set"}</span></div>) : <div className="empty-table-body"><strong>{data.projectsError ? "Project data is unavailable" : "No project records are visible"}</strong><span>Once a project is registered and your account is authorized, it will appear here. Missing data is not classified as Green.</span></div>}
         </div>
         <div className="panel-footnote">Project visibility is restricted by project membership and global role.</div>
       </section>
